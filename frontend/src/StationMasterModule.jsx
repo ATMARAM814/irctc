@@ -1,1130 +1,1170 @@
 import { useMemo, useState } from "react";
 import {
+  AlertTriangle,
+  Award,
   BarChart3,
   CalendarCheck2,
+  CheckCircle2,
   ClipboardCheck,
   FileBarChart2,
   Filter,
+  Gauge,
   LogOut,
-  Plus,
   Search,
   ShieldCheck,
+  TrendingUp,
   UserCircle2,
-  Users
+  Users,
+  XCircle,
+  ArrowUpDown,
+  Activity
 } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar
+} from "recharts";
 
+/* ─── NAV ─── */
 const navItems = [
-  { key: "dashboard", label: "Dashboard", icon: BarChart3 },
-  { key: "profile", label: "Profile", icon: UserCircle2 },
-  { key: "pointsmen", label: "Pointsmen", icon: Users },
-  { key: "assess", label: "Assess Pointsman", icon: ClipboardCheck },
-  { key: "myAssessments", label: "My Assessment Details", icon: FileBarChart2 },
-  { key: "testHistory", label: "My Test History", icon: CalendarCheck2 },
-  { key: "reports", label: "Reports", icon: Filter },
-  { key: "currentTest", label: "Current Test", icon: ShieldCheck }
+  { key: "dashboard",     label: "Dashboard",            icon: BarChart3 },
+  { key: "profile",       label: "My Profile",           icon: UserCircle2 },
+  { key: "pointsmen",     label: "Pointsmen",            icon: Users },
+  { key: "assess",        label: "Assess Pointsman",     icon: ClipboardCheck },
+  { key: "myAssessment",  label: "My Assessment (by TI)",icon: FileBarChart2 },
+  { key: "reports",       label: "Reports",              icon: Filter }
 ];
 
+/* ─── HELPERS ─── */
+function getCat(score) {
+  if (score >= 80) return "A";
+  if (score >= 50) return "B";
+  if (score >= 26) return "C";
+  return "D";
+}
+const CAT_COLOR   = { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" };
+const CAT_BG      = { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" };
+const PIE_COLORS  = ["#16a34a","#2563eb","#d97706","#dc2626"];
+
+function riskLevel(pm) {
+  if (pm.safetyScore < 60 || pm.lastScore < 50)  return "High";
+  if (pm.safetyScore < 75 || pm.lastScore < 65)  return "Medium";
+  return "Low";
+}
+const RISK_COLOR = { High:"#dc2626", Medium:"#d97706", Low:"#16a34a" };
+const RISK_BG    = { High:"#fee2e2", Medium:"#fef3c7", Low:"#dcfce7" };
+
+/* ─── SM PROFILE ─── */
 const smProfile = {
-  name: "S. Deshmukh",
-  employeeId: "SM_1001",
-  contact: "+91 98220 44556",
-  designation: "Station Master",
-  category: "Operations",
-  currentStation: "Nagpur Junction",
-  reportingOfficer: "TI_2001 - Traffic Inspector"
+  name: "S. Deshmukh", employeeId: "SM_1001",
+  contact: "+91 98220 44556", designation: "Station Master",
+  department: "Operations", station: "Nagpur Junction",
+  joiningDate: "2015-06-01", reportingOfficer: "TI_2001 — A. Kulkarni"
 };
 
+/* ─── POINTSMEN DATA ─── */
 const initialPointsmen = [
-  {
-    id: 1,
-    hrmsId: "PM_1101",
-    name: "Ravi Kumar",
-    category: "A",
-    status: "Active",
-    lastAssessmentScore: 92,
-    lastAssessmentDate: "2026-03-28"
-  },
-  {
-    id: 2,
-    hrmsId: "PM_1102",
-    name: "Sanjay Patil",
-    category: "B",
-    status: "Active",
-    lastAssessmentScore: 78,
-    lastAssessmentDate: "2026-03-10"
-  },
-  {
-    id: 3,
-    hrmsId: "PM_1103",
-    name: "Deepak Nair",
-    category: "C",
-    status: "Inactive",
-    lastAssessmentScore: 71,
-    lastAssessmentDate: "2026-02-15"
-  },
-  {
-    id: 4,
-    hrmsId: "PM_1104",
-    name: "Ajay Sharma",
-    category: "A",
-    status: "Active",
-    lastAssessmentScore: 84,
-    lastAssessmentDate: "2026-03-18"
-  },
-  {
-    id: 5,
-    hrmsId: "PM_1105",
-    name: "Kunal Verma",
-    category: "D",
-    status: "Active",
-    lastAssessmentScore: 66,
-    lastAssessmentDate: "2026-01-20"
-  }
+  { id:1, hrmsId:"PM_1101", name:"Ravi Kumar",   gender:"Male", age:38, doj:"2012-04-10", basePay:"₹28,500", lastScore:92, safetyScore:95, totalAssessments:12, pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved" },
+  { id:2, hrmsId:"PM_1102", name:"Sanjay Patil",  gender:"Male", age:34, doj:"2015-08-22", basePay:"₹26,200", lastScore:78, safetyScore:80, totalAssessments:9,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Pending"  },
+  { id:3, hrmsId:"PM_1103", name:"Deepak Nair",   gender:"Male", age:41, doj:"2009-11-05", basePay:"₹31,000", lastScore:48, safetyScore:62, totalAssessments:15, pmeStatus:"Fit",      refStatus:"Pending",  disciplinary:"Warning", incidents:1, approvalStatus:"Approved" },
+  { id:4, hrmsId:"PM_1104", name:"Ajay Sharma",   gender:"Male", age:29, doj:"2019-02-18", basePay:"₹23,400", lastScore:84, safetyScore:88, totalAssessments:6,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Pending"  },
+  { id:5, hrmsId:"PM_1105", name:"Kunal Verma",   gender:"Male", age:36, doj:"2013-07-30", basePay:"₹27,800", lastScore:35, safetyScore:55, totalAssessments:11, pmeStatus:"Unfit",    refStatus:"Pending",  disciplinary:"Warning", incidents:2, approvalStatus:"Rejected" },
+  { id:6, hrmsId:"PM_1106", name:"Priya Menon",   gender:"Female",age:31,doj:"2018-03-14",basePay:"₹25,100", lastScore:67, safetyScore:74, totalAssessments:7,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved" },
+  { id:7, hrmsId:"PM_1107", name:"Ramesh Yadav",  gender:"Male", age:45, doj:"2005-09-01", basePay:"₹34,600", lastScore:82, safetyScore:90, totalAssessments:18, pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved" },
+  { id:8, hrmsId:"PM_1108", name:"Sneha Iyer",    gender:"Female",age:28,doj:"2020-01-20",basePay:"₹22,000", lastScore:19, safetyScore:40, totalAssessments:3,  pmeStatus:"Unfit",    refStatus:"Pending",  disciplinary:"Serious", incidents:3, approvalStatus:"Rejected" }
 ];
 
-const initialAssessmentRecords = [
-  {
-    id: 301,
-    pointsmanId: 1,
-    pointsmanName: "Ravi Kumar",
-    employeeId: "PM_1101",
-    category: "A",
-    date: "2026-03-28",
-    score: 92,
-    period: "March 2026",
-    sections: [
-      { title: "Knowledge of Rules", marks: 42, outOf: 50 },
-      { title: "Alertness & Observation", marks: 20, outOf: 25 },
-      { title: "Safety Record", marks: 12, outOf: 15 },
-      { title: "Leadership & Management", marks: 8, outOf: 15 },
-      { title: "Discipline", marks: 6, outOf: 10 },
-      { title: "Appearance & Neatness", marks: 4, outOf: 10 }
-    ]
-  },
-  {
-    id: 302,
-    pointsmanId: 2,
-    pointsmanName: "Sanjay Patil",
-    employeeId: "PM_1102",
-    category: "B",
-    date: "2026-03-10",
-    score: 78,
-    period: "March 2026",
-    sections: [
-      { title: "Knowledge of Rules", marks: 34, outOf: 50 },
-      { title: "Alertness & Observation", marks: 15, outOf: 25 },
-      { title: "Safety Record", marks: 9, outOf: 15 },
-      { title: "Leadership & Management", marks: 8, outOf: 15 },
-      { title: "Discipline", marks: 7, outOf: 10 },
-      { title: "Appearance & Neatness", marks: 5, outOf: 10 }
-    ]
-  }
+/* ─── ASSESSMENT HISTORY per pointsman ─── */
+const pmAssessmentHistory = {
+  1:[{id:101,date:"2026-03-28",testMarks:80,addMarks:12,total:92,grade:"A",approvalStatus:"Approved",remarks:"Excellent performance"},{id:102,date:"2025-12-15",testMarks:74,addMarks:10,total:84,grade:"A",approvalStatus:"Approved",remarks:"Good"}],
+  2:[{id:103,date:"2026-03-10",testMarks:65,addMarks:13,total:78,grade:"B",approvalStatus:"Pending",remarks:"Satisfactory"}],
+  3:[{id:104,date:"2026-02-15",testMarks:38,addMarks:10,total:48,grade:"C",approvalStatus:"Approved",remarks:"Needs improvement in signals"}],
+  4:[{id:105,date:"2026-03-18",testMarks:72,addMarks:12,total:84,grade:"A",approvalStatus:"Pending",remarks:"Good fieldwork"}],
+  5:[{id:106,date:"2026-01-20",testMarks:25,addMarks:10,total:35,grade:"D",approvalStatus:"Rejected",tiRemarks:"TI: Score too low — re-assessment required"}],
+  6:[{id:107,date:"2026-03-05",testMarks:55,addMarks:12,total:67,grade:"B",approvalStatus:"Approved",remarks:"Consistent"}],
+  7:[{id:108,date:"2026-03-20",testMarks:70,addMarks:12,total:82,grade:"A",approvalStatus:"Approved",remarks:"Strong safety record"}],
+  8:[{id:109,date:"2026-02-01",testMarks:12,addMarks:7, total:19,grade:"D",approvalStatus:"Rejected",tiRemarks:"TI: Multiple incidents recorded"}]
+};
+
+/* ─── DRAFT ASSESSMENTS ─── */
+const initialDrafts = [
+  { pointsmanId:2, hrmsId:"PM_1102", name:"Sanjay Patil",  lastDate:"2026-03-10" },
+  { pointsmanId:4, hrmsId:"PM_1104", name:"Ajay Sharma",   lastDate:"2026-03-18" }
 ];
 
-const initialTestHistory = [
+/* ─── YES/NO CRITERIA LABELS ─── */
+const YN_SECTIONS = [
   {
-    id: 401,
-    date: "2026-03-14",
-    testName: "Station Safety Compliance Test",
-    testType: "Safety",
-    score: 86,
-    period: "Quarter 1 - 2026",
-    sections: [
-      { title: "Signal Protocol", marks: 18, outOf: 20 },
-      { title: "Emergency Response", marks: 17, outOf: 20 },
-      { title: "Rule Application", marks: 16, outOf: 20 },
-      { title: "Decision Analysis", marks: 18, outOf: 20 },
-      { title: "Documentation", marks: 17, outOf: 20 }
+    key: "alertness", title: "Alertness & Observation",
+    weight: 5, outOf: 25,
+    criteria: [
+      "Observes track and signals diligently",
+      "Responds promptly to train movements",
+      "Maintains vigilance during duty hours",
+      "Reports anomalies immediately",
+      "Demonstrates situational awareness"
     ]
   },
   {
-    id: 402,
-    date: "2026-02-08",
-    testName: "Operations Refresher",
-    testType: "Operations",
-    score: 81,
-    period: "Quarter 1 - 2026",
-    sections: [
-      { title: "Coordination", marks: 16, outOf: 20 },
-      { title: "Route Management", marks: 15, outOf: 20 },
-      { title: "Rule Recall", marks: 16, outOf: 20 },
-      { title: "Alertness", marks: 17, outOf: 20 },
-      { title: "Compliance", marks: 17, outOf: 20 }
+    key: "safety", title: "Safety Record",
+    weight: 3, outOf: 15,
+    criteria: [
+      "Follows all safety protocols consistently",
+      "No safety violations in review period",
+      "Wears required PPE at all times",
+      "Participates in safety drills",
+      "Maintains incident-free record"
+    ]
+  },
+  {
+    key: "leadership", title: "Leadership & Management",
+    weight: 3, outOf: 15,
+    criteria: [
+      "Guides junior staff effectively",
+      "Handles peak hours without disruption",
+      "Communicates clearly with team",
+      "Resolves operational issues promptly",
+      "Maintains duty log accurately"
+    ]
+  },
+  {
+    key: "discipline", title: "Discipline",
+    weight: 2, outOf: 10,
+    criteria: [
+      "Reports to duty on time",
+      "Follows uniform and grooming standards",
+      "Complies with supervisory instructions",
+      "No disciplinary action in review period",
+      "Maintains respectful conduct"
+    ]
+  },
+  {
+    key: "appearance", title: "Appearance & Neatness",
+    weight: 2, outOf: 10,
+    criteria: [
+      "Uniform worn correctly and is clean",
+      "Identification badge displayed",
+      "Footwear as per regulation",
+      "Grooming standards maintained",
+      "Duty area kept tidy"
     ]
   }
 ];
 
-const currentTests = [
-  { id: "SM-T1", name: "Monthly Station Master Assessment" },
-  { id: "SM-T2", name: "Safety Situational Drill" }
-];
-
-const mcqQuestions = Array.from({ length: 25 }, (_, index) => ({
-  id: index + 1,
-  question: `Rule Knowledge MCQ ${index + 1}`,
-  options: ["Option A", "Option B", "Option C", "Option D"],
-  answer: index % 4
-}));
-
-const yesNoSet = [
-  "Question 1",
-  "Question 2",
-  "Question 3",
-  "Question 4",
-  "Question 5"
-];
-
-const defaultAssessmentForm = {
-  mcq: Array(25).fill(null),
-  alertness: Array(5).fill(null),
-  safety: Array(5).fill(null),
+const defaultAssessForm = {
+  knowledgeMarks: "",
+  alertness:  Array(5).fill(null),
+  safety:     Array(5).fill(null),
   leadership: Array(5).fill(null),
   discipline: Array(5).fill(null),
   appearance: Array(5).fill(null),
   alcoholicStatus: "",
   pmeStatus: "Fit",
   refStatus: "Cleared",
-  automaticTraining: "Recommended",
+  automaticTraining: "Not Required",
   counselling: "Not Required",
   dateOfAppointment: "",
-  workingSince: ""
+  workingSince: "",
+  remarks: ""
 };
 
-function sectionYesNoScore(values, weight) {
-  return values.reduce((score, item) => (item === "Yes" ? score + weight : score), 0);
-}
+/* ─── SM SELF-ASSESSMENT HISTORY (done by TI) ─── */
+const smAssessmentHistory = [
+  {
+    id: 1, date: "2026-03-25", period: "Q1 2026",
+    assessedBy: "TI_2001 — A. Kulkarni",
+    totalScore: 86, category: "A", approvalStatus: "Approved",
+    tiRemarks: "Station demonstrates strong operational discipline and safety culture.",
+    sections: [
+      { title:"Station Management",         marks:17, outOf:20 },
+      { title:"Safety Records",             marks:18, outOf:20 },
+      { title:"Staff Supervision",          marks:16, outOf:20 },
+      { title:"Emergency Handling",         marks:17, outOf:20 },
+      { title:"Documentation & Compliance", marks:18, outOf:20 }
+    ]
+  },
+  {
+    id: 2, date: "2025-12-18", period: "Q4 2025",
+    assessedBy: "TI_2001 — A. Kulkarni",
+    totalScore: 79, category: "B", approvalStatus: "Approved",
+    tiRemarks: "Good performance. Minor gaps in documentation — addressed in training.",
+    sections: [
+      { title:"Station Management",         marks:16, outOf:20 },
+      { title:"Safety Records",             marks:15, outOf:20 },
+      { title:"Staff Supervision",          marks:15, outOf:20 },
+      { title:"Emergency Handling",         marks:16, outOf:20 },
+      { title:"Documentation & Compliance", marks:17, outOf:20 }
+    ]
+  },
+  {
+    id: 3, date: "2025-09-10", period: "Q3 2025",
+    assessedBy: "TI_2001 — A. Kulkarni",
+    totalScore: 91, category: "A", approvalStatus: "Approved",
+    tiRemarks: "Excellent quarter. Exceptional handling of monsoon disruptions.",
+    sections: [
+      { title:"Station Management",         marks:19, outOf:20 },
+      { title:"Safety Records",             marks:18, outOf:20 },
+      { title:"Staff Supervision",          marks:18, outOf:20 },
+      { title:"Emergency Handling",         marks:19, outOf:20 },
+      { title:"Documentation & Compliance", marks:17, outOf:20 }
+    ]
+  },
+  {
+    id: 4, date: "2025-06-14", period: "Q2 2025",
+    assessedBy: "TI_2001 — A. Kulkarni",
+    totalScore: 74, category: "B", approvalStatus: "Approved",
+    tiRemarks: "Satisfactory. Focus needed on staff supervision logs.",
+    sections: [
+      { title:"Station Management",         marks:15, outOf:20 },
+      { title:"Safety Records",             marks:14, outOf:20 },
+      { title:"Staff Supervision",          marks:14, outOf:20 },
+      { title:"Emergency Handling",         marks:15, outOf:20 },
+      { title:"Documentation & Compliance", marks:16, outOf:20 }
+    ]
+  }
+];
 
-function getPerformanceLevel(score) {
-  if (score >= 90) return "Excellent";
-  if (score >= 75) return "Good";
-  if (score >= 60) return "Average";
-  return "Needs Improvement";
-}
+/* ─── SM SELF‑ASSESSMENT (done by TI) ─── */
+const smSelfAssessment = {
+  date: "2026-03-25",
+  period: "Q1 2026",
+  assessedBy: "TI_2001 — A. Kulkarni",
+  totalScore: 86,
+  category: "A",
+  approvalStatus: "Approved",
+  tiRemarks: "Station demonstrates strong operational discipline and safety culture.",
+  sections: [
+    { title:"Station Management",         marks:17, outOf:20 },
+    { title:"Safety Records",             marks:18, outOf:20 },
+    { title:"Staff Supervision",          marks:16, outOf:20 },
+    { title:"Emergency Handling",         marks:17, outOf:20 },
+    { title:"Documentation & Compliance", marks:18, outOf:20 }
+  ]
+};
 
+/* ─── MONTHLY TREND DATA ─── */
+const monthlyTrend = [
+  { month:"Nov 25", assessments:6, avgScore:71, safetyAvg:68 },
+  { month:"Dec 25", assessments:5, avgScore:74, safetyAvg:72 },
+  { month:"Jan 26", assessments:7, avgScore:68, safetyAvg:70 },
+  { month:"Feb 26", assessments:8, avgScore:77, safetyAvg:75 },
+  { month:"Mar 26", assessments:8, avgScore:80, safetyAvg:79 }
+];
+
+/* ─── CUSTOM TOOLTIP ─── */
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="sm2-tooltip">
+        <strong>{label}</strong>
+        {payload.map(p => <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</div>)}
+      </div>
+    );
+  }
+  return null;
+};
+
+/* ════════════════════════════════════════
+   MAIN COMPONENT
+════════════════════════════════════════ */
 function StationMasterModule({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [pageMode, setPageMode] = useState("default");
-  const [statusMessage, setStatusMessage] = useState("");
-
-  const [pointsmen, setPointsmen] = useState(initialPointsmen);
-  const [showAddPointsmanModal, setShowAddPointsmanModal] = useState(false);
-  const [newPointsman, setNewPointsman] = useState({ hrmsId: "", name: "", category: "A" });
-  const [pointsmanDetail, setPointsmanDetail] = useState(null);
-
-  const [pendingAssessments, setPendingAssessments] = useState([
-    { pointsmanId: 4, name: "Ajay Sharma", employeeId: "PM_1104", lastDate: "2026-03-18", category: "A" },
-    { pointsmanId: 5, name: "Kunal Verma", employeeId: "PM_1105", lastDate: "2026-01-20", category: "D" }
-  ]);
-  const [assessmentTarget, setAssessmentTarget] = useState(null);
-  const [assessmentForm, setAssessmentForm] = useState(defaultAssessmentForm);
-  const [assessmentLocked, setAssessmentLocked] = useState(false);
-
-  const [assessmentRecords, setAssessmentRecords] = useState(initialAssessmentRecords);
-  const [selectedAssessmentRecord, setSelectedAssessmentRecord] = useState(null);
-
-  const [testHistory, setTestHistory] = useState(initialTestHistory);
-  const [testSearch, setTestSearch] = useState("");
-  const [testFilter, setTestFilter] = useState("All");
-  const [selectedScorecard, setSelectedScorecard] = useState(null);
-
-  const [reportFilters, setReportFilters] = useState({
-    pointsmanName: "",
-    startDate: "",
-    endDate: "",
-    category: "All",
-    performance: "All"
-  });
+  const [activeTab, setActiveTab]         = useState("dashboard");
+  const [pageMode, setPageMode]           = useState("default");
+  const [statusMsg, setStatusMsg]         = useState("");
+  const [pointsmen, setPointsmen]         = useState(initialPointsmen);
+  const [drafts, setDrafts]               = useState(initialDrafts);
+  const [submittedAssessments, setSubmittedAssessments] = useState([]);
+  const [selectedPm, setSelectedPm]       = useState(null);
+  const [assessTarget, setAssessTarget]   = useState(null);
+  const [assessForm, setAssessForm]       = useState(defaultAssessForm);
+  const [assessLocked, setAssessLocked]   = useState(false);
+  const [myAssessSelected, setMyAssessSelected] = useState(null);
+  const [pmFilter, setPmFilter]           = useState({ search:"", grade:"All", status:"All", risk:"All" });
+  const [reportFilter, setReportFilter]   = useState({ search:"", grade:"All", risk:"All", sortBy:"date-desc" });
 
   const smName = user?.name || smProfile.name;
-  const smId = user?.hrmsId || smProfile.employeeId;
+  const smId   = user?.hrmsId || smProfile.employeeId;
 
-  const dashboardStats = useMemo(() => {
-    const total = pointsmen.length;
-    const active = pointsmen.filter((p) => p.status === "Active").length;
-    const pending = pendingAssessments.length;
-    const completed = assessmentRecords.length;
+  /* ─── Derived: stats ─── */
+  const stats = useMemo(() => {
+    const total     = pointsmen.length;
+    const pending   = drafts.length;
+    const completed = Object.values(pmAssessmentHistory).flat().length + submittedAssessments.length;
+    const highRisk  = pointsmen.filter(p => riskLevel(p) === "High").length;
+    const safetyPct = Math.round(
+      pointsmen.reduce((s, p) => s + p.safetyScore, 0) / pointsmen.length
+    );
+    return { total, pending, completed, highRisk, safetyPct };
+  }, [pointsmen, drafts, submittedAssessments]);
 
-    return {
-      stationName: smProfile.currentStation,
-      total,
-      active,
-      pending,
-      completed
-    };
-  }, [pointsmen, pendingAssessments.length, assessmentRecords.length]);
+  /* ─── Pie: category dist ─── */
+  const pieData = useMemo(() => {
+    const counts = { A:0, B:0, C:0, D:0 };
+    pointsmen.forEach(p => { counts[getCat(p.lastScore)]++; });
+    return Object.entries(counts).filter(([,c]) => c > 0)
+      .map(([cat, count]) => ({ name: cat, value: count }));
+  }, [pointsmen]);
 
-  const testTypeOptions = useMemo(() => {
-    return ["All", ...Array.from(new Set(testHistory.map((item) => item.testType)))];
-  }, [testHistory]);
+  /* ─── Bottom performers ─── */
+  const lowPerformers = useMemo(() =>
+    [...pointsmen].sort((a,b) => a.lastScore - b.lastScore).slice(0,4)
+  , [pointsmen]);
 
-  const filteredTestHistory = useMemo(() => {
-    const q = testSearch.trim().toLowerCase();
-    return testHistory.filter((test) => {
-      const searchMatch =
-        q.length === 0 ||
-        test.testName.toLowerCase().includes(q) ||
-        test.date.includes(q);
-      const filterMatch = testFilter === "All" || test.testType === testFilter;
-      return searchMatch && filterMatch;
+  /* ─── Filtered pointsmen list ─── */
+  const filteredPm = useMemo(() => {
+    return pointsmen.filter(p => {
+      const q = pmFilter.search.toLowerCase();
+      const srch = !q || p.name.toLowerCase().includes(q) || p.hrmsId.toLowerCase().includes(q);
+      const grade = pmFilter.grade === "All" || getCat(p.lastScore) === pmFilter.grade;
+      const status = pmFilter.status === "All" || p.approvalStatus === pmFilter.status;
+      const risk = pmFilter.risk === "All" || riskLevel(p) === pmFilter.risk;
+      return srch && grade && status && risk;
     });
-  }, [testHistory, testSearch, testFilter]);
+  }, [pointsmen, pmFilter]);
 
-  const assessmentLiveScores = useMemo(() => {
-    const knowledge = assessmentForm.mcq.reduce((score, answer, idx) => {
-      return answer === mcqQuestions[idx].answer ? score + 2 : score;
-    }, 0);
-
-    const alertness = sectionYesNoScore(assessmentForm.alertness, 5);
-    const safety = sectionYesNoScore(assessmentForm.safety, 3);
-    const leadership = sectionYesNoScore(assessmentForm.leadership, 3);
-    const discipline = sectionYesNoScore(assessmentForm.discipline, 2);
-    const appearance = sectionYesNoScore(assessmentForm.appearance, 2);
-
-    const total = knowledge + alertness + safety + leadership + discipline + appearance;
-
-    return {
-      knowledge,
-      alertness,
-      safety,
-      leadership,
-      discipline,
-      appearance,
-      total
-    };
-  }, [assessmentForm]);
-
+  /* ─── Filtered reports ─── */
   const filteredReports = useMemo(() => {
-    return assessmentRecords.filter((record) => {
-      const nameMatch =
-        reportFilters.pointsmanName.trim().length === 0 ||
-        record.pointsmanName.toLowerCase().includes(reportFilters.pointsmanName.trim().toLowerCase());
-
-      const categoryMatch = reportFilters.category === "All" || record.category === reportFilters.category;
-
-      const performance = getPerformanceLevel(record.score);
-      const performanceMatch = reportFilters.performance === "All" || performance === reportFilters.performance;
-
-      const startMatch = reportFilters.startDate === "" || record.date >= reportFilters.startDate;
-      const endMatch = reportFilters.endDate === "" || record.date <= reportFilters.endDate;
-
-      return nameMatch && categoryMatch && performanceMatch && startMatch && endMatch;
+    let list = pointsmen.filter(p => {
+      const q = reportFilter.search.toLowerCase();
+      const srch = !q || p.name.toLowerCase().includes(q) || p.hrmsId.toLowerCase().includes(q);
+      const grade = reportFilter.grade === "All" || getCat(p.lastScore) === reportFilter.grade;
+      const risk  = reportFilter.risk === "All" || riskLevel(p) === reportFilter.risk;
+      return srch && grade && risk;
     });
-  }, [assessmentRecords, reportFilters]);
+    if (reportFilter.sortBy === "score-desc") list = [...list].sort((a,b) => b.lastScore - a.lastScore);
+    else if (reportFilter.sortBy === "score-asc") list = [...list].sort((a,b) => a.lastScore - b.lastScore);
+    return list;
+  }, [pointsmen, reportFilter]);
 
-  const reportSummary = useMemo(() => {
-    const count = filteredReports.length;
-    const average = count
-      ? Math.round(filteredReports.reduce((sum, item) => sum + item.score, 0) / count)
-      : 0;
+  /* ─── Navigation ─── */
+  const switchTab = (tab) => { setActiveTab(tab); setPageMode("default"); setStatusMsg(""); };
 
-    const categoryA = filteredReports.filter((item) => item.category === "A").length;
-    const categoryB = filteredReports.filter((item) => item.category === "B").length;
-    const categoryC = filteredReports.filter((item) => item.category === "C").length;
-    const categoryD = filteredReports.filter((item) => item.category === "D").length;
+  /* ─── Open PM detail ─── */
+  const openPmDetail = (pm) => { setSelectedPm(pm); setPageMode("pmDetail"); };
 
-    return {
-      count,
-      average,
-      distribution: `A:${categoryA}  B:${categoryB}  C:${categoryC}  D:${categoryD}`
-    };
-  }, [filteredReports]);
-
-  const switchTab = (tab) => {
-    setActiveTab(tab);
-    setPageMode("default");
-    setStatusMessage("");
+  /* ─── Open assess form ─── */
+  const openAssessForm = (draft) => {
+    setAssessTarget(draft);
+    setAssessForm(defaultAssessForm);
+    setAssessLocked(false);
+    setPageMode("assessForm");
   };
 
-  const handleAddPointsman = (event) => {
-    event.preventDefault();
-    if (!newPointsman.hrmsId.trim() || !newPointsman.name.trim()) {
-      setStatusMessage("Enter HRMS ID and Name before creating a pointsman account.");
-      return;
-    }
-
-    setPointsmen((prev) => [
-      {
-        id: Date.now(),
-        hrmsId: newPointsman.hrmsId.trim().toUpperCase(),
-        name: newPointsman.name.trim(),
-        category: newPointsman.category,
-        status: "Active",
-        lastAssessmentScore: 0,
-        lastAssessmentDate: "Not Assessed"
-      },
-      ...prev
-    ]);
-
-    setNewPointsman({ hrmsId: "", name: "", category: "A" });
-    setShowAddPointsmanModal(false);
-    setStatusMessage("Pointsman account created successfully (dummy action).");
-  };
-
-  const handleRemovePointsman = (id) => {
-    setPointsmen((prev) => prev.filter((row) => row.id !== id));
-    setPendingAssessments((prev) => prev.filter((row) => row.pointsmanId !== id));
-    if (pointsmanDetail?.id === id) {
-      setPageMode("default");
-      setPointsmanDetail(null);
-    }
-  };
-
-  const openPointsmanDetails = (row) => {
-    setPointsmanDetail(row);
-    setPageMode("pointsmanDetail");
-  };
-
-  const openAssessmentForm = (target) => {
-    setAssessmentTarget(target);
-    setAssessmentForm(defaultAssessmentForm);
-    setAssessmentLocked(false);
-    setPageMode("assessmentForm");
-  };
-
-  const updateMcqAnswer = (qIndex, answerIndex) => {
-    if (assessmentLocked) return;
-    setAssessmentForm((prev) => {
-      const next = [...prev.mcq];
-      next[qIndex] = answerIndex;
-      return { ...prev, mcq: next };
+  /* ─── Yes/No toggle helper ─── */
+  const toggleYN = (sectionKey, idx, val) => {
+    if (assessLocked) return;
+    setAssessForm(prev => {
+      const next = [...prev[sectionKey]];
+      next[idx] = next[idx] === val ? null : val;
+      return { ...prev, [sectionKey]: next };
     });
   };
 
-  const updateYesNo = (sectionKey, index, value) => {
-    if (assessmentLocked) return;
-    setAssessmentForm((prev) => {
-      const nextSection = [...prev[sectionKey]];
-      nextSection[index] = value;
-      return { ...prev, [sectionKey]: nextSection };
+  /* ─── Live score computer ─── */
+  const computeScore = (form) => {
+    const knowledge = Math.min(parseInt(form.knowledgeMarks) || 0, 25);
+    let ynTotal = 0;
+    YN_SECTIONS.forEach(s => {
+      form[s.key].forEach(v => { if (v === "Yes") ynTotal += s.weight; });
     });
+    return { knowledge, ynTotal, total: knowledge + ynTotal };
   };
 
-  const updateAssessmentMeta = (event) => {
-    if (assessmentLocked) return;
-    const { name, value } = event.target;
-    setAssessmentForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const submitAssessment = () => {
-    if (!assessmentTarget) {
-      return;
+  /* ─── Submit assessment ─── */
+  const submitAssessment = (isDraft) => {
+    if (!isDraft && !assessForm.alcoholicStatus) {
+      setStatusMsg("Alcoholic / Non-Alcoholic status is mandatory."); return;
     }
-
-    if (!assessmentForm.alcoholicStatus) {
-      setStatusMessage("Alcoholic / Non-Alcoholic status is mandatory before submit.");
-      return;
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-
+    const { knowledge, ynTotal, total } = computeScore(assessForm);
+    const sectionBreakdown = YN_SECTIONS.map(s => ({
+      title: s.title,
+      marks: assessForm[s.key].filter(v => v === "Yes").length * s.weight,
+      outOf: s.outOf
+    }));
     const record = {
-      id: Date.now(),
-      pointsmanId: assessmentTarget.pointsmanId,
-      pointsmanName: assessmentTarget.name,
-      employeeId: assessmentTarget.employeeId,
-      category: assessmentTarget.category,
-      date: today,
-      score: assessmentLiveScores.total,
-      period: "April 2026",
+      id: Date.now(), pointsmanId: assessTarget.pointsmanId,
+      hrmsId: assessTarget.hrmsId, name: assessTarget.name,
+      date: new Date().toISOString().slice(0,10),
+      knowledgeMarks: knowledge, ynTotal, total,
+      grade: getCat(total), approvalStatus: isDraft ? "Draft" : "Pending",
+      remarks: assessForm.remarks,
       sections: [
-        { title: "Knowledge of Rules", marks: assessmentLiveScores.knowledge, outOf: 50 },
-        { title: "Alertness & Observation", marks: assessmentLiveScores.alertness, outOf: 25 },
-        { title: "Safety Record", marks: assessmentLiveScores.safety, outOf: 15 },
-        { title: "Leadership & Management", marks: assessmentLiveScores.leadership, outOf: 15 },
-        { title: "Discipline", marks: assessmentLiveScores.discipline, outOf: 10 },
-        { title: "Appearance & Neatness", marks: assessmentLiveScores.appearance, outOf: 10 }
-      ]
+        { title: "Knowledge of Rules (MCQ)", marks: knowledge, outOf: 25 },
+        ...sectionBreakdown
+      ],
+      meta: {
+        alcoholicStatus: assessForm.alcoholicStatus,
+        pmeStatus: assessForm.pmeStatus,
+        refStatus: assessForm.refStatus,
+        automaticTraining: assessForm.automaticTraining,
+        counselling: assessForm.counselling,
+        dateOfAppointment: assessForm.dateOfAppointment,
+        workingSince: assessForm.workingSince
+      }
     };
-
-    setAssessmentRecords((prev) => [record, ...prev]);
-
-    setPointsmen((prev) =>
-      prev.map((row) =>
-        row.id === assessmentTarget.pointsmanId
-          ? {
-              ...row,
-              lastAssessmentScore: assessmentLiveScores.total,
-              lastAssessmentDate: today
-            }
-          : row
-      )
-    );
-
-    setPendingAssessments((prev) => prev.filter((row) => row.pointsmanId !== assessmentTarget.pointsmanId));
-    setAssessmentLocked(true);
-    setStatusMessage("Assessment submitted successfully. Form is now locked.");
+    setSubmittedAssessments(prev => [record, ...prev]);
+    if (!isDraft) setDrafts(prev => prev.filter(d => d.pointsmanId !== assessTarget.pointsmanId));
+    setPointsmen(prev => prev.map(p =>
+      p.id === assessTarget.pointsmanId
+        ? { ...p, lastScore: total, approvalStatus: isDraft ? p.approvalStatus : "Pending" }
+        : p
+    ));
+    if (!isDraft) setAssessLocked(true);
+    setStatusMsg(isDraft ? "Draft saved." : "Assessment submitted for TI approval. Status: Pending.");
+    if (!isDraft) setPageMode("default");
   };
 
-  const openAssessmentDetail = (record) => {
-    setSelectedAssessmentRecord(record);
-    setActiveTab("myAssessments");
-    setPageMode("assessmentScorecard");
-  };
+  /* ════ RENDERERS ════ */
 
-  const openTestScorecard = (test) => {
-    setSelectedScorecard(test);
-    setActiveTab("testHistory");
-    setPageMode("testScorecard");
-  };
+  /* ── DASHBOARD ── */
+  const renderDashboard = () => (
+    <div className="sm2-dashboard">
 
-  const renderScoreTable = (record, title, backAction) => {
-    if (!record) return null;
-    const totalOutOf = record.totalMax || record.sections.reduce((sum, section) => sum + section.outOf, 0);
-    return (
-      <section className="sm-panel-card">
-        <div className="sm-page-header">
-          <h2>{title}</h2>
-          <button type="button" className="sm-link-btn" onClick={backAction}>
-            Back
-          </button>
-        </div>
-
-        <div className="sm-score-meta-grid">
-          <div>
-            <label>Name</label>
-            <p>{record.pointsmanName || record.testName}</p>
-          </div>
-          <div>
-            <label>Date / Period</label>
-            <p>{record.date} | {record.period}</p>
-          </div>
-          <div>
-            <label>Total Score</label>
-            <p>{record.score}/{totalOutOf}</p>
-          </div>
-        </div>
-
-        <div className="sm-score-table">
-          <div className="sm-score-row sm-score-head">
-            <span>Section</span>
-            <span>Marks</span>
-          </div>
-          {record.sections.map((section) => (
-            <div key={section.title} className="sm-score-row">
-              <span>{section.title}</span>
-              <span>{section.marks}/{section.outOf}</span>
+      {/* Summary Cards */}
+      <div className="sm2-summary-cards">
+        {[
+          { label:"Total Pointsmen",       value: stats.total,      icon:<Users size={20} color="#2563eb"/>,        bg:"#eff6ff" },
+          { label:"Pending Assessments",   value: stats.pending,    icon:<ClipboardCheck size={20} color="#d97706"/>,bg:"#fef3c7" },
+          { label:"Completed Assessments", value: stats.completed,  icon:<CheckCircle2 size={20} color="#16a34a"/>, bg:"#dcfce7" },
+          { label:"High Risk Staff",       value: stats.highRisk,   icon:<AlertTriangle size={20} color="#dc2626"/>,bg:"#fee2e2" },
+          { label:"Safety Compliance",     value:`${stats.safetyPct}%`, icon:<ShieldCheck size={20} color="#7c3aed"/>,bg:"#f5f3ff" },
+        ].map(c => (
+          <article key={c.label} className="sm2-sum-card">
+            <div className="sm2-sum-icon" style={{ background: c.bg }}>{c.icon}</div>
+            <div>
+              <label>{c.label}</label>
+              <strong>{c.value}</strong>
             </div>
-          ))}
-        </div>
-      </section>
-    );
-  };
+          </article>
+        ))}
+      </div>
 
-  const renderDashboard = () => {
-    const cards = [
-      { label: "Station", value: dashboardStats.stationName },
-      { label: "Total Pointsmen", value: dashboardStats.total },
-      { label: "Active Pointsmen", value: dashboardStats.active },
-      { label: "Pending Assessments", value: dashboardStats.pending },
-      { label: "Completed Assessments", value: dashboardStats.completed }
-    ];
+      {/* Charts Row */}
+      <div className="sm2-charts-row">
 
-    return (
-      <>
-        <div className="sm-page-header">
-          <h2>Station Overview</h2>
-        </div>
-
-        <div className="sm-stats-grid">
-          {cards.map((card) => (
-            <article key={card.label} className="sm-stat-card">
-              <label>{card.label}</label>
-              <strong>{card.value}</strong>
-            </article>
-          ))}
+        {/* Line: Score trend */}
+        <div className="sm2-chart-card">
+          <div className="sm2-chart-hdr"><TrendingUp size={15}/><h3>Monthly Assessment Trend</h3></div>
+          <ResponsiveContainer width="100%" height={210}>
+            <LineChart data={monthlyTrend} margin={{top:6,right:16,left:-14,bottom:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
+              <XAxis dataKey="month" tick={{fontSize:11, fill:"#6b7280"}}/>
+              <YAxis tick={{fontSize:11, fill:"#6b7280"}}/>
+              <Tooltip content={<CustomTooltip/>}/>
+              <Line type="monotone" dataKey="avgScore" name="Avg Score" stroke="#2563eb" strokeWidth={2.5} dot={{r:4}} activeDot={{r:6}}/>
+              <Line type="monotone" dataKey="assessments" name="Assessments" stroke="#16a34a" strokeWidth={2} dot={{r:3}} strokeDasharray="5 3"/>
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
-        <section className="sm-panel-card">
-          <h3>Recent Activity</h3>
-          <ul className="sm-activity-list">
-            <li>Assessment submitted for Ajay Sharma - score updated.</li>
-            <li>Safety compliance test scheduled for this week.</li>
-            <li>Traffic Inspector review due on 2026-04-20.</li>
-          </ul>
-        </section>
-      </>
-    );
-  };
-
-  const renderProfile = () => {
-    return (
-      <section className="sm-panel-card">
-        <div className="sm-page-header">
-          <h2>Profile</h2>
-          <span className="sm-view-only">View Only</span>
+        {/* Bar: Safety compliance */}
+        <div className="sm2-chart-card">
+          <div className="sm2-chart-hdr"><Activity size={15}/><h3>Safety Compliance Trend</h3></div>
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={monthlyTrend} margin={{top:6,right:16,left:-14,bottom:0}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
+              <XAxis dataKey="month" tick={{fontSize:11, fill:"#6b7280"}}/>
+              <YAxis domain={[0,100]} tick={{fontSize:11, fill:"#6b7280"}}/>
+              <Tooltip content={<CustomTooltip/>}/>
+              <Bar dataKey="safetyAvg" name="Safety Avg" fill="#7c3aed" radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
-        <div className="sm-profile-grid">
-          <article><label>Name</label><p>{smName}</p></article>
-          <article><label>Employee ID</label><p>{smId}</p></article>
-          <article><label>Contact Info</label><p>{smProfile.contact}</p></article>
-          <article><label>Designation</label><p>{smProfile.designation}</p></article>
-          <article><label>Category</label><p>{smProfile.category}</p></article>
-          <article><label>Current Station</label><p>{smProfile.currentStation}</p></article>
-          <article className="full"><label>Reporting Officer</label><p>{smProfile.reportingOfficer}</p></article>
+        {/* Pie: Category dist */}
+        <div className="sm2-chart-card">
+          <div className="sm2-chart-hdr"><BarChart3 size={15}/><h3>Performance Distribution</h3></div>
+          <ResponsiveContainer width="100%" height={210}>
+            <PieChart>
+              <Pie data={pieData} cx="50%" cy="44%" innerRadius={52} outerRadius={80} dataKey="value" paddingAngle={3}>
+                {pieData.map((entry,i) => <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]}/>)}
+              </Pie>
+              <Tooltip formatter={(v,n,p) => [`${v} staff — Cat. ${p.payload.name}`, ""]}/>
+              <Legend formatter={(v,e) => `Cat. ${e.payload.name}  (${e.payload.value})`} iconType="circle" iconSize={9} wrapperStyle={{fontSize:12}}/>
+            </PieChart>
+          </ResponsiveContainer>
         </div>
-      </section>
-    );
-  };
+      </div>
 
+      {/* Low performers */}
+      <div className="sm2-low-panel">
+        <div className="sm2-chart-hdr" style={{marginBottom:14}}><AlertTriangle size={15} color="#dc2626"/><h3>Low Performing Staff</h3></div>
+        <div className="sm2-low-list">
+          {lowPerformers.map(p => {
+            const cat = getCat(p.lastScore);
+            const risk = riskLevel(p);
+            return (
+              <div key={p.id} className="sm2-low-row" onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
+                <div className="sm2-low-name">
+                  <span className="sm2-cat-dot" style={{background:CAT_COLOR[cat]}}/>
+                  <strong>{p.name}</strong>
+                  <span className="sm2-low-id">{p.hrmsId}</span>
+                </div>
+                <div className="sm2-low-meta">
+                  <span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span>
+                  <span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk} Risk</span>
+                  <strong>{p.lastScore}/100</strong>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── PROFILE ── */
+  const renderProfile = () => (
+    <section className="sm2-card">
+      <div className="sm2-card-hdr">
+        <h2>My Profile</h2>
+        <span className="sm2-pill-grey">View Only</span>
+      </div>
+      <dl className="sm2-dl-grid">
+        <div><dt>Full Name</dt><dd>{smName}</dd></div>
+        <div><dt>Employee ID</dt><dd>{smId}</dd></div>
+        <div><dt>Designation</dt><dd>{smProfile.designation}</dd></div>
+        <div><dt>Department</dt><dd>{smProfile.department}</dd></div>
+        <div><dt>Station</dt><dd>{smProfile.station}</dd></div>
+        <div><dt>Contact</dt><dd>{smProfile.contact}</dd></div>
+        <div><dt>Joining Date</dt><dd>{smProfile.joiningDate}</dd></div>
+        <div><dt>Reporting Officer</dt><dd>{smProfile.reportingOfficer}</dd></div>
+      </dl>
+    </section>
+  );
+
+  /* ── POINTSMEN LIST ── */
   const renderPointsmen = () => {
-    if (pageMode === "pointsmanDetail" && pointsmanDetail) {
-      return (
-        <section className="sm-panel-card">
-          <div className="sm-page-header">
-            <h2>Pointsman Details</h2>
-            <button type="button" className="sm-link-btn" onClick={() => setPageMode("default")}>Back</button>
-          </div>
-          <div className="sm-profile-grid">
-            <article><label>Name</label><p>{pointsmanDetail.name}</p></article>
-            <article><label>Employee ID</label><p>{pointsmanDetail.hrmsId}</p></article>
-            <article><label>Category</label><p>{pointsmanDetail.category}</p></article>
-            <article><label>Status</label><p>{pointsmanDetail.status}</p></article>
-            <article><label>Latest Assessment</label><p>{pointsmanDetail.lastAssessmentScore}/125</p></article>
-            <article><label>Last Assessment Date</label><p>{pointsmanDetail.lastAssessmentDate}</p></article>
-          </div>
-        </section>
-      );
-    }
-
+    if (pageMode === "pmDetail" && selectedPm) return renderPmDetail(selectedPm);
     return (
-      <>
-        <div className="sm-page-header">
-          <h2>Pointsmen Management</h2>
-          <button type="button" className="sm-primary-btn" onClick={() => setShowAddPointsmanModal(true)}>
-            <Plus size={16} /> Add Pointsman
-          </button>
+      <section className="sm2-card">
+        <div className="sm2-card-hdr"><h2>Pointsmen Management</h2></div>
+
+        {/* Filters */}
+        <div className="sm2-filter-row">
+          <div className="sm2-search-box">
+            <Search size={14}/>
+            <input placeholder="Search name / HRMS ID…" value={pmFilter.search}
+              onChange={e => setPmFilter(p => ({...p, search: e.target.value}))}/>
+          </div>
+          {[
+            { key:"grade",  label:"Grade",  opts:["All","A","B","C","D"] },
+            { key:"status", label:"Status", opts:["All","Approved","Pending","Rejected"] },
+            { key:"risk",   label:"Risk",   opts:["All","Low","Medium","High"] }
+          ].map(f => (
+            <select key={f.key} className="sm2-select"
+              value={pmFilter[f.key]}
+              onChange={e => setPmFilter(p => ({...p, [f.key]: e.target.value}))}>
+              {f.opts.map(o => <option key={o}>{o}</option>)}
+            </select>
+          ))}
         </div>
 
-        <section className="sm-panel-card">
-          <div className="sm-table table-pointsmen">
-            <div className="sm-table-row sm-table-head">
-              <div>Name</div>
-              <div>Employee ID</div>
-              <div>Category</div>
-              <div>Status</div>
-              <div>Last Assessment Score</div>
-              <div>Actions</div>
-            </div>
-            {pointsmen.map((row) => (
-              <div key={row.id} className="sm-table-row">
-                <div>
-                  <button type="button" className="sm-link-btn" onClick={() => openPointsmanDetails(row)}>
-                    {row.name}
-                  </button>
-                </div>
-                <div>{row.hrmsId}</div>
-                <div>{row.category}</div>
-                <div>
-                  <span className={row.status === "Active" ? "sm-pill-active" : "sm-pill-inactive"}>
-                    {row.status}
+        {/* Table */}
+        <div className="sm2-table-wrap">
+          <div className="sm2-table-head sm2-table-row-7">
+            {["Name","HRMS ID","Grade","Last Score","Last Assessed","Approval","Risk"].map(h =>
+              <span key={h}>{h}</span>)}
+          </div>
+          {filteredPm.length === 0 && <p className="sm2-empty">No staff match the current filters.</p>}
+          {filteredPm.map(p => {
+            const cat = getCat(p.lastScore);
+            const risk = riskLevel(p);
+            return (
+              <button key={p.id} className="sm2-table-row-7 sm2-table-row-btn" onClick={() => openPmDetail(p)}>
+                <span className="sm2-name-cell"><strong>{p.name}</strong></span>
+                <span>{p.hrmsId}</span>
+                <span><span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span></span>
+                <span><strong>{p.lastScore}/100</strong></span>
+                <span>{pmAssessmentHistory[p.id]?.[0]?.date || "—"}</span>
+                <span>
+                  <span className={`sm2-status-pill sm2-status-${p.approvalStatus.toLowerCase()}`}>
+                    {p.approvalStatus}
                   </span>
-                </div>
-                <div>{row.lastAssessmentScore}/125</div>
-                <div>
-                  <button type="button" className="sm-danger-btn" onClick={() => handleRemovePointsman(row.id)}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {showAddPointsmanModal && (
-          <div className="sm-modal-overlay">
-            <div className="sm-modal-card">
-              <h3>Add Pointsman Account</h3>
-              <form onSubmit={handleAddPointsman} className="sm-form-grid">
-                <div className="sm-form-field">
-                  <label>HRMS ID</label>
-                  <input
-                    value={newPointsman.hrmsId}
-                    onChange={(event) => setNewPointsman((prev) => ({ ...prev, hrmsId: event.target.value }))}
-                    placeholder="PM_XXXX"
-                  />
-                </div>
-                <div className="sm-form-field">
-                  <label>Name</label>
-                  <input
-                    value={newPointsman.name}
-                    onChange={(event) => setNewPointsman((prev) => ({ ...prev, name: event.target.value }))}
-                    placeholder="Enter name"
-                  />
-                </div>
-                <div className="sm-form-field">
-                  <label>Category</label>
-                  <select
-                    value={newPointsman.category}
-                    onChange={(event) => setNewPointsman((prev) => ({ ...prev, category: event.target.value }))}
-                  >
-                    <option>A</option>
-                    <option>B</option>
-                    <option>C</option>
-                    <option>D</option>
-                    <option>Halt</option>
-                  </select>
-                </div>
-                <div className="sm-modal-actions">
-                  <button type="button" className="sm-secondary-btn" onClick={() => setShowAddPointsmanModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="sm-primary-btn">Create</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </>
+                </span>
+                <span><span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk}</span></span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
     );
   };
 
-  const renderAssessPointsman = () => {
-    if (pageMode === "assessmentForm" && assessmentTarget) {
-      const sectionBlock = (title, keyName, rows, outOf, weight) => (
-        <article className="sm-panel-card" key={title}>
-          <h3>{title}</h3>
-          <p className="sm-section-meta">{rows} questions | {weight} marks each | Total {outOf}</p>
-          <div className="sm-yn-grid">
-            {yesNoSet.map((label, index) => (
-              <div className="sm-yn-row" key={`${title}-${index}`}>
-                <span>{label}</span>
-                <div>
-                  <button
-                    type="button"
-                    className={assessmentForm[keyName][index] === "Yes" ? "sm-chip-active" : "sm-chip"}
-                    onClick={() => updateYesNo(keyName, index, "Yes")}
-                    disabled={assessmentLocked}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={assessmentForm[keyName][index] === "No" ? "sm-chip-active" : "sm-chip"}
-                    onClick={() => updateYesNo(keyName, index, "No")}
-                    disabled={assessmentLocked}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            ))}
+  /* ── PM DETAIL ── */
+  const renderPmDetail = (pm) => {
+    const cat  = getCat(pm.lastScore);
+    const risk = riskLevel(pm);
+    const safetyPct = pm.safetyScore;
+    const hist = pmAssessmentHistory[pm.id] || [];
+    return (
+      <section className="sm2-card">
+        <div className="sm2-card-hdr">
+          <h2>Pointsman Details</h2>
+          <button className="sm2-link-btn" onClick={() => setPageMode("default")}>← Back</button>
+        </div>
+
+        {/* Hero */}
+        <div className="sm2-pm-hero">
+          <div className="sm2-pm-avatar">{pm.name.charAt(0)}</div>
+          <div>
+            <h3>{pm.name}</h3>
+            <span>{pm.hrmsId} · {pm.designation || "Pointsman"} · {pm.station || smProfile.station}</span>
+            <div className="sm2-pm-badges">
+              <span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Category {cat}</span>
+              <span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk} Risk</span>
+              <span className={`sm2-status-pill sm2-status-${pm.approvalStatus.toLowerCase()}`}>{pm.approvalStatus}</span>
+            </div>
           </div>
-        </article>
-      );
+          <div className="sm2-pm-quick-stats">
+            <div><label>Latest Score</label><strong>{pm.lastScore}/100</strong></div>
+            <div><label>Safety Score</label><strong>{pm.safetyScore}%</strong></div>
+            <div><label>Assessments</label><strong>{pm.totalAssessments}</strong></div>
+          </div>
+        </div>
+
+        {/* Personal Info */}
+        <dl className="sm2-dl-grid" style={{marginBottom:20}}>
+          <div><dt>Gender</dt><dd>{pm.gender}</dd></div>
+          <div><dt>Age</dt><dd>{pm.age} yrs</dd></div>
+          <div><dt>Date of Joining</dt><dd>{pm.doj}</dd></div>
+          <div><dt>Base Pay</dt><dd>{pm.basePay}</dd></div>
+        </dl>
+
+        {/* Safety Compliance */}
+        <div className="sm2-safety-block">
+          <h4>Safety Compliance</h4>
+          <div className="sm2-safety-grid">
+            <div className="sm2-safety-item"><span>PME Status</span><strong className={pm.pmeStatus==="Fit"?"text-green":"text-red"}>{pm.pmeStatus}</strong></div>
+            <div className="sm2-safety-item"><span>REF Status</span><strong className={pm.refStatus==="Cleared"?"text-green":"text-amber"}>{pm.refStatus}</strong></div>
+            <div className="sm2-safety-item"><span>Disciplinary</span><strong className={pm.disciplinary==="None"?"text-green":"text-red"}>{pm.disciplinary}</strong></div>
+            <div className="sm2-safety-item"><span>Incidents</span><strong className={pm.incidents===0?"text-green":"text-red"}>{pm.incidents} reported</strong></div>
+          </div>
+          <div className="sm2-compliance-bar-wrap">
+            <div className="sm2-compliance-label">
+              <span>Overall Safety Compliance</span>
+              <strong style={{color: safetyPct >= 75 ? "#16a34a" : safetyPct >= 50 ? "#d97706" : "#dc2626"}}>{safetyPct}%</strong>
+            </div>
+            <div className="sm2-compliance-track">
+              <div className="sm2-compliance-fill" style={{
+                width:`${safetyPct}%`,
+                background: safetyPct >= 75 ? "#16a34a" : safetyPct >= 50 ? "#d97706" : "#dc2626"
+              }}/>
+            </div>
+          </div>
+        </div>
+
+        {/* Assessment History */}
+        <div style={{marginTop:20}}>
+          <h4 style={{margin:"0 0 12px",fontSize:14,color:"#0f172a"}}>Assessment History</h4>
+          {hist.length === 0 ? <p className="sm2-empty">No assessments recorded yet.</p> : (
+            <div className="sm2-table-wrap">
+              <div className="sm2-hist-head sm2-hist-row-6">
+                {["Date","Test Marks","Add. Marks","Total","Grade","Status"].map(h => <span key={h}>{h}</span>)}
+              </div>
+              {hist.map(r => {
+                const hCat = getCat(r.total);
+                return (
+                  <div key={r.id} className="sm2-hist-row-6 sm2-hist-data-row">
+                    <span>{r.date}</span>
+                    <span>{r.testMarks}</span>
+                    <span>{r.addMarks}</span>
+                    <span><strong>{r.total}</strong></span>
+                    <span><span className="sm2-badge" style={{background:CAT_BG[hCat],color:CAT_COLOR[hCat]}}>Cat. {hCat}</span></span>
+                    <span>
+                      <span className={`sm2-status-pill sm2-status-${r.approvalStatus.toLowerCase()}`}>{r.approvalStatus}</span>
+                      {r.tiRemarks && <div style={{fontSize:11,color:"#dc2626",marginTop:2}}>{r.tiRemarks}</div>}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
+
+  /* ── ASSESS POINTSMAN ── */
+  const renderAssess = () => {
+    if (pageMode === "assessForm" && assessTarget) {
+      const { knowledge, ynTotal, total: liveTotal } = computeScore(assessForm);
+      const liveCat = getCat(liveTotal);
 
       return (
-        <>
-          <div className="sm-page-header">
-            <h2>Assessment Form - {assessmentTarget.name}</h2>
-            <button type="button" className="sm-link-btn" onClick={() => setPageMode("default")}>Back</button>
+        <section className="sm2-card">
+          <div className="sm2-card-hdr">
+            <div>
+              <h2>Assessment — {assessTarget.name}</h2>
+              <p style={{margin:"2px 0 0",fontSize:12,color:"#64748b"}}>{assessTarget.hrmsId} · {assessTarget.lastDate}</p>
+            </div>
+            <button className="sm2-link-btn" onClick={() => setPageMode("default")}>← Back</button>
           </div>
 
-          <section className="sm-panel-card">
-            <h3>Knowledge of Rules (25 MCQs)</h3>
-            <p className="sm-section-meta">Auto scoring enabled</p>
-            <div className="sm-mcq-list">
-              {mcqQuestions.map((q, idx) => (
-                <div key={q.id} className="sm-mcq-item">
-                  <label>{q.question}</label>
-                  <div className="sm-option-wrap">
-                    {q.options.map((option, optionIndex) => (
-                      <button
-                        key={option}
-                        type="button"
-                        className={assessmentForm.mcq[idx] === optionIndex ? "sm-chip-active" : "sm-chip"}
-                        onClick={() => updateMcqAnswer(idx, optionIndex)}
-                        disabled={assessmentLocked}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+          {/* ── Section 1: Knowledge of Rules ── */}
+          <div className="sm2-assess-section">
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">01</span>
+              <div>
+                <strong>Knowledge of Rules (MCQ-based)</strong>
+                <span className="sm2-assess-sec-meta">Manual entry · Max 25 marks</span>
+              </div>
+              <span className="sm2-assess-live-marks">{knowledge} / 25</span>
             </div>
-          </section>
+            <div className="sm2-assess-form" style={{marginTop:12}}>
+              <div className="sm2-form-field" style={{gridColumn:"1 / -1",maxWidth:320}}>
+                <label>Marks Obtained <span className="sm2-hint">(0 – 25)</span></label>
+                <input
+                  type="number" min="0" max="25"
+                  disabled={assessLocked}
+                  value={assessForm.knowledgeMarks}
+                  onChange={e => setAssessForm(p => ({...p, knowledgeMarks: e.target.value}))}
+                  placeholder="Enter Pointsman's MCQ marks"
+                />
+              </div>
+            </div>
+          </div>
 
-          {sectionBlock("Alertness & Observation", "alertness", 5, 25, 5)}
-          {sectionBlock("Safety Record", "safety", 5, 15, 3)}
-          {sectionBlock("Leadership & Management", "leadership", 5, 15, 3)}
-          {sectionBlock("Discipline", "discipline", 5, 10, 2)}
-          {sectionBlock("Appearance & Neatness", "appearance", 5, 10, 2)}
+          {/* ── Sections 2–6: Yes/No blocks ── */}
+          {YN_SECTIONS.map((sec, si) => {
+            const secScore = assessForm[sec.key].filter(v => v === "Yes").length * sec.weight;
+            return (
+              <div key={sec.key} className="sm2-assess-section">
+                <div className="sm2-assess-sec-hdr">
+                  <span className="sm2-assess-sec-num">{String(si + 2).padStart(2,"0")}</span>
+                  <div>
+                    <strong>{sec.title}</strong>
+                    <span className="sm2-assess-sec-meta">5 criteria · {sec.weight} marks each · Total {sec.outOf}</span>
+                  </div>
+                  <span className="sm2-assess-live-marks">{secScore} / {sec.outOf}</span>
+                </div>
+                <div className="sm2-yn-grid">
+                  {sec.criteria.map((label, idx) => (
+                    <div key={idx} className="sm2-yn-row">
+                      <span className="sm2-yn-label">{idx + 1}. {label}</span>
+                      <div className="sm2-yn-btns">
+                        <button
+                          type="button" disabled={assessLocked}
+                          className={assessForm[sec.key][idx] === "Yes" ? "sm2-yn-btn sm2-yn-yes active" : "sm2-yn-btn sm2-yn-yes"}
+                          onClick={() => toggleYN(sec.key, idx, "Yes")}>
+                          Yes
+                        </button>
+                        <button
+                          type="button" disabled={assessLocked}
+                          className={assessForm[sec.key][idx] === "No" ? "sm2-yn-btn sm2-yn-no active" : "sm2-yn-btn sm2-yn-no"}
+                          onClick={() => toggleYN(sec.key, idx, "No")}>
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
 
-          <section className="sm-panel-card">
-            <h3>Additional Details</h3>
-            <div className="sm-form-grid two-col">
-              <div className="sm-form-field">
-                <label>Alcoholic / Non-Alcoholic (Mandatory)</label>
+          {/* ── Additional Details ── */}
+          <div className="sm2-assess-section">
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">07</span>
+              <div><strong>Additional Details</strong><span className="sm2-assess-sec-meta">Mandatory fields</span></div>
+            </div>
+            <div className="sm2-assess-form" style={{marginTop:12}}>
+              <div className="sm2-form-field">
+                <label>Alcoholic / Non-Alcoholic <span style={{color:"#dc2626"}}>*</span></label>
                 <select
-                  name="alcoholicStatus"
-                  value={assessmentForm.alcoholicStatus}
-                  onChange={updateAssessmentMeta}
-                  disabled={assessmentLocked}
-                >
-                  <option value="">Select</option>
-                  <option>Alcoholic</option>
+                  disabled={assessLocked}
+                  value={assessForm.alcoholicStatus}
+                  onChange={e => setAssessForm(p => ({...p, alcoholicStatus: e.target.value}))}>
+                  <option value="">Select…</option>
                   <option>Non-Alcoholic</option>
+                  <option>Alcoholic</option>
                 </select>
               </div>
-              <div className="sm-form-field">
+              <div className="sm2-form-field">
                 <label>PME Status</label>
-                <input name="pmeStatus" value={assessmentForm.pmeStatus} onChange={updateAssessmentMeta} disabled={assessmentLocked} />
+                <select disabled={assessLocked} value={assessForm.pmeStatus}
+                  onChange={e => setAssessForm(p => ({...p, pmeStatus: e.target.value}))}>
+                  <option>Fit</option>
+                  <option>Unfit</option>
+                  <option>Pending</option>
+                </select>
               </div>
-              <div className="sm-form-field">
+              <div className="sm2-form-field">
                 <label>REF Status</label>
-                <input name="refStatus" value={assessmentForm.refStatus} onChange={updateAssessmentMeta} disabled={assessmentLocked} />
+                <select disabled={assessLocked} value={assessForm.refStatus}
+                  onChange={e => setAssessForm(p => ({...p, refStatus: e.target.value}))}>
+                  <option>Cleared</option>
+                  <option>Pending</option>
+                  <option>Failed</option>
+                </select>
               </div>
-              <div className="sm-form-field">
+              <div className="sm2-form-field">
                 <label>Automatic Training</label>
-                <input name="automaticTraining" value={assessmentForm.automaticTraining} onChange={updateAssessmentMeta} disabled={assessmentLocked} />
+                <select disabled={assessLocked} value={assessForm.automaticTraining}
+                  onChange={e => setAssessForm(p => ({...p, automaticTraining: e.target.value}))}>
+                  <option>Not Required</option>
+                  <option>Recommended</option>
+                  <option>Mandatory</option>
+                </select>
               </div>
-              <div className="sm-form-field">
+              <div className="sm2-form-field">
                 <label>Counselling</label>
-                <input name="counselling" value={assessmentForm.counselling} onChange={updateAssessmentMeta} disabled={assessmentLocked} />
+                <select disabled={assessLocked} value={assessForm.counselling}
+                  onChange={e => setAssessForm(p => ({...p, counselling: e.target.value}))}>
+                  <option>Not Required</option>
+                  <option>Recommended</option>
+                  <option>Mandatory</option>
+                </select>
               </div>
-              <div className="sm-form-field">
+              <div className="sm2-form-field">
                 <label>Date of Appointment</label>
-                <input type="date" name="dateOfAppointment" value={assessmentForm.dateOfAppointment} onChange={updateAssessmentMeta} disabled={assessmentLocked} />
+                <input type="date" disabled={assessLocked} value={assessForm.dateOfAppointment}
+                  onChange={e => setAssessForm(p => ({...p, dateOfAppointment: e.target.value}))}/>
               </div>
-              <div className="sm-form-field">
-                <label>Working Since</label>
-                <input type="date" name="workingSince" value={assessmentForm.workingSince} onChange={updateAssessmentMeta} disabled={assessmentLocked} />
+              <div className="sm2-form-field">
+                <label>Working Since (current grade)</label>
+                <input type="date" disabled={assessLocked} value={assessForm.workingSince}
+                  onChange={e => setAssessForm(p => ({...p, workingSince: e.target.value}))}/>
+              </div>
+              <div className="sm2-form-field sm2-form-full">
+                <label>Remarks for Traffic Inspector</label>
+                <textarea rows={3} disabled={assessLocked} value={assessForm.remarks}
+                  onChange={e => setAssessForm(p => ({...p, remarks: e.target.value}))}
+                  placeholder="Enter observations, recommendations…"/>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="sm-live-score-bar">
+          {/* ── Live Score Bar ── */}
+          <div className="sm2-live-score">
             <div>
-              <label>Live Total Score</label>
-              <strong>{assessmentLiveScores.total} / 125</strong>
+              <label>Knowledge (MCQ)</label>
+              <strong>{knowledge} / 25</strong>
             </div>
-            <button type="button" className="sm-primary-btn" onClick={submitAssessment} disabled={assessmentLocked}>
-              Submit Assessment
-            </button>
-          </section>
-        </>
+            <div>
+              <label>Yes / No Sections</label>
+              <strong>{ynTotal} / 75</strong>
+            </div>
+            <div>
+              <label>Grand Total</label>
+              <strong style={{color: CAT_COLOR[liveCat], fontSize:22}}>{liveTotal} / 100</strong>
+            </div>
+            <div>
+              <label>Category</label>
+              <span className="sm2-badge" style={{background:CAT_BG[liveCat],color:CAT_COLOR[liveCat],fontSize:13,padding:"4px 12px"}}>
+                Category {liveCat}
+              </span>
+            </div>
+          </div>
+
+          {assessLocked && (
+            <div className="sm2-submitted-banner">✓ Assessment submitted for TI approval. Form is now locked.</div>
+          )}
+
+          {!assessLocked && (
+            <div className="sm2-assess-actions">
+              <button className="sm2-ghost-btn" onClick={() => submitAssessment(true)}>Save as Draft</button>
+              <button className="sm2-primary-btn" onClick={() => submitAssessment(false)}>
+                Submit for TI Approval
+              </button>
+            </div>
+          )}
+        </section>
       );
     }
 
     return (
-      <>
-        <div className="sm-page-header">
-          <h2>Assess Pointsman</h2>
-        </div>
+      <section className="sm2-card">
+        <div className="sm2-card-hdr"><h2>Assess Pointsman</h2></div>
+        <p className="sm2-subtitle">Pointsmen with pending assessments are listed below. Fill the full structured form and submit for Traffic Inspector approval.</p>
 
-        <section className="sm-panel-card">
-          <h3>Pending Assessments</h3>
-          <div className="sm-table table-pending">
-            <div className="sm-table-row sm-table-head">
-              <div>Name</div>
-              <div>Employee ID</div>
-              <div>Last Assessment Date</div>
-              <div>Action</div>
-            </div>
-            {pendingAssessments.length === 0 ? (
-              <div className="sm-empty">No pending assessments.</div>
-            ) : (
-              pendingAssessments.map((row) => (
-                <div key={row.pointsmanId} className="sm-table-row">
-                  <div>{row.name}</div>
-                  <div>{row.employeeId}</div>
-                  <div>{row.lastDate}</div>
-                  <div>
-                    <button type="button" className="sm-primary-btn" onClick={() => openAssessmentForm(row)}>
-                      Open Form
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+        {drafts.length === 0 ? (
+          <div className="sm2-empty-state-center">
+            <CheckCircle2 size={36} color="#16a34a"/>
+            <h3>All Assessments Up-to-Date</h3>
+            <p>No pending assessments at this time.</p>
           </div>
-        </section>
-      </>
-    );
-  };
-
-  const renderMyAssessments = () => {
-    if (pageMode === "assessmentScorecard") {
-      return renderScoreTable(selectedAssessmentRecord, "Assessment Report", () => setPageMode("default"));
-    }
-
-    return (
-      <>
-        <div className="sm-page-header">
-          <h2>My Assessment Details</h2>
-        </div>
-
-        <section className="sm-panel-card">
-          <div className="sm-table table-my-assessments">
-            <div className="sm-table-row sm-table-head">
-              <div>Pointsman Name</div>
-              <div>Date</div>
-              <div>Score</div>
-              <div>Category</div>
-              <div>Action</div>
-            </div>
-            {assessmentRecords.map((record) => (
-              <div key={record.id} className="sm-table-row">
-                <div>{record.pointsmanName}</div>
-                <div>{record.date}</div>
-                <div>{record.score}/125</div>
-                <div>{record.category}</div>
+        ) : (
+          <div className="sm2-assess-list">
+            {drafts.map(d => (
+              <div key={d.pointsmanId} className="sm2-assess-row">
                 <div>
-                  <button type="button" className="sm-link-btn" onClick={() => openAssessmentDetail(record)}>
-                    View Report
-                  </button>
+                  <strong>{d.name}</strong>
+                  <span>{d.hrmsId}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </>
-    );
-  };
-
-  const renderTestHistory = () => {
-    if (pageMode === "testScorecard") {
-      const normalized = selectedScorecard
-        ? {
-            ...selectedScorecard,
-            pointsmanName: selectedScorecard.testName,
-            score: selectedScorecard.score,
-            totalMax: 100
-          }
-        : null;
-
-      return renderScoreTable(normalized, "Test Scorecard", () => setPageMode("default"));
-    }
-
-    return (
-      <>
-        <div className="sm-page-header">
-          <h2>My Test History</h2>
-        </div>
-
-        <section className="sm-panel-card">
-          <div className="sm-toolbar-row">
-            <div className="sm-search-box">
-              <Search size={16} />
-              <input
-                type="text"
-                placeholder="Search by date or test name"
-                value={testSearch}
-                onChange={(event) => setTestSearch(event.target.value)}
-              />
-            </div>
-            <select value={testFilter} onChange={(event) => setTestFilter(event.target.value)}>
-              {testTypeOptions.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="sm-table table-tests">
-            <div className="sm-table-row sm-table-head">
-              <div>Test Date</div>
-              <div>Test Name</div>
-              <div>Score</div>
-              <div>Action</div>
-            </div>
-            {filteredTestHistory.map((row) => (
-              <div key={row.id} className="sm-table-row">
-                <div>{row.date}</div>
-                <div>{row.testName}</div>
-                <div>{row.score}/100</div>
-                <div>
-                  <button type="button" className="sm-link-btn" onClick={() => openTestScorecard(row)}>
-                    Open Scorecard
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </>
-    );
-  };
-
-  const renderReports = () => {
-    return (
-      <>
-        <div className="sm-page-header">
-          <h2>Reports & Analytics</h2>
-          <button type="button" className="sm-secondary-btn" onClick={() => setStatusMessage("Export triggered (UI only).")}>Export</button>
-        </div>
-
-        <section className="sm-panel-card">
-          <div className="sm-form-grid report-grid">
-            <div className="sm-form-field">
-              <label>Pointsman Name</label>
-              <input
-                value={reportFilters.pointsmanName}
-                onChange={(event) => setReportFilters((prev) => ({ ...prev, pointsmanName: event.target.value }))}
-                placeholder="Search pointsman"
-              />
-            </div>
-            <div className="sm-form-field">
-              <label>Date Range Start</label>
-              <input
-                type="date"
-                value={reportFilters.startDate}
-                onChange={(event) => setReportFilters((prev) => ({ ...prev, startDate: event.target.value }))}
-              />
-            </div>
-            <div className="sm-form-field">
-              <label>Date Range End</label>
-              <input
-                type="date"
-                value={reportFilters.endDate}
-                onChange={(event) => setReportFilters((prev) => ({ ...prev, endDate: event.target.value }))}
-              />
-            </div>
-            <div className="sm-form-field">
-              <label>Category</label>
-              <select
-                value={reportFilters.category}
-                onChange={(event) => setReportFilters((prev) => ({ ...prev, category: event.target.value }))}
-              >
-                <option>All</option>
-                <option>A</option>
-                <option>B</option>
-                <option>C</option>
-                <option>D</option>
-              </select>
-            </div>
-            <div className="sm-form-field">
-              <label>Performance Level</label>
-              <select
-                value={reportFilters.performance}
-                onChange={(event) => setReportFilters((prev) => ({ ...prev, performance: event.target.value }))}
-              >
-                <option>All</option>
-                <option>Excellent</option>
-                <option>Good</option>
-                <option>Average</option>
-                <option>Needs Improvement</option>
-              </select>
-            </div>
-          </div>
-        </section>
-
-        <div className="sm-stats-grid report-summary-grid">
-          <article className="sm-stat-card"><label>Average Score</label><strong>{reportSummary.average}</strong></article>
-          <article className="sm-stat-card"><label>Total Assessments</label><strong>{reportSummary.count}</strong></article>
-          <article className="sm-stat-card"><label>Category Distribution</label><strong>{reportSummary.distribution}</strong></article>
-        </div>
-
-        <section className="sm-panel-card">
-          <div className="sm-table table-reports">
-            <div className="sm-table-row sm-table-head">
-              <div>Pointsman</div>
-              <div>Date</div>
-              <div>Category</div>
-              <div>Score</div>
-              <div>Performance</div>
-              <div>Action</div>
-            </div>
-            {filteredReports.map((report) => (
-              <div key={report.id} className="sm-table-row">
-                <div>{report.pointsmanName}</div>
-                <div>{report.date}</div>
-                <div>{report.category}</div>
-                <div>{report.score}/125</div>
-                <div>{getPerformanceLevel(report.score)}</div>
-                <div>
-                  <button type="button" className="sm-link-btn" onClick={() => openAssessmentDetail(report)}>
-                    View Detailed Report
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </>
-    );
-  };
-
-  const renderCurrentTest = () => {
-    return (
-      <>
-        <div className="sm-page-header">
-          <h2>Current Test</h2>
-        </div>
-
-        <section className="sm-panel-card">
-          <div className="sm-current-tests">
-            {currentTests.map((test) => (
-              <article key={test.id} className="sm-current-test-card">
-                <div>
-                  <strong>{test.name}</strong>
-                  <p>Pending and available for attempt.</p>
-                </div>
-                <button
-                  type="button"
-                  className="sm-primary-btn"
-                  onClick={() => setStatusMessage(`Starting ${test.name} (UI only).`)}
-                >
-                  Start Test
+                <span className="sm2-muted">Last assessed: {d.lastDate}</span>
+                <button className="sm2-primary-btn-sm" onClick={() => openAssessForm(d)}>
+                  Open Form
                 </button>
-              </article>
+              </div>
             ))}
           </div>
-        </section>
-      </>
+        )}
+
+        {submittedAssessments.length > 0 && (
+          <div style={{marginTop:24}}>
+            <h4 style={{margin:"0 0 12px",fontSize:12,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.6px"}}>Submitted This Session</h4>
+            {submittedAssessments.map(r => (
+              <div key={r.id} className="sm2-submitted-row">
+                <div><strong>{r.name}</strong><span>{r.hrmsId}</span></div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <span className="sm2-badge" style={{background:CAT_BG[r.grade],color:CAT_COLOR[r.grade]}}>Cat. {r.grade}</span>
+                  <strong>{r.total}/100</strong>
+                  <span className={`sm2-status-pill sm2-status-${r.approvalStatus.toLowerCase()}`}>{r.approvalStatus}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     );
   };
 
-  const renderContent = () => {
-    if (activeTab === "dashboard") return renderDashboard();
-    if (activeTab === "profile") return renderProfile();
-    if (activeTab === "pointsmen") return renderPointsmen();
-    if (activeTab === "assess") return renderAssessPointsman();
-    if (activeTab === "myAssessments") return renderMyAssessments();
-    if (activeTab === "testHistory") return renderTestHistory();
-    if (activeTab === "reports") return renderReports();
-    return renderCurrentTest();
+  /* ── MY ASSESSMENT (by TI) — history list + detail view ── */
+  const renderMyAssessment = () => {
+    /* Scorecard detail view */
+    if (myAssessSelected) {
+      const sc = myAssessSelected;
+      const cat = sc.category;
+      return (
+        <section className="sm2-card">
+          <div className="sm2-card-hdr">
+            <h2>Assessment Scorecard</h2>
+            <button className="sm2-link-btn" onClick={() => setMyAssessSelected(null)}>← Back to History</button>
+          </div>
+          <p className="sm2-subtitle">Period: {sc.period} · Assessed by: {sc.assessedBy}</p>
+
+          <div className="sm2-sc-hero">
+            <div className="sm2-sc-circle" style={{borderColor: CAT_COLOR[cat]}}>
+              <strong style={{color: CAT_COLOR[cat]}}>{sc.totalScore}</strong>
+              <span>/100</span>
+            </div>
+            <div>
+              <span className="sm2-cat-badge-lg" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Category {cat}</span>
+              <p className="sm2-sc-period">{sc.period}</p>
+              <p className="sm2-sc-date">Date: {sc.date}</p>
+              <p className="sm2-sc-by">By: {sc.assessedBy}</p>
+            </div>
+            <div style={{marginLeft:"auto"}}>
+              <span className={`sm2-status-pill sm2-status-${sc.approvalStatus.toLowerCase()}`} style={{fontSize:13,padding:"6px 16px"}}>
+                {sc.approvalStatus}
+              </span>
+            </div>
+          </div>
+
+          <h4 style={{margin:"20px 0 12px",fontSize:14,color:"#0f172a"}}>Section-wise Breakdown</h4>
+          <div className="sm2-sc-sections">
+            {sc.sections.map(s => {
+              const pct = Math.round((s.marks / s.outOf) * 100);
+              return (
+                <div key={s.title} className="sm2-sc-row">
+                  <span className="sm2-sc-name">{s.title}</span>
+                  <div className="sm2-sc-bar-wrap">
+                    <div className="sm2-sc-bar-fill" style={{
+                      width:`${pct}%`,
+                      background: pct >= 80 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#dc2626"
+                    }}/>
+                  </div>
+                  <span className="sm2-sc-marks">{s.marks}/{s.outOf}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="sm2-ti-remarks">
+            <div className="sm2-ti-rmk-hdr"><Award size={15} color="#7c3aed"/> <strong>TI Remarks</strong></div>
+            <p>"{sc.tiRemarks}"</p>
+          </div>
+        </section>
+      );
+    }
+
+    /* History list */
+    return (
+      <section className="sm2-card">
+        <div className="sm2-card-hdr"><h2>My Assessment History (by TI)</h2></div>
+        <p className="sm2-subtitle">All assessments conducted by the Traffic Inspector for your station. Click any row to view the detailed scorecard.</p>
+
+        {/* Summary strip */}
+        <div className="sm2-myassess-summary">
+          <div className="sm2-report-mini">
+            <label>Total Assessments</label>
+            <strong>{smAssessmentHistory.length}</strong>
+          </div>
+          <div className="sm2-report-mini">
+            <label>Latest Score</label>
+            <strong>{smAssessmentHistory[0]?.totalScore}/100</strong>
+          </div>
+          <div className="sm2-report-mini">
+            <label>Average Score</label>
+            <strong>{Math.round(smAssessmentHistory.reduce((s,a) => s + a.totalScore, 0) / smAssessmentHistory.length)}/100</strong>
+          </div>
+          <div className="sm2-report-mini">
+            <label>Latest Category</label>
+            <strong style={{color: CAT_COLOR[smAssessmentHistory[0]?.category]}}>Category {smAssessmentHistory[0]?.category}</strong>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="sm2-myassess-list">
+          <div className="sm2-myassess-head">
+            {["Period","Date","Total Score","Category","Assessed By","Status",""].map(h =>
+              <span key={h}>{h}</span>)}
+          </div>
+          {smAssessmentHistory.map(sc => {
+            const cat = sc.category;
+            return (
+              <button key={sc.id} className="sm2-myassess-row" onClick={() => setMyAssessSelected(sc)}>
+                <span><strong>{sc.period}</strong></span>
+                <span>{sc.date}</span>
+                <span><strong>{sc.totalScore}/100</strong></span>
+                <span>
+                  <span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span>
+                </span>
+                <span style={{fontSize:11,color:"#64748b"}}>{sc.assessedBy}</span>
+                <span>
+                  <span className={`sm2-status-pill sm2-status-${sc.approvalStatus.toLowerCase()}`}>{sc.approvalStatus}</span>
+                </span>
+                <span style={{color:"#2563eb",fontSize:12,fontWeight:600}}>View →</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    );
   };
 
-  return (
-    <div className="sm-shell">
-      <header className="sm-topbar">
-        <div>
-          <h1>Indian Railway Evaluation System</h1>
-          <p>Station Master Module</p>
+  /* ── REPORTS ── */
+  const renderReports = () => (
+    <section className="sm2-card">
+      <div className="sm2-card-hdr"><h2>Reports</h2></div>
+
+      {/* Filters */}
+      <div className="sm2-filter-row">
+        <div className="sm2-search-box">
+          <Search size={14}/>
+          <input placeholder="Search staff…" value={reportFilter.search}
+            onChange={e => setReportFilter(p => ({...p, search: e.target.value}))}/>
         </div>
-        <div className="sm-topbar-right">
+        <select className="sm2-select" value={reportFilter.grade}
+          onChange={e => setReportFilter(p => ({...p, grade: e.target.value}))}>
+          {["All","A","B","C","D"].map(o => <option key={o}>{o}</option>)}
+        </select>
+        <select className="sm2-select" value={reportFilter.risk}
+          onChange={e => setReportFilter(p => ({...p, risk: e.target.value}))}>
+          {["All","Low","Medium","High"].map(o => <option key={o}>{o}</option>)}
+        </select>
+        <div className="sm2-sort-wrap">
+          <ArrowUpDown size={13}/>
+          <select value={reportFilter.sortBy}
+            onChange={e => setReportFilter(p => ({...p, sortBy: e.target.value}))}>
+            <option value="date-desc">Default</option>
+            <option value="score-desc">Highest Score</option>
+            <option value="score-asc">Lowest Score</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Summary mini-cards */}
+      <div className="sm2-report-summary">
+        {[
+          { label:"Filtered Staff",   value: filteredReports.length },
+          { label:"Avg Score",        value: filteredReports.length ? Math.round(filteredReports.reduce((s,p)=>s+p.lastScore,0)/filteredReports.length) : "—" },
+          { label:"High Risk",        value: filteredReports.filter(p => riskLevel(p)==="High").length },
+          { label:"Cat. A",           value: filteredReports.filter(p => getCat(p.lastScore)==="A").length },
+        ].map(c => (
+          <div key={c.label} className="sm2-report-mini">
+            <label>{c.label}</label>
+            <strong>{c.value}</strong>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="sm2-table-wrap" style={{marginTop:16}}>
+        <div className="sm2-report-head sm2-report-row">
+          {["Name","HRMS ID","Score","Grade","Safety","Risk","Status"].map(h => <span key={h}>{h}</span>)}
+        </div>
+        {filteredReports.map(p => {
+          const cat = getCat(p.lastScore);
+          const risk = riskLevel(p);
+          return (
+            <button key={p.id} className="sm2-report-row sm2-report-row-btn" onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
+              <span><strong>{p.name}</strong></span>
+              <span>{p.hrmsId}</span>
+              <span>{p.lastScore}/100</span>
+              <span><span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span></span>
+              <span>{p.safetyScore}%</span>
+              <span><span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk}</span></span>
+              <span><span className={`sm2-status-pill sm2-status-${p.approvalStatus.toLowerCase()}`}>{p.approvalStatus}</span></span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  /* ─── Dispatcher ─── */
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":    return renderDashboard();
+      case "profile":      return renderProfile();
+      case "pointsmen":    return renderPointsmen();
+      case "assess":       return renderAssess();
+      case "myAssessment": return renderMyAssessment();
+      case "reports":      return renderReports();
+      default: return renderDashboard();
+    }
+  };
+
+  /* ─── Shell ─── */
+  return (
+    <div className="sm2-layout">
+      <header className="sm2-topbar">
+        <div className="sm2-topbar-brand">
+          <div className="sm2-topbar-logo">IR</div>
+          <div>
+            <h1>Indian Railway Evaluation System</h1>
+            <p>Station Master Module</p>
+          </div>
+        </div>
+        <div className="sm2-user-strip">
+          <div className="sm2-user-avatar">{smName.charAt(0)}</div>
           <div>
             <strong>{smName}</strong>
             <span>{smId}</span>
           </div>
-          <button type="button" className="sm-logout-btn" onClick={onLogout}>
-            <LogOut size={16} /> Logout
+          <button className="sm2-logout-btn" onClick={onLogout}>
+            <LogOut size={15}/> Logout
           </button>
         </div>
       </header>
 
-      <div className="sm-layout">
-        <aside className="sm-sidebar">
-          {navItems.map((item) => {
+      <div className="sm2-shell">
+        <aside className="sm2-sidebar">
+          {navItems.map(item => {
             const Icon = item.icon;
             return (
-              <button
-                key={item.key}
-                type="button"
-                className={`sm-side-item ${activeTab === item.key ? "active" : ""}`}
-                onClick={() => switchTab(item.key)}
-              >
-                <Icon size={18} />
+              <button key={item.key}
+                className={`sm2-nav-item ${activeTab === item.key ? "active" : ""}`}
+                onClick={() => switchTab(item.key)}>
+                <Icon size={17}/>
                 <span>{item.label}</span>
               </button>
             );
           })}
         </aside>
 
-        <main className="sm-main">
-          {statusMessage && <div className="sm-status-banner">{statusMessage}</div>}
-          {renderContent()}
+        <main className="sm2-main">
+          {statusMsg && (
+            <div className="sm2-status-banner">
+              <CheckCircle2 size={14}/> {statusMsg}
+              <button className="sm2-dismiss" onClick={() => setStatusMsg("")}>×</button>
+            </div>
+          )}
+          <div className="sm2-page-wrap">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </div>

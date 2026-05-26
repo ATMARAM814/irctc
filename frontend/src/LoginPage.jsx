@@ -90,7 +90,7 @@ function LoginPage({ onLogin }) {
                 type="text"
                 value={hrmsId}
                 onChange={(e) => setHrmsId(e.target.value)}
-                placeholder="e.g., SA_1001, SM_1001"
+                placeholder="Enter your HRMS ID"
                 disabled={loading}
               />
             </div>
@@ -122,16 +122,7 @@ function LoginPage({ onLogin }) {
             </button>
           </form>
 
-          <div className="login-demo-info">
-            <h4>Demo Credentials</h4>
-            <div className="demo-list">
-              <div>Super Admin: SA_1001</div>
-              <div>Station Master: SM_1001</div>
-              <div>Train Manager: TM_1001</div>
-              <div>Traffic Inspector: TI_1001</div>
-              <div className="demo-password">Password: password123</div>
-            </div>
-          </div>
+
         </div>
 
         <div className="login-footer">
