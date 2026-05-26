@@ -9,13 +9,21 @@ function LoginPage({ onLogin }) {
 
   // Dummy user database
   const dummyUsers = [
-    { hrmsId: "PM_1001", password: "password123", role: "Pointsman" },
-    { hrmsId: "SM_1001", password: "password123", role: "Station Master" },
-    { hrmsId: "TM_1001", password: "password123", role: "Train Manager" },
-    { hrmsId: "SS_1001", password: "password123", role: "Station Superintendent" },
-    { hrmsId: "TI_1001", password: "password123", role: "Traffic Inspector" },
-    { hrmsId: "GM_1001", password: "password123", role: "AOM/General" },
-    { hrmsId: "SA_1001", password: "password123", role: "Super Admin" }
+    { hrmsId: "PM_1001", password: "password123", role: "Pointsman", name: "Ravi Kumar" },
+    { hrmsId: "PM_1101", password: "password123", role: "Pointsman", name: "Ravi Kumar" },
+    { hrmsId: "PM_1102", password: "password123", role: "Pointsman", name: "Sanjay Patil" },
+    { hrmsId: "PM_1103", password: "password123", role: "Pointsman", name: "Deepak Nair" },
+    { hrmsId: "PM_1104", password: "password123", role: "Pointsman", name: "Ajay Sharma" },
+    { hrmsId: "PM_1105", password: "password123", role: "Pointsman", name: "Kunal Verma" },
+    { hrmsId: "PM_1106", password: "password123", role: "Pointsman", name: "Priya Menon" },
+    { hrmsId: "PM_1107", password: "password123", role: "Pointsman", name: "Ramesh Yadav" },
+    { hrmsId: "PM_1108", password: "password123", role: "Pointsman", name: "Sneha Iyer" },
+    { hrmsId: "SM_1001", password: "password123", role: "Station Master", name: "S. Deshmukh" },
+    { hrmsId: "TM_1001", password: "password123", role: "Train Manager", name: "Train Manager User" },
+    { hrmsId: "SS_1001", password: "password123", role: "Station Superintendent", name: "Station Superintendent User" },
+    { hrmsId: "TI_1001", password: "password123", role: "Traffic Inspector", name: "Traffic Inspector User" },
+    { hrmsId: "GM_1001", password: "password123", role: "AOM/General", name: "General Manager User" },
+    { hrmsId: "SA_1001", password: "password123", role: "Super Admin", name: "Super Admin User" }
   ];
 
   const handleLogin = (e) => {
@@ -54,7 +62,7 @@ function LoginPage({ onLogin }) {
         onLogin({
           hrmsId: user.hrmsId,
           role: detectedRole,
-          name: `${detectedRole} User`
+          name: user.name || `${detectedRole} User`
         });
       } else {
         setError("Invalid HRMS ID or Password");

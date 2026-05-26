@@ -17,7 +17,10 @@ import {
   Users,
   XCircle,
   ArrowUpDown,
-  Activity
+  Activity,
+  Lock,
+  Info,
+  Shield
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -55,22 +58,32 @@ const RISK_BG    = { High:"#fee2e2", Medium:"#fef3c7", Low:"#dcfce7" };
 
 /* ─── SM PROFILE ─── */
 const smProfile = {
-  name: "S. Deshmukh", employeeId: "SM_1001",
-  contact: "+91 98220 44556", designation: "Station Master",
-  department: "Operations", station: "Nagpur Junction",
-  joiningDate: "2015-06-01", reportingOfficer: "TI_2001 — A. Kulkarni"
+  name: "S. Deshmukh",
+  employeeId: "SM_1001",
+  contact: "+91 98220 44556",
+  designation: "Station Master",
+  department: "Operations",
+  station: "Nagpur Junction",
+  reportingOfficer: "TI_2001 — A. Kulkarni",
+  dob: "1985-04-12",
+  dateOfAppointment: "2015-06-01",
+  pmeDoneDate: "2024-06-02",
+  pmeDueDate: "2028-06-01",
+  isolatorCertificateIssuedDate: "2024-11-15",
+  automaticTrainingDate: "2025-03-10",
+  counsellingDate: "2026-01-20"
 };
 
 /* ─── POINTSMEN DATA ─── */
 const initialPointsmen = [
-  { id:1, hrmsId:"PM_1101", name:"Ravi Kumar",   gender:"Male", age:38, doj:"2012-04-10", basePay:"₹28,500", lastScore:92, safetyScore:95, totalAssessments:12, pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved" },
-  { id:2, hrmsId:"PM_1102", name:"Sanjay Patil",  gender:"Male", age:34, doj:"2015-08-22", basePay:"₹26,200", lastScore:78, safetyScore:80, totalAssessments:9,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Pending"  },
-  { id:3, hrmsId:"PM_1103", name:"Deepak Nair",   gender:"Male", age:41, doj:"2009-11-05", basePay:"₹31,000", lastScore:48, safetyScore:62, totalAssessments:15, pmeStatus:"Fit",      refStatus:"Pending",  disciplinary:"Warning", incidents:1, approvalStatus:"Approved" },
-  { id:4, hrmsId:"PM_1104", name:"Ajay Sharma",   gender:"Male", age:29, doj:"2019-02-18", basePay:"₹23,400", lastScore:84, safetyScore:88, totalAssessments:6,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Pending"  },
-  { id:5, hrmsId:"PM_1105", name:"Kunal Verma",   gender:"Male", age:36, doj:"2013-07-30", basePay:"₹27,800", lastScore:35, safetyScore:55, totalAssessments:11, pmeStatus:"Unfit",    refStatus:"Pending",  disciplinary:"Warning", incidents:2, approvalStatus:"Rejected" },
-  { id:6, hrmsId:"PM_1106", name:"Priya Menon",   gender:"Female",age:31,doj:"2018-03-14",basePay:"₹25,100", lastScore:67, safetyScore:74, totalAssessments:7,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved" },
-  { id:7, hrmsId:"PM_1107", name:"Ramesh Yadav",  gender:"Male", age:45, doj:"2005-09-01", basePay:"₹34,600", lastScore:82, safetyScore:90, totalAssessments:18, pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved" },
-  { id:8, hrmsId:"PM_1108", name:"Sneha Iyer",    gender:"Female",age:28,doj:"2020-01-20",basePay:"₹22,000", lastScore:19, safetyScore:40, totalAssessments:3,  pmeStatus:"Unfit",    refStatus:"Pending",  disciplinary:"Serious", incidents:3, approvalStatus:"Rejected" }
+  { id:1, hrmsId:"PM_1001", name:"Ravi Kumar",   gender:"Male", age:38, doj:"2012-04-10", basePay:"₹28,500", lastScore:92, safetyScore:95, totalAssessments:12, pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Pending", monitoringStatus:"Active" },
+  { id:2, hrmsId:"PM_1102", name:"Sanjay Patil",  gender:"Male", age:34, doj:"2015-08-22", basePay:"₹26,200", lastScore:78, safetyScore:80, totalAssessments:9,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Pending", monitoringStatus:"On Duty"  },
+  { id:3, hrmsId:"PM_1103", name:"Deepak Nair",   gender:"Male", age:41, doj:"2009-11-05", basePay:"₹31,000", lastScore:48, safetyScore:62, totalAssessments:15, pmeStatus:"Fit",      refStatus:"Pending",  disciplinary:"Warning", incidents:1, approvalStatus:"Approved", monitoringStatus:"Off Duty" },
+  { id:4, hrmsId:"PM_1104", name:"Ajay Sharma",   gender:"Male", age:29, doj:"2019-02-18", basePay:"₹23,400", lastScore:84, safetyScore:88, totalAssessments:6,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Pending", monitoringStatus:"Active"  },
+  { id:5, hrmsId:"PM_1105", name:"Kunal Verma",   gender:"Male", age:36, doj:"2013-07-30", basePay:"₹27,800", lastScore:35, safetyScore:55, totalAssessments:11, pmeStatus:"Unfit",    refStatus:"Pending",  disciplinary:"Warning", incidents:2, approvalStatus:"Rejected", monitoringStatus:"Absent" },
+  { id:6, hrmsId:"PM_1106", name:"Priya Menon",   gender:"Female",age:31,doj:"2018-03-14",basePay:"₹25,100", lastScore:67, safetyScore:74, totalAssessments:7,  pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved", monitoringStatus:"On Duty" },
+  { id:7, hrmsId:"PM_1107", name:"Ramesh Yadav",  gender:"Male", age:45, doj:"2005-09-01", basePay:"₹34,600", lastScore:82, safetyScore:90, totalAssessments:18, pmeStatus:"Fit",      refStatus:"Cleared",  disciplinary:"None",    incidents:0, approvalStatus:"Approved", monitoringStatus:"Off Duty" },
+  { id:8, hrmsId:"PM_1108", name:"Sneha Iyer",    gender:"Female",age:28,doj:"2020-01-20",basePay:"₹22,000", lastScore:19, safetyScore:40, totalAssessments:3,  pmeStatus:"Unfit",    refStatus:"Pending",  disciplinary:"Serious", incidents:3, approvalStatus:"Rejected", monitoringStatus:"Absent" }
 ];
 
 /* ─── ASSESSMENT HISTORY per pointsman ─── */
@@ -87,6 +100,7 @@ const pmAssessmentHistory = {
 
 /* ─── DRAFT ASSESSMENTS ─── */
 const initialDrafts = [
+  { pointsmanId:1, hrmsId:"PM_1001", name:"Ravi Kumar",    lastDate:"2026-03-28" },
   { pointsmanId:2, hrmsId:"PM_1102", name:"Sanjay Patil",  lastDate:"2026-03-10" },
   { pointsmanId:4, hrmsId:"PM_1104", name:"Ajay Sharma",   lastDate:"2026-03-18" }
 ];
@@ -263,6 +277,21 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+const formatQuarterPeriod = (periodStr) => {
+  if (!periodStr) return "—";
+  const match = periodStr.match(/Q([1-4])\s+(\d{4})/i);
+  if (!match) return periodStr;
+  const quarter = parseInt(match[1], 10);
+  const year = match[2];
+  switch (quarter) {
+    case 1: return `01 Jan ${year} – 31 Mar ${year}`;
+    case 2: return `01 Apr ${year} – 30 Jun ${year}`;
+    case 3: return `01 Jul ${year} – 30 Sep ${year}`;
+    case 4: return `01 Oct ${year} – 31 Dec ${year}`;
+    default: return periodStr;
+  }
+};
+
 /* ════════════════════════════════════════
    MAIN COMPONENT
 ════════════════════════════════════════ */
@@ -344,7 +373,16 @@ function StationMasterModule({ user, onLogout }) {
   /* ─── Open assess form ─── */
   const openAssessForm = (draft) => {
     setAssessTarget(draft);
-    setAssessForm(defaultAssessForm);
+    
+    // Load MCQ score if it exists in localStorage
+    const mcqDataStr = localStorage.getItem(`pm_mcq_test_${draft.hrmsId}`);
+    const mcqData = mcqDataStr ? JSON.parse(mcqDataStr) : null;
+    const initialMcqMarks = mcqData && mcqData.completed ? String(mcqData.correctCount) : "0";
+
+    setAssessForm({
+      ...defaultAssessForm,
+      knowledgeMarks: initialMcqMarks
+    });
     setAssessLocked(false);
     setPageMode("assessForm");
   };
@@ -515,20 +553,134 @@ function StationMasterModule({ user, onLogout }) {
   /* ── PROFILE ── */
   const renderProfile = () => (
     <section className="sm2-card">
-      <div className="sm2-card-hdr">
+      <div className="sm2-card-hdr" style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "12px", marginBottom: "20px" }}>
         <h2>My Profile</h2>
         <span className="sm2-pill-grey">View Only</span>
       </div>
-      <dl className="sm2-dl-grid">
-        <div><dt>Full Name</dt><dd>{smName}</dd></div>
-        <div><dt>Employee ID</dt><dd>{smId}</dd></div>
-        <div><dt>Designation</dt><dd>{smProfile.designation}</dd></div>
-        <div><dt>Department</dt><dd>{smProfile.department}</dd></div>
-        <div><dt>Station</dt><dd>{smProfile.station}</dd></div>
-        <div><dt>Contact</dt><dd>{smProfile.contact}</dd></div>
-        <div><dt>Joining Date</dt><dd>{smProfile.joiningDate}</dd></div>
-        <div><dt>Reporting Officer</dt><dd>{smProfile.reportingOfficer}</dd></div>
-      </dl>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "24px" }}>
+        {/* 🔷 PERSONAL DETAILS SECTION */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <h3 style={{ display: "flex", alignItems: "center", gap: "8px", margin: "0 0 4px", fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>
+            <UserCircle2 size={18} color="#0d2c4d" /> Personal Details
+          </h3>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <div>
+                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  Employee ID / HRMS ID
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
+                  {smId}
+                </dd>
+              </div>
+              <Lock size={12} color="#94a3b8" />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <div>
+                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  Date of Birth
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>
+                  {smProfile.dob}
+                </dd>
+              </div>
+              <Lock size={12} color="#94a3b8" />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <div>
+                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  Date of Appointment
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>
+                  {smProfile.dateOfAppointment}
+                </dd>
+              </div>
+              <Lock size={12} color="#94a3b8" />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <div>
+                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  Reporting Officer
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
+                  {smProfile.reportingOfficer}
+                </dd>
+              </div>
+              <Lock size={12} color="#94a3b8" />
+            </div>
+          </div>
+        </div>
+
+        {/* 🔷 OPERATIONAL & SAFETY DATES / ADD SECTION */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <h3 style={{ display: "flex", alignItems: "center", gap: "8px", margin: "0 0 4px", fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>
+            <ShieldCheck size={18} color="#16a34a" /> Operational & Safety Records
+          </h3>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div style={{ padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "10px" }}>
+                <dt style={{ fontSize: "9px", fontWeight: "800", color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  PME Done Date
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "700", color: "#14532d" }}>
+                  {smProfile.pmeDoneDate}
+                </dd>
+              </div>
+              
+              <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px" }}>
+                <dt style={{ fontSize: "9px", fontWeight: "800", color: "#991b1b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  PME Due Date
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "700", color: "#7f1d1d" }}>
+                  {smProfile.pmeDueDate}
+                </dd>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <div>
+                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  Isolator Certificate Issued Date
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
+                  {smProfile.isolatorCertificateIssuedDate}
+                </dd>
+              </div>
+              <Award size={14} color="#7c3aed" />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <div>
+                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  Automatic Training Date
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
+                  {smProfile.automaticTrainingDate}
+                </dd>
+              </div>
+              <CalendarCheck2 size={14} color="#2563eb" />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <div>
+                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
+                  Counselling Date
+                </dt>
+                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
+                  {smProfile.counsellingDate}
+                </dd>
+              </div>
+              <ClipboardCheck size={14} color="#d97706" />
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 
@@ -561,8 +713,8 @@ function StationMasterModule({ user, onLogout }) {
 
         {/* Table */}
         <div className="sm2-table-wrap">
-          <div className="sm2-table-head sm2-table-row-7">
-            {["Name","HRMS ID","Grade","Last Score","Last Assessed","Approval","Risk"].map(h =>
+          <div className="sm2-table-head sm2-table-row-8">
+            {["Name","HRMS ID","Grade","Last Score","Last Assessed","Approval","Risk","Action"].map(h =>
               <span key={h}>{h}</span>)}
           </div>
           {filteredPm.length === 0 && <p className="sm2-empty">No staff match the current filters.</p>}
@@ -570,7 +722,7 @@ function StationMasterModule({ user, onLogout }) {
             const cat = getCat(p.lastScore);
             const risk = riskLevel(p);
             return (
-              <button key={p.id} className="sm2-table-row-7 sm2-table-row-btn" onClick={() => openPmDetail(p)}>
+              <div key={p.id} className="sm2-table-row-8 sm2-table-row-btn" onClick={() => openPmDetail(p)}>
                 <span className="sm2-name-cell"><strong>{p.name}</strong></span>
                 <span>{p.hrmsId}</span>
                 <span><span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span></span>
@@ -582,7 +734,15 @@ function StationMasterModule({ user, onLogout }) {
                   </span>
                 </span>
                 <span><span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk}</span></span>
-              </button>
+                <span>
+                  <button className="sm2-monitor-btn" onClick={(e) => {
+                    e.stopPropagation();
+                    openPmDetail(p);
+                  }}>
+                    Monitor
+                  </button>
+                </span>
+              </div>
             );
           })}
         </div>
@@ -629,6 +789,138 @@ function StationMasterModule({ user, onLogout }) {
           <div><dt>Date of Joining</dt><dd>{pm.doj}</dd></div>
           <div><dt>Base Pay</dt><dd>{pm.basePay}</dd></div>
         </dl>
+
+        {/* Monitoring Status */}
+        <div style={{
+          marginTop: "20px",
+          marginBottom: "20px",
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "20px",
+          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)"
+        }}>
+          <h4 style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            margin: "0 0 16px 0",
+            fontSize: "14px",
+            fontWeight: "700",
+            color: "#0f172a",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px"
+          }}>
+            <Activity size={16} color="#0d2c4d" /> Monitoring Status
+          </h4>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
+            {[
+              { 
+                status: "Active", 
+                color: "#16a34a", 
+                bg: "#dcfce7", 
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" strokeOpacity="0.25" fill="#16a34a" fillOpacity="0.2" />
+                    <circle cx="12" cy="12" r="3" fill="#16a34a" />
+                  </svg>
+                ),
+                desc: "Available for yard operations" 
+              },
+              { 
+                status: "On Duty", 
+                color: "#d97706", 
+                bg: "#fef3c7", 
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                ),
+                desc: "Currently executing track tasks" 
+              },
+              { 
+                status: "Off Duty", 
+                color: "#64748b", 
+                bg: "#f1f5f9", 
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                ),
+                desc: "Resting / Shift ended" 
+              },
+              { 
+                status: "Absent", 
+                color: "#dc2626", 
+                bg: "#fee2e2", 
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                ),
+                desc: "Unexcused leave of absence" 
+              }
+            ].map(item => {
+              const isActive = (pm.monitoringStatus || "Active") === item.status;
+              return (
+                <div
+                  key={item.status}
+                  style={{
+                    padding: "14px",
+                    borderRadius: "10px",
+                    border: isActive ? `1.5px solid ${item.color}` : "1.5px solid #e2e8f0",
+                    background: isActive ? item.bg : "#ffffff",
+                    boxShadow: isActive ? `0 4px 14px ${item.color}15` : "none",
+                    opacity: isActive ? 1 : 0.6,
+                    transform: isActive ? "scale(1.02)" : "none",
+                    transition: "all 0.2s ease",
+                    cursor: "default"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ display: "flex", alignItems: "center" }}>{item.icon}</span>
+                      <span style={{
+                        fontSize: "13px",
+                        fontWeight: "700",
+                        color: isActive ? item.color : "#334155"
+                      }}>
+                        {item.status}
+                      </span>
+                    </div>
+                    {isActive && (
+                      <span style={{
+                        fontSize: "9px",
+                        fontWeight: "800",
+                        background: item.color,
+                        color: "#ffffff",
+                        padding: "2px 8px",
+                        borderRadius: "9999px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.2px"
+                      }}>
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <p style={{
+                    margin: 0,
+                    fontSize: "11px",
+                    color: isActive ? "#334155" : "#64748b",
+                    fontWeight: isActive ? "500" : "400",
+                    lineHeight: "1.4"
+                  }}>
+                    {item.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Safety Compliance */}
         <div className="sm2-safety-block">
@@ -687,6 +979,10 @@ function StationMasterModule({ user, onLogout }) {
   /* ── ASSESS POINTSMAN ── */
   const renderAssess = () => {
     if (pageMode === "assessForm" && assessTarget) {
+      const mcqDataStr = localStorage.getItem(`pm_mcq_test_${assessTarget.hrmsId}`);
+      const mcqData = mcqDataStr ? JSON.parse(mcqDataStr) : null;
+      const isMcqCompleted = mcqData && mcqData.completed;
+
       const { knowledge, ynTotal, total: liveTotal } = computeScore(assessForm);
       const liveCat = getCat(liveTotal);
 
@@ -706,21 +1002,99 @@ function StationMasterModule({ user, onLogout }) {
               <span className="sm2-assess-sec-num">01</span>
               <div>
                 <strong>Knowledge of Rules (MCQ-based)</strong>
-                <span className="sm2-assess-sec-meta">Manual entry · Max 25 marks</span>
+                <span className="sm2-assess-sec-meta">Auto-calculated from Pointsman MCQ Test</span>
               </div>
               <span className="sm2-assess-live-marks">{knowledge} / 25</span>
             </div>
-            <div className="sm2-assess-form" style={{marginTop:12}}>
-              <div className="sm2-form-field" style={{gridColumn:"1 / -1",maxWidth:320}}>
-                <label>Marks Obtained <span className="sm2-hint">(0 – 25)</span></label>
-                <input
-                  type="number" min="0" max="25"
-                  disabled={assessLocked}
-                  value={assessForm.knowledgeMarks}
-                  onChange={e => setAssessForm(p => ({...p, knowledgeMarks: e.target.value}))}
-                  placeholder="Enter Pointsman's MCQ marks"
-                />
-              </div>
+            
+            <div className="sm2-mcq-card-container" style={{marginTop: 16}}>
+              {isMcqCompleted ? (
+                <div className="sm2-mcq-success-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className="sm2-status-dot green"></span>
+                      <span className="sm2-status-text text-green font-semibold">MCQ Test Completed</span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only (Synced)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body">
+                    <div className="sm2-mcq-score-display">
+                      <div className="sm2-mcq-large-score">
+                        <strong>{mcqData.correctCount}</strong>
+                        <span>/ 25</span>
+                      </div>
+                      <div className="sm2-mcq-percentage-badge">
+                        {mcqData.percentage}% Score
+                      </div>
+                    </div>
+                    
+                    <div className="sm2-mcq-progress-container">
+                      <div className="sm2-mcq-progress-bar">
+                        <div 
+                          className="sm2-mcq-progress-fill" 
+                          style={{ 
+                            width: `${mcqData.percentage}%`,
+                            background: mcqData.percentage >= 80 ? "#16a34a" : mcqData.percentage >= 50 ? "#2563eb" : "#dc2626"
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Submitted On</span>
+                        <strong className="sm2-mcq-meta-val">{mcqData.submittedDate}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{assessTarget.name}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="sm2-mcq-pending-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className="sm2-status-dot amber"></span>
+                      <span className="sm2-status-text text-amber font-semibold">MCQ Test Pending</span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body pending">
+                    <div className="sm2-mcq-pending-message">
+                      <AlertTriangle size={24} color="#d97706" style={{marginTop: 2}} />
+                      <div>
+                        <h4 style={{margin:"0 0 4px", fontSize:14, color:"#b45309"}}>Action Required</h4>
+                        <p style={{margin:0, fontSize:12.5, lineHeight:1.5, color:"#d97706"}}>The Pointsman (<strong>{assessTarget.name}</strong>) has not yet completed their online MCQ exam from their portal. Please request them to log in and attempt the test to sync their scores automatically.</p>
+                      </div>
+                    </div>
+                    
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessment Status</span>
+                        <strong className="sm2-mcq-meta-val text-amber">Pending Pointsman Action</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{assessTarget.name}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Total Questions</span>
+                        <strong className="sm2-mcq-meta-val">25 Questions (1 mark each)</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -932,7 +1306,7 @@ function StationMasterModule({ user, onLogout }) {
             <h2>Assessment Scorecard</h2>
             <button className="sm2-link-btn" onClick={() => setMyAssessSelected(null)}>← Back to History</button>
           </div>
-          <p className="sm2-subtitle">Period: {sc.period} · Assessed by: {sc.assessedBy}</p>
+          <p className="sm2-subtitle">Period: <strong style={{color:"#0f172a"}}>{formatQuarterPeriod(sc.period)}</strong> ({sc.period}) · Assessed by: {sc.assessedBy}</p>
 
           <div className="sm2-sc-hero">
             <div className="sm2-sc-circle" style={{borderColor: CAT_COLOR[cat]}}>
@@ -941,7 +1315,7 @@ function StationMasterModule({ user, onLogout }) {
             </div>
             <div>
               <span className="sm2-cat-badge-lg" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Category {cat}</span>
-              <p className="sm2-sc-period">{sc.period}</p>
+              <p className="sm2-sc-period" title={sc.period}>{formatQuarterPeriod(sc.period)}</p>
               <p className="sm2-sc-date">Date: {sc.date}</p>
               <p className="sm2-sc-by">By: {sc.assessedBy}</p>
             </div>
@@ -1015,7 +1389,9 @@ function StationMasterModule({ user, onLogout }) {
             const cat = sc.category;
             return (
               <button key={sc.id} className="sm2-myassess-row" onClick={() => setMyAssessSelected(sc)}>
-                <span><strong>{sc.period}</strong></span>
+                <span title={`Cycle: ${sc.period}\nDuration: ${formatQuarterPeriod(sc.period)}`}>
+                  <strong>{formatQuarterPeriod(sc.period)}</strong>
+                </span>
                 <span>{sc.date}</span>
                 <span><strong>{sc.totalScore}/100</strong></span>
                 <span>
@@ -1082,14 +1458,14 @@ function StationMasterModule({ user, onLogout }) {
 
       {/* Table */}
       <div className="sm2-table-wrap" style={{marginTop:16}}>
-        <div className="sm2-report-head sm2-report-row">
-          {["Name","HRMS ID","Score","Grade","Safety","Risk","Status"].map(h => <span key={h}>{h}</span>)}
+        <div className="sm2-report-head sm2-report-row-8">
+          {["Name","HRMS ID","Score","Grade","Safety","Risk","Status","Action"].map(h => <span key={h}>{h}</span>)}
         </div>
         {filteredReports.map(p => {
           const cat = getCat(p.lastScore);
           const risk = riskLevel(p);
           return (
-            <button key={p.id} className="sm2-report-row sm2-report-row-btn" onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
+            <div key={p.id} className="sm2-report-row-8 sm2-report-row-btn" onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
               <span><strong>{p.name}</strong></span>
               <span>{p.hrmsId}</span>
               <span>{p.lastScore}/100</span>
@@ -1097,7 +1473,16 @@ function StationMasterModule({ user, onLogout }) {
               <span>{p.safetyScore}%</span>
               <span><span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk}</span></span>
               <span><span className={`sm2-status-pill sm2-status-${p.approvalStatus.toLowerCase()}`}>{p.approvalStatus}</span></span>
-            </button>
+              <span>
+                <button className="sm2-monitor-btn" onClick={(e) => {
+                  e.stopPropagation();
+                  openPmDetail(p);
+                  setActiveTab("pointsmen");
+                }}>
+                  Monitor
+                </button>
+              </span>
+            </div>
           );
         })}
       </div>
@@ -1122,7 +1507,14 @@ function StationMasterModule({ user, onLogout }) {
     <div className="sm2-layout">
       <header className="sm2-topbar">
         <div className="sm2-topbar-brand">
-          <div className="sm2-topbar-logo">IR</div>
+          <div className="sm2-topbar-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 3v18" />
+              <path d="M17 3v18" />
+              <path d="M5 8h14" />
+              <path d="M5 14h14" />
+            </svg>
+          </div>
           <div>
             <h1>Indian Railway Evaluation System</h1>
             <p>Station Master Module</p>
