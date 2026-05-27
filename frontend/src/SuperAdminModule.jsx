@@ -35,18 +35,76 @@ const CAT_COLORS  = { A: "#1E3A5F", B: "#2B6CB0", C: "#D69E2E", D: "#C53030" };
 const RISK_COLORS = { Low: "#2F855A", Medium: "#D69E2E", High: "#C53030" };
 const STATUS_COLORS = { Approved: "#2F855A", Pending: "#D69E2E", Rejected: "#C53030", Overdue: "#9B2C2C" };
 
-const STATIONS_DATA = [
-  { id:"ST01", name:"Nagpur Junction",      code:"NGP",  ti:"TI NGP",  smCount:4, pmCount:86, score:91, safety:96, highRisk:2, pending:4 },
-  { id:"ST02", name:"Parbhani Junction",    code:"PBN",  ti:"TI PAR",  smCount:3, pmCount:58, score:86, safety:92, highRisk:3, pending:6 },
-  { id:"ST03", name:"Amla",                 code:"AMLA", ti:"TI AMLA", smCount:2, pmCount:41, score:78, safety:84, highRisk:5, pending:9 },
-  { id:"ST04", name:"Wardha",               code:"WR",   ti:"TI NGP",  smCount:2, pmCount:32, score:88, safety:90, highRisk:1, pending:3 },
-  { id:"ST05", name:"Betul",                code:"BZU",  ti:"TI AMLA", smCount:2, pmCount:28, score:74, safety:79, highRisk:7, pending:12 },
-  { id:"ST06", name:"Purna",                code:"PUU",  ti:"TI PAR",  smCount:2, pmCount:38, score:82, safety:87, highRisk:4, pending:7 },
-  { id:"ST07", name:"Ajni",                 code:"AJN",  ti:"TI NGP",  smCount:1, pmCount:18, score:93, safety:97, highRisk:0, pending:1 },
-  { id:"ST08", name:"Kamptee",              code:"KTE",  ti:"TI NGP",  smCount:1, pmCount:14, score:89, safety:93, highRisk:1, pending:2 },
-  { id:"ST09", name:"Multai",               code:"MAI",  ti:"TI AMLA", smCount:1, pmCount:12, score:71, safety:76, highRisk:8, pending:15 },
-  { id:"ST10", name:"Jintur",               code:"JNR",  ti:"TI PAR",  smCount:1, pmCount:16, score:84, safety:88, highRisk:2, pending:5 },
-];
+const generateUnified96Stations = () => {
+  const baseStations = [
+    { name: "Nagpur Junction", code: "NGP", ti: "TI NGP", smCount: 4, pmCount: 86, score: 91, safety: 96, highRisk: 2, pending: 4 },
+    { name: "Parbhani Junction", code: "PBN", ti: "TI PAR", smCount: 3, pmCount: 58, score: 86, safety: 92, highRisk: 3, pending: 6 },
+    { name: "Amla", code: "AMLA", ti: "TI AMLA", smCount: 2, pmCount: 41, score: 78, safety: 84, highRisk: 5, pending: 9 },
+    { name: "Wardha", code: "WR", ti: "TI NGP", smCount: 2, pmCount: 32, score: 88, safety: 90, highRisk: 1, pending: 3 },
+    { name: "Betul", code: "BZU", ti: "TI AMLA", smCount: 2, pmCount: 28, score: 74, safety: 79, highRisk: 7, pending: 12 },
+    { name: "Purna", code: "PUU", ti: "TI PAR", smCount: 2, pmCount: 38, score: 82, safety: 87, highRisk: 4, pending: 7 },
+    { name: "Ajni", code: "AJN", ti: "TI NGP", smCount: 1, pmCount: 18, score: 93, safety: 97, highRisk: 0, pending: 1 },
+    { name: "Kamptee", code: "KTE", ti: "TI NGP", smCount: 1, pmCount: 14, score: 89, safety: 93, highRisk: 1, pending: 2 },
+    { name: "Multai", code: "MAI", ti: "TI AMLA", smCount: 1, pmCount: 12, score: 71, safety: 76, highRisk: 8, pending: 15 },
+    { name: "Jintur", code: "JNR", ti: "TI PAR", smCount: 1, pmCount: 16, score: 84, safety: 88, highRisk: 2, pending: 5 }
+  ];
+
+  const names = [
+    "Sevagram", "Dhamangaon", "Pulgaon", "Badnera Town", "Murtajapur", "Shegaon", "Malkapur", "Jalgaon Junction",
+    "Chalisgaon", "Dongargarh", "Gondia Jn", "Durg Jn", "Raipur Jn", "Bilaspur Jn", "Lonavala", "Shivajinagar",
+    "Khadki", "Dapodi", "Chinchwad", "Pimpri", "Taloja", "Dehu Road", "Khadala", "Daund Jn", "Ahmednagar",
+    "Kopargaon", "Sainagar Shirdi", "Satara", "Kolhapur", "Sangli", "Miraj Jn", "Londa", "Ghatprabha",
+    "Byculla", "Dadar Central", "Kurla Jn", "Ghatkopar", "Thane Main", "Diva Jn", "Dombivli", "Kalyan Jn",
+    "Shahad", "Ambivali", "Titwala", "Ulhasnagar", "Vithalwadi", "Badlapur", "Vashi", "Karjat Jn", "Igatpuri",
+    "Bhandup", "Mulund", "Solapur Jn", "Kurduvadi Jn", "Pandharpur", "Latur Town", "Osmanabad", "Barsi Town",
+    "Bhusawal Jn", "Nashik Road", "Manmad Jn", "Burhanpur", "Khandwa Jn", "Harda", "Devlali", "Khamgaon",
+    "Pachora", "Nandurbar", "Amravati", "Chandrapur", "Ballarshah", "Wardha East", "Sindi Town", "Butibori",
+    "Kalmeshwar", "Katol", "Narkher", "Pandhurna", "Ghoradongri", "Itarsi West", "Hoshangabad", "Budni",
+    "Obaidullaganj", "Mandideep", "Visapur", "Partur", "Mudkhed", "Parli Vaijnath", "Vikarabad", "Aurangabad"
+  ];
+  
+  const tis = ["TI NGP", "TI PAR", "TI AMLA"];
+  const res = [];
+  
+  for (let i = 0; i < 10; i++) {
+    res.push({
+      id: `ST_${1001 + i}`,
+      ...baseStations[i]
+    });
+  }
+  
+  for (let i = 10; i < 96; i++) {
+    const name = names[(i - 10) % names.length];
+    const code = name.replace(/[^A-Z]/g, "").substring(0, 4) || name.substring(0, 3).toUpperCase();
+    let assignedTi = "";
+    if (i < 20) {
+      assignedTi = "TI NGP";
+    } else {
+      assignedTi = i % 2 === 0 ? "TI PAR" : "TI AMLA";
+    }
+    const smCount = 1 + (i % 3);
+    const pmCount = 10 + ((i * 7) % 80);
+    const score = 70 + ((i * 3) % 28);
+    const safety = 75 + ((i * 2) % 24);
+    const highRisk = (i * 3) % 9;
+    const pending = 1 + ((i * 5) % 15);
+    res.push({
+      id: `ST_${1001 + i}`,
+      name,
+      code: code + `_${10 + i}`,
+      ti: assignedTi,
+      smCount,
+      pmCount,
+      score,
+      safety,
+      highRisk,
+      pending
+    });
+  }
+  return res;
+};
+
+const UNIFIED_96_STATIONS = generateUnified96Stations();
 
 const generate96Stations = () => {
   const divisionMap = {
@@ -235,7 +293,11 @@ export default function SuperAdminModule({ user, onLogout }) {
   const [page, setPage]     = useState("dashboard");
   const [view, setView]     = useState(null); // { type, data } for drill-down pages
   const [staff, setStaff]   = useState(ALL_STAFF);
-  const [stations]          = useState(STATIONS_DATA);
+  const [stations, setStations] = useState(UNIFIED_96_STATIONS);
+  const [showAddStation, setShowAddStation] = useState(false);
+  const [newStName, setNewStName] = useState("");
+  const [newStCode, setNewStCode] = useState("");
+  const [newStTi, setNewStTi] = useState("TI NGP");
   const [modal, setModal]   = useState(null); // add/edit form
 
   // Filters
@@ -301,6 +363,27 @@ export default function SuperAdminModule({ user, onLogout }) {
   }
   function openView(type, data) { setView({ type, data }); }
   function closeView()           { setView(null); }
+
+  const handleAddStation = () => {
+    if (!newStName.trim() || !newStCode.trim()) {
+      alert("Please enter both Station Name and Station Code.");
+      return;
+    }
+    const newStation = {
+      id: `ST_${Date.now()}`,
+      name: newStName.trim(),
+      code: newStCode.trim().toUpperCase(),
+      ti: newStTi,
+      smCount: 0,
+      pmCount: 0,
+      score: 80,
+      safety: 100,
+      highRisk: 0,
+      pending: 0
+    };
+    setStations(prev => [newStation, ...prev]);
+    setShowAddStation(false);
+  };
 
   /* ------- CRUD ------- */
   function openAdd(role) {
@@ -996,7 +1079,6 @@ export default function SuperAdminModule({ user, onLogout }) {
     );
   }
 
-  /* ── STATIONS ── */
   function renderStations() {
     if (view?.type === "staffDetail") return renderStaffDetail(view.data);
     if (view?.type === "stationDetail") return renderStationDetail(view.data);
@@ -1006,8 +1088,20 @@ export default function SuperAdminModule({ user, onLogout }) {
 
     return (
       <div className="sdom-fade">
-        <h1 className="sdom-page-title">Stations</h1>
-        <p className="sdom-page-subtitle">Full list of stations in Nagpur Division. Click a station to open its complete analytics dashboard.</p>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+          <div>
+            <h1 className="sdom-page-title">Stations</h1>
+            <p className="sdom-page-subtitle">Full list of stations in Nagpur Division. Click a station to open its complete analytics dashboard.</p>
+          </div>
+          <button className="sdom-btn-primary" onClick={() => {
+            setNewStName("");
+            setNewStCode("");
+            setNewStTi("TI NGP");
+            setShowAddStation(true);
+          }}>
+            <Plus size={16}/> Add New Station
+          </button>
+        </div>
 
         <div className="sdom-filter-bar" style={{flexWrap:"nowrap"}}>
           <div className="sdom-filter-field" style={{flex:1}}>
@@ -1045,6 +1139,42 @@ export default function SuperAdminModule({ user, onLogout }) {
             </table>
           </div>
         </div>
+
+        {/* Add Station Modal */}
+        {showAddStation && (
+          <div className="sdom-modal-overlay" style={{ zIndex: 9999 }}>
+            <div className="sdom-modal" style={{ width: "450px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#0B1F3A" }}>Add New Station</h3>
+                <button type="button" onClick={() => setShowAddStation(false)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#64748b" }}>&times;</button>
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div className="sdom-filter-field">
+                  <label style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>Station Name</label>
+                  <input type="text" value={newStName} onChange={e => setNewStName(e.target.value)} placeholder="e.g. Wardha Junction" />
+                </div>
+                <div className="sdom-filter-field">
+                  <label style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>Station Code</label>
+                  <input type="text" value={newStCode} onChange={e => setNewStCode(e.target.value)} placeholder="e.g. WR" />
+                </div>
+                <div className="sdom-filter-field">
+                  <label style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>Assigned TI Area</label>
+                  <select value={newStTi} onChange={e => setNewStTi(e.target.value)}>
+                    <option>TI NGP</option>
+                    <option>TI PAR</option>
+                    <option>TI AMLA</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+                <button className="sdom-btn-outline" onClick={() => setShowAddStation(false)}>Cancel</button>
+                <button className="sdom-btn-primary" onClick={handleAddStation}>Create Station</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -1072,48 +1072,57 @@ function PointsmanModule({ user, onLogout }) {
   /* ═══════════════════════════════════════
      RENDER: CURRENT TEST (SCHEDULED)
   ═══════════════════════════════════════ */
-  const renderCurrentTestsPage = () => (
-    <section className="pm-page-card">
-      <div className="pm-page-header">
-        <h2>Assigned Competency Trials</h2>
-      </div>
-      <p className="pm-subtitle">Mandatory periodically scheduled evaluation of SWR Rules and points shunting safety clearance.</p>
+  const renderCurrentTestsPage = () => {
+    const isTestActivated = localStorage.getItem("pm_test_activated_" + employeeId) === "true";
+    return (
+      <section className="pm-page-card">
+        <div className="pm-page-header">
+          <h2>Assigned Competency Trials</h2>
+        </div>
+        <p className="pm-subtitle">Mandatory periodically scheduled evaluation of SWR Rules and points shunting safety clearance.</p>
 
-      <div className="pm-current-tests">
-        {!currentTest ? (
-          <div className="pm-no-test-banner">
-            <CheckCircle2 size={40} color="#16a34a" />
-            <h3>All caught up!</h3>
-            <p>Your periodic evaluation for April 2026 is fully completed. Grade successfully filed to Station Supervisor records.</p>
-          </div>
-        ) : (
-          <article className="pm-test-card-premium">
-            <div className="pm-tc-header">
-              <ClipboardList size={22} color="#2563eb" />
-              <div>
-                <h3>{currentTest.name}</h3>
-                <p>Scheduled Period: <strong>{currentTest.period}</strong></p>
+        <div className="pm-current-tests">
+          {!isTestActivated ? (
+            <div className="pm-no-test-banner" style={{ background: "#f8fafc", border: "2px dashed #cbd5e1" }}>
+              <Lock size={40} color="#64748b" />
+              <h3>Competency Exam Locked</h3>
+              <p>Your periodic evaluation has not been activated by the Station Master yet. Please request your Station Master to activate your test so you can attempt it.</p>
+            </div>
+          ) : !currentTest ? (
+            <div className="pm-no-test-banner">
+              <CheckCircle2 size={40} color="#16a34a" />
+              <h3>All caught up!</h3>
+              <p>Your periodic evaluation for April 2026 is fully completed. Grade successfully filed to Station Supervisor records.</p>
+            </div>
+          ) : (
+            <article className="pm-test-card-premium">
+              <div className="pm-tc-header">
+                <ClipboardList size={22} color="#2563eb" />
+                <div>
+                  <h3>{currentTest.name}</h3>
+                  <p>Scheduled Period: <strong>{currentTest.period}</strong></p>
+                </div>
               </div>
-            </div>
-            <div className="pm-tc-meta-row">
-              <span className="pm-mini-pill">📝 25 Compulsory Questions</span>
-              <span className="pm-mini-pill">⏱ 30:00 Countdown Timer</span>
-              <span className="pm-mini-pill">🎯 MCQ Single Key Option</span>
-              <span className="pm-mini-pill">⚠️ Answering All Required to Submit</span>
-            </div>
-            <div className="pm-tc-sections-preview">
-              {["Signal Rules", "Track Handling", "Communication", "Safety Response", "Operational Judgement"].map(s => (
-                <span key={s} className="pm-tc-section-chip">{s}</span>
-              ))}
-            </div>
-            <button className="pm-start-btn" onClick={startTest}>
-              <PlayCircle size={18} /> Initialize Assessment Command
-            </button>
-          </article>
-        )}
-      </div>
-    </section>
-  );
+              <div className="pm-tc-meta-row">
+                <span className="pm-mini-pill">📝 25 Compulsory Questions</span>
+                <span className="pm-mini-pill">⏱ 30:00 Countdown Timer</span>
+                <span className="pm-mini-pill">🎯 MCQ Single Key Option</span>
+                <span className="pm-mini-pill">⚠️ Answering All Required to Submit</span>
+              </div>
+              <div className="pm-tc-sections-preview">
+                {["Signal Rules", "Track Handling", "Communication", "Safety Response", "Operational Judgement"].map(s => (
+                  <span key={s} className="pm-tc-section-chip">{s}</span>
+                ))}
+              </div>
+              <button className="pm-start-btn" onClick={startTest}>
+                <PlayCircle size={18} /> Initialize Assessment Command
+              </button>
+            </article>
+          )}
+        </div>
+      </section>
+    );
+  };
 
   /* ═══════════════════════════════════════
      RENDER: TEST ATTEMPT (WITH TIMER)

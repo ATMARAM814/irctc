@@ -22,12 +22,17 @@ import {
   Info,
   Shield,
   FileDown,
-  Maximize2
+  Maximize2,
+  Plus,
+  ArrowLeft,
+  Building2
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar
+  ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar,
+  LabelList
 } from "recharts";
+import "./sdom.css";
 
 /* ─── NAV ─── */
 const navItems = [
@@ -35,8 +40,8 @@ const navItems = [
   { key: "profile",       label: "My Profile",           icon: UserCircle2 },
   { key: "pointsmen",     label: "Pointsmen",            icon: Users },
   { key: "assess",        label: "Assess Pointsman",     icon: ClipboardCheck },
-  { key: "myAssessment",  label: "My Assessment (by TI)",icon: FileBarChart2 },
-  { key: "reports",       label: "Reports",              icon: Filter }
+  { key: "myAssessment",  label: "My Assessment (by TI)",icon: ClipboardCheck },
+  { key: "reports",       label: "Reports & Analytics",  icon: FileBarChart2 }
 ];
 
 /* ─── HELPERS ─── */
@@ -494,6 +499,12 @@ function StationMasterModule({ user, onLogout }) {
   const [myAssessSelected, setMyAssessSelected] = useState(null);
   const [pmFilter, setPmFilter]           = useState({ search:"", grade:"All", status:"All", risk:"All" });
   const [reportFilter, setReportFilter]   = useState({ search:"", grade:"All", risk:"All", sortBy:"date-desc" });
+  const [activatedTests, setActivatedTests] = useState(() => {
+    const saved = localStorage.getItem("sm_pm_activated_tests");
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [repApplied, setRepApplied] = useState(false);
+  const [viewingStaff, setViewingStaff] = useState(null);
 
   // Fullscreen Analytics States
   const [fullscreenChart, setFullscreenChart] = useState(null); // 'monthly' | 'safety' | 'performance' | null
@@ -787,13 +798,65 @@ function StationMasterModule({ user, onLogout }) {
 
   /* ── DASHBOARD ── */
   const renderDashboard = () => {
+    // palettes
+    const CAT_COLORS  = { A: "#1E3A5F", B: "#2B6CB0", C: "#D69E2E", D: "#C53030" };
+    const RISK_COLORS = { Low: "#2F855A", Medium: "#D69E2E", High: "#C53030" };
+
     const tiSmListStr = localStorage.getItem("ti_sm_list");
-    const smList = tiSmListStr ? JSON.parse(tiSmListStr) : [];
-    const myAssess = smList.find(s => s.hrmsId === smId);
+    const smListState = tiSmListStr ? JSON.parse(tiSmListStr) : [];
+    const myAssess = smListState.find(s => s.hrmsId === smId);
     const hasAssignedExam = myAssess && myAssess.status === "Exam Sent";
 
+    // Station mock object dynamically tied to our pointsmen scores!
+    const avgScore = pointsmen.length ? Math.round(pointsmen.reduce((s, p) => s + p.lastScore, 0) / pointsmen.length) : 0;
+    const safetyVal = pointsmen.length ? Math.round(pointsmen.reduce((s, p) => s + p.safetyScore, 0) / pointsmen.length) : 0;
+
+    const myStationObj = {
+      name: "Nagpur Junction",
+      code: "NGP",
+      ti: "TI NGP",
+      smCount: 4,
+      pmCount: pointsmen.length,
+      score: avgScore,
+      safety: safetyVal,
+      highRisk: pointsmen.filter(p => riskLevel(p) === "High").length,
+      pending: drafts.length
+    };
+
+    // calculate category distribution dynamically from pointsmen!
+    const catCount = ["A", "B", "C", "D"].map(c => ({
+      cat: `Cat ${c}`,
+      count: pointsmen.filter(p => getCat(p.lastScore) === c).length,
+      fill: CAT_COLORS[c]
+    }));
+
+    // calculate risk distribution dynamically!
+    const riskCount = [
+      { name: "Low",    value: pointsmen.filter(p => riskLevel(p) === "Low").length,    fill: RISK_COLORS.Low },
+      { name: "Medium", value: pointsmen.filter(p => riskLevel(p) === "Medium").length, fill: RISK_COLORS.Medium },
+      { name: "High",   value: pointsmen.filter(p => riskLevel(p) === "High").length,   fill: RISK_COLORS.High },
+    ].filter(r => r.value > 0);
+
+    const trend = [
+      { month: "Dec'25", score: 82, safety: 86 },
+      { month: "Jan'26", score: 85, safety: 89 },
+      { month: "Feb'26", score: 88, safety: 91 },
+      { month: "Mar'26", score: 91, safety: 93 },
+      { month: "Apr'26", score: 90, safety: 94 },
+      { month: "May'26", score: avgScore, safety: safetyVal } // current month tied dynamically!
+    ];
+
+    const smList = [
+      { id: "SM_1001", name: "S. Deshmukh",  hrmsId: "SM_1001", cat: "A", score: 88, lastDate: "2026-04-01", status: "Approved", role: "sm", station: "Nagpur Junction" },
+      { id: "SM_2301", name: "D. Nair",      hrmsId: "SM_2301", cat: "A", score: 94, lastDate: "2026-04-15", status: "Approved", role: "sm", station: "Nagpur Junction" },
+      { id: "SM_2302", name: "K. Solanki",   hrmsId: "SM_2302", cat: "A", score: 90, lastDate: "2026-04-12", status: "Approved", role: "sm", station: "Nagpur Junction" },
+      { id: "SM_2303", name: "L. Raut",      hrmsId: "SM_2303", cat: "B", score: 78, lastDate: "2026-03-22", status: "Pending",  role: "sm", station: "Nagpur Junction" }
+    ];
+
+    const tiPerson = { name: "R. Khan", id: "TI_1001", contact: "+91 99999 33333", email: "r.khan@rail.in", role: "ti", station: "Nagpur Junction" };
+
     return (
-      <div className="sm2-dashboard">
+      <div className="sdom-fade">
         {hasAssignedExam && (
           <div style={{ background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)", borderRadius: "14px", padding: "20px 24px", color: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", boxShadow: "0 10px 25px rgba(124, 58, 237, 0.25)", border: "1px solid rgba(255,255,255,0.15)", position: "relative", overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -805,383 +868,455 @@ function StationMasterModule({ user, onLogout }) {
                 </p>
               </div>
             </div>
-            <button className="sm2-primary-btn" style={{ background: "#ffffff", color: "#6d28d9", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontWeight: "800", padding: "10px 22px", borderRadius: "10px", border: "none", cursor: "pointer" }} onClick={() => {
-              setCurrentExamQuestion(0);
-              setExamAnswers(Array(25).fill(null));
-              setExamSubmitted(false);
-              setShowExamModal(true);
-            }}>
+            <button className="sm2-primary-btn" style={{ background: "#ffffff", color: "#6d28d9", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontWeight: "800", padding: "10px 22px", borderRadius: "10px", border: "none", cursor: "pointer" }} onClick={startTestAttempt}>
               Take Exam Now →
             </button>
           </div>
         )}
 
-      {/* Summary Cards */}
-      <div className="sm2-summary-cards">
-        {[
-          { label:"Total Pointsmen",       value: stats.total,      icon:<Users size={20} color="#2563eb"/>,        bg:"#eff6ff" },
-          { label:"Pending Assessments",   value: stats.pending,    icon:<ClipboardCheck size={20} color="#d97706"/>,bg:"#fef3c7" },
-          { label:"Completed Assessments", value: stats.completed,  icon:<CheckCircle2 size={20} color="#16a34a"/>, bg:"#dcfce7" },
-          { label:"High Risk Staff",       value: stats.highRisk,   icon:<AlertTriangle size={20} color="#dc2626"/>,bg:"#fee2e2" },
-          { label:"Safety Compliance",     value:`${stats.safetyPct}%`, icon:<ShieldCheck size={20} color="#7c3aed"/>,bg:"#f5f3ff" },
-        ].map(c => (
-          <article key={c.label} className="sm2-sum-card">
-            <div className="sm2-sum-icon" style={{ background: c.bg }}>{c.icon}</div>
-            <div>
-              <label>{c.label}</label>
-              <strong>{c.value}</strong>
+        {/* Station Hero */}
+        <div className="sdom-station-header" style={{ marginBottom: "24px" }}>
+          <div className="sdom-station-header-meta">
+            <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Station Analytics Dashboard</div>
+            <div style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: 4 }}>{myStationObj.name}</div>
+            <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>Code: <b>{myStationObj.code}</b> &bull; Assigned TI: <b>{myStationObj.ti}</b></div>
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              <span className="sdom-badge" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{myStationObj.smCount} Station Masters</span>
+              <span className="sdom-badge" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{myStationObj.pmCount} Pointsmen</span>
+              <span className={`sdom-badge ${myStationObj.highRisk > 4 ? "sdom-badge-red" : "sdom-badge-green"}`}>{myStationObj.highRisk} High-Risk</span>
             </div>
-          </article>
-        ))}
-      </div>
-
-      {/* Charts Row */}
-      <div className="sm2-charts-row">
-
-        {/* Line: Score trend */}
-        <div className="sm2-chart-card">
-          <div className="sm2-chart-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
-              <TrendingUp size={15}/>
-              <h3>Monthly Assessment Trend</h3>
-            </div>
-            <button 
-              onClick={() => { setFullscreenChart("monthly"); setFsStartDate(""); setFsEndDate(""); setFsCategory("All"); setFsRisk("All"); setFsSearch(""); }} 
-              style={{
-                background: "none", 
-                border: "none", 
-                color: "#2563eb", 
-                fontSize: "11px", 
-                fontWeight: "700", 
-                cursor: "pointer", 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "4px",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                transition: "all 0.15s"
-              }}
-              className="sm2-fullscreen-btn"
-            >
-              <Maximize2 size={11}/> View Full Screen
-            </button>
           </div>
-          <ResponsiveContainer width="100%" height={210}>
-            <LineChart data={monthlyTrend} margin={{top:6,right:16,left:-14,bottom:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
-              <XAxis dataKey="month" tick={{fontSize:11, fill:"#6b7280"}}/>
-              <YAxis tick={{fontSize:11, fill:"#6b7280"}}/>
-              <Tooltip content={<CustomTooltip/>}/>
-              <Line type="monotone" dataKey="avgScore" name="Avg Score" stroke="#2563eb" strokeWidth={2.5} dot={{r:4}} activeDot={{r:6}}/>
-              <Line type="monotone" dataKey="assessments" name="Assessments" stroke="#16a34a" strokeWidth={2} dot={{r:3}} strokeDasharray="5 3"/>
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="sdom-station-header-stats">
+            <div className="sdom-station-header-stat">
+              <span className="val">{myStationObj.score}</span>
+              <span className="lbl">Avg Score</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+            <div className="sdom-station-header-stat">
+              <span className="val">{myStationObj.safety}%</span>
+              <span className="lbl">Safety</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+            <div className="sdom-station-header-stat">
+              <span className="val">{myStationObj.pending}</span>
+              <span className="lbl">Pending</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+            <div className="sdom-station-header-stat">
+              <span className="val">{smList.length + pointsmen.length}</span>
+              <span className="lbl">Total Staff</span>
+            </div>
+          </div>
         </div>
 
-        {/* Bar: Safety compliance */}
-        <div className="sm2-chart-card">
-          <div className="sm2-chart-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
-              <Activity size={15}/>
-              <h3>Safety Compliance Trend</h3>
+        {/* Summary cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 24 }}>
+          {[
+            { label: "Total Station Staff",   val: smList.length + pointsmen.length },
+            { label: "Pending Assessments",   val: myStationObj.pending },
+            { label: "Completed Evaluations", val: pointsmen.length - myStationObj.pending },
+            { label: "High-Risk Pointsmen",   val: myStationObj.highRisk },
+            { label: "Safety Compliance",     val: `${myStationObj.safety}%` },
+          ].map(c => (
+            <div key={c.label} className="sdom-stat-card">
+              <div className="sdom-stat-value">{c.val}</div>
+              <div className="sdom-stat-label">{c.label}</div>
             </div>
-            <button 
-              onClick={() => { setFullscreenChart("safety"); setFsStartDate(""); setFsEndDate(""); setFsCategory("All"); setFsRisk("All"); setFsSearch(""); }} 
-              style={{
-                background: "none", 
-                border: "none", 
-                color: "#2563eb", 
-                fontSize: "11px", 
-                fontWeight: "700", 
-                cursor: "pointer", 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "4px",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                transition: "all 0.15s"
-              }}
-              className="sm2-fullscreen-btn"
-            >
-              <Maximize2 size={11}/> View Full Screen
-            </button>
-          </div>
-          <ResponsiveContainer width="100%" height={210}>
-            <BarChart data={monthlyTrend} margin={{top:6,right:16,left:-14,bottom:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
-              <XAxis dataKey="month" tick={{fontSize:11, fill:"#6b7280"}}/>
-              <YAxis domain={[0,100]} tick={{fontSize:11, fill:"#6b7280"}}/>
-              <Tooltip content={<CustomTooltip/>}/>
-              <Bar dataKey="safetyAvg" name="Safety Avg" fill="#7c3aed" radius={[4,4,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
+          ))}
         </div>
 
-        {/* Pie: Category dist */}
-        <div className="sm2-chart-card">
-          <div className="sm2-chart-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
-              <BarChart3 size={15}/>
-              <h3>Performance Distribution</h3>
+        {/* Charts */}
+        <div className="sdom-row-2" style={{ marginBottom: "24px" }}>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Category Distribution</div>
+            <div className="sdom-chart-subtitle">A/B/C/D breakdown of pointsmen at Nagpur Junction</div>
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={catCount} barSize={46} margin={{ top: 16, right: 24, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC"/>
+                  <XAxis dataKey="cat" fontSize={12} tick={{ fill: "#102A43", fontWeight: 600 }} axisLine={false} tickLine={false}/>
+                  <YAxis fontSize={11} tick={{ fill: "#627D98" }} axisLine={false} tickLine={false}/>
+                  <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} cursor={{ fill: "rgba(0,0,0,0.03)" }}/>
+                  <Bar dataKey="count" radius={[5, 5, 0, 0]}>
+                    {catCount.map((d, i) => <Cell key={i} fill={CAT_COLORS[Object.keys(CAT_COLORS)[i]]}/>)}
+                    <LabelList dataKey="count" position="top" style={{ fontSize: 12, fontWeight: 700, fill: "#102A43" }}/>
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <button 
-              onClick={() => { setFullscreenChart("performance"); setFsStartDate(""); setFsEndDate(""); setFsCategory("All"); setFsRisk("All"); setFsSearch(""); }} 
-              style={{
-                background: "none", 
-                border: "none", 
-                color: "#2563eb", 
-                fontSize: "11px", 
-                fontWeight: "700", 
-                cursor: "pointer", 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "4px",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                transition: "all 0.15s"
-              }}
-              className="sm2-fullscreen-btn"
-            >
-              <Maximize2 size={11}/> View Full Screen
-            </button>
           </div>
-          <ResponsiveContainer width="100%" height={210}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="44%" innerRadius={52} outerRadius={80} dataKey="value" paddingAngle={3}>
-                {pieData.map((entry,i) => <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]}/>)}
-              </Pie>
-              <Tooltip formatter={(v,n,p) => [`${v} staff — Cat. ${p.payload.name}`, ""]}/>
-              <Legend formatter={(v,e) => `Cat. ${e.payload.name}  (${e.payload.value})`} iconType="circle" iconSize={9} wrapperStyle={{fontSize:12}}/>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
-      {/* Low performers */}
-      <div className="sm2-low-panel">
-        <div className="sm2-chart-hdr" style={{marginBottom:14}}><AlertTriangle size={15} color="#dc2626"/><h3>Low Performing Staff</h3></div>
-        <div className="sm2-low-list">
-          {lowPerformers.map(p => {
-            const cat = getCat(p.lastScore);
-            const risk = riskLevel(p);
-            return (
-              <div key={p.id} className="sm2-low-row" onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
-                <div className="sm2-low-name">
-                  <span className="sm2-cat-dot" style={{background:CAT_COLOR[cat]}}/>
-                  <strong>{p.name}</strong>
-                  <span className="sm2-low-id">{p.hrmsId}</span>
-                </div>
-                <div className="sm2-low-meta">
-                  <span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span>
-                  <span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk} Risk</span>
-                  <strong>{p.lastScore}/100</strong>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Risk Distribution</div>
+            <div className="sdom-chart-subtitle">Pointsmen risk level breakdown at Nagpur Junction</div>
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={riskCount} cx="50%" cy="50%" innerRadius={70} outerRadius={105}
+                       dataKey="value" paddingAngle={4}
+                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                       labelLine={false}>
+                    {riskCount.map((d, i) => <Cell key={i} fill={RISK_COLORS[d.name]}/>)}
+                  </Pie>
+                  <Legend wrapperStyle={{ fontSize: "0.82rem" }}/>
+                  <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }}/>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        <div className="sdom-row-1" style={{ marginBottom: "24px" }}>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Score & Safety Trend (Last 6 Months)</div>
+            <div className="sdom-chart-subtitle">Monthly performance tracking for Nagpur Junction</div>
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC"/>
+                  <XAxis dataKey="month" fontSize={12} tick={{ fill: "#627D98" }} axisLine={false} tickLine={false}/>
+                  <YAxis domain={[50, 100]} fontSize={11} tick={{ fill: "#627D98" }} axisLine={false} tickLine={false}/>
+                  <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }}/>
+                  <Legend wrapperStyle={{ fontSize: "0.82rem" }}/>
+                  <Line type="monotone" dataKey="score" name="Avg Score" stroke="#1E3A5F" strokeWidth={2.5} dot={{ r: 4, fill: "#1E3A5F" }}/>
+                  <Line type="monotone" dataKey="safety" name="Safety %" stroke="#2F855A" strokeWidth={2.5} strokeDasharray="5 3" dot={{ r: 4, fill: "#2F855A" }}/>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Station Masters */}
+        <div className="sdom-row-1" style={{ marginBottom: "24px" }}>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: 16 }}>Station Masters</div>
+            <div className="sdom-table-wrap">
+              <table className="sdom-table">
+                <thead>
+                  <tr><th>Name</th><th>HRMS ID</th><th>Category</th><th>Last Score</th><th>Last Assessment</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  {smList.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ fontWeight: 700 }}>{s.name}</td>
+                      <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{s.hrmsId}</td>
+                      <td>
+                        <span className="sdom-badge sdom-badge-success">{s.cat}</span>
+                      </td>
+                      <td style={{ fontWeight: 700 }}>{s.score}</td>
+                      <td>{s.lastDate}</td>
+                      <td>
+                        <span className="sdom-badge sdom-badge-success">{s.status}</span>
+                      </td>
+                      <td>
+                        <button className="sdom-btn-ghost" onClick={() => setViewingStaff({ ...s, reportingAom: "P. K. Verma (Sr. DOM)" })}>View Details</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Pointsmen */}
+        <div className="sdom-row-1" style={{ marginBottom: "24px" }}>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: 16 }}>Pointsmen</div>
+            <div className="sdom-table-wrap">
+              <table className="sdom-table">
+                <thead>
+                  <tr><th>Name</th><th>HRMS ID</th><th>Category</th><th>Risk Level</th><th>Latest Score</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  {pointsmen.map(p => {
+                    const cat = getCat(p.lastScore);
+                    const risk = riskLevel(p);
+                    return (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 700 }}>{p.name}</td>
+                        <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{p.hrmsId}</td>
+                        <td>
+                          <span className={`sdom-badge ${cat === "A" ? "sdom-badge-success" : cat === "B" ? "sdom-badge-info" : cat === "C" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{cat}</span>
+                        </td>
+                        <td>
+                          <span className={`sdom-badge ${risk === "Low" ? "sdom-badge-success" : risk === "Medium" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{risk}</span>
+                        </td>
+                        <td style={{ fontWeight: 700 }}>{p.lastScore}/100</td>
+                        <td>
+                          <span className={`sdom-badge ${p.approvalStatus === "Approved" ? "sdom-badge-success" : p.approvalStatus === "Pending" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{p.approvalStatus}</span>
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button className="sdom-btn-ghost" onClick={() => setViewingStaff({ ...p, reportingAom: "S. Deshmukh (SM)", email: `${p.hrmsId.toLowerCase()}@rail.in`, role: "pointsmen" })}>Profile</button>
+                            <button className="sdom-btn-ghost" style={{ color: "#2563eb" }} onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>Monitor</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* TI Card */}
+        <div className="sdom-row-1" style={{ marginBottom: "24px" }}>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: 16 }}>Assigned Traffic Inspector</div>
+            <div className="sdom-ti-card">
+              <div>
+                <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "#1e3a5f", marginBottom: 4 }}>{tiPerson.name}</div>
+                <div style={{ color: "#4b6a9b", fontSize: "0.9rem", marginBottom: 8 }}>Traffic Inspector &bull; {myStationObj.ti}</div>
+                <div style={{ display: "flex", gap: 16 }}>
+                  <span style={{ fontSize: "0.85rem", color: "#64748b" }}><b>ID:</b> {tiPerson.id}</span>
+                  <span style={{ fontSize: "0.85rem", color: "#64748b" }}><b>Contact:</b> {tiPerson.contact}</span>
                 </div>
               </div>
-            );
-          })}
+              <button className="sdom-btn-outline" onClick={() => setViewingStaff(tiPerson)}>View Profile</button>
+            </div>
+          </div>
         </div>
+
+        {/* Detailed Staff Profile Modal */}
+        {viewingStaff && (
+          <div className="sdom-modal-overlay" style={{ zIndex: 9999 }} onClick={() => setViewingStaff(null)}>
+            <div className="sdom-modal" style={{ width: "650px", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
+                <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800, color: "#0B1F3A" }}>Detailed Staff Card</h3>
+                <button type="button" onClick={() => setViewingStaff(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#64748b" }}>&times;</button>
+              </div>
+
+              <div className="sdom-station-header" style={{ marginBottom: "20px", padding: "16px" }}>
+                <div className="sdom-station-header-meta">
+                  <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 4 }}>Staff Profile</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: 800, marginBottom: 2 }}>{viewingStaff.name}</div>
+                  <div style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)" }}>{viewingStaff.role === "sm" ? "Station Master" : viewingStaff.role === "ti" ? "Traffic Inspector" : "Pointsman"} &bull; {viewingStaff.hrmsId || viewingStaff.id}</div>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", marginBottom: "16px" }}>
+                {[
+                  ["Employee ID / HRMS ID", viewingStaff.hrmsId || viewingStaff.id],
+                  ["Designation", viewingStaff.role === "sm" ? "Station Master" : viewingStaff.role === "ti" ? "Traffic Inspector" : "Pointsman"],
+                  ["Contact Number", viewingStaff.contact || "+91 98220 44556"],
+                  ["Email ID", viewingStaff.email || `${(viewingStaff.hrmsId || viewingStaff.id).toLowerCase()}@rail.in`],
+                  ["Current Station Placement", viewingStaff.station || "Nagpur Junction"],
+                  ["Reporting Officer", viewingStaff.reportingAom || "P. K. Verma (Sr. DOM)"],
+                  ["Operational Zone", "Central Railway"],
+                  ["Operational Division", "Nagpur"]
+                ].map(([lbl, val]) => (
+                  <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "10px 14px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                    <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.85rem" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+                <button className="sdom-btn-primary" onClick={() => setViewingStaff(null)}>Close Profile</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   /* ── PROFILE ── */
-  const renderProfile = () => (
-    <section className="sm2-card">
-      <div className="sm2-card-hdr" style={{ borderBottom: "1px solid #f1f5f9", paddingBottom: "12px", marginBottom: "20px" }}>
-        <h2>My Profile</h2>
-        <span className="sm2-pill-grey">View Only</span>
-      </div>
+  const renderProfile = () => {
+    const personalScoreData = [
+      { month: "Dec'25", score: 79 },
+      { month: "Jan'26", score: 81 },
+      { month: "Feb'26", score: 84 },
+      { month: "Mar'26", score: 86 },
+      { month: "Apr'26", score: 86 },
+      { month: "May'26", score: 88 }
+    ];
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "24px" }}>
-        {/* 🔷 PERSONAL DETAILS SECTION */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <h3 style={{ display: "flex", alignItems: "center", gap: "8px", margin: "0 0 4px", fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>
-            <UserCircle2 size={18} color="#0d2c4d" /> Personal Details
-          </h3>
-          
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
-              <div>
-                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  Employee ID / HRMS ID
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
-                  {smId}
-                </dd>
-              </div>
-              <Lock size={12} color="#94a3b8" />
+    return (
+      <div className="sdom-fade">
+        {/* Hero header */}
+        <div className="sdom-station-header" style={{ marginBottom: 24 }}>
+          <div className="sdom-station-header-meta">
+            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Staff Profile</div>
+            <div style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 4 }}>{smName}</div>
+            <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>{smProfile.designation} &bull; {smProfile.station} &bull; Central Railway</div>
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              <span className="sdom-badge sdom-badge-success">Category A</span>
+              <span className="sdom-badge sdom-badge-success">Low Risk</span>
+              <span className="sdom-badge sdom-badge-success">Active</span>
             </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
-              <div>
-                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  Date of Birth
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>
-                  {smProfile.dob}
-                </dd>
-              </div>
-              <Lock size={12} color="#94a3b8" />
+          </div>
+          <div className="sdom-station-header-stats">
+            <div className="sdom-station-header-stat">
+              <span className="val">88</span>
+              <span className="lbl">Latest Score</span>
             </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
-              <div>
-                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  Date of Appointment
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>
-                  {smProfile.dateOfAppointment}
-                </dd>
-              </div>
-              <Lock size={12} color="#94a3b8" />
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+            <div className="sdom-station-header-stat">
+              <span className="val">{smProfile.contact}</span>
+              <span className="lbl">Contact</span>
             </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
-              <div>
-                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  Reporting Officer
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
-                  {smProfile.reportingOfficer}
-                </dd>
-              </div>
-              <Lock size={12} color="#94a3b8" />
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+            <div className="sdom-station-header-stat">
+              <span className="val">2026-03-25</span>
+              <span className="lbl">Last Assessment</span>
             </div>
           </div>
         </div>
 
-        {/* 🔷 OPERATIONAL & SAFETY DATES / ADD SECTION */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <h3 style={{ display: "flex", alignItems: "center", gap: "8px", margin: "0 0 4px", fontSize: "15px", fontWeight: "800", color: "#0f172a" }}>
-            <ShieldCheck size={18} color="#16a34a" /> Operational & Safety Records
-          </h3>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div style={{ padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "10px" }}>
-                <dt style={{ fontSize: "9px", fontWeight: "800", color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  PME Done Date
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "700", color: "#14532d" }}>
-                  {smProfile.pmeDoneDate}
-                </dd>
-              </div>
-              
-              <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px" }}>
-                <dt style={{ fontSize: "9px", fontWeight: "800", color: "#991b1b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  PME Due Date
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "700", color: "#7f1d1d" }}>
-                  {smProfile.pmeDueDate}
-                </dd>
-              </div>
+        {/* Info grid */}
+        <div className="sdom-row-2" style={{ marginBottom: "24px" }}>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: "16px" }}>Personal & Professional Details</div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', paddingBottom: '20px' }}>
+              {[
+                ["Employee ID / HRMS ID", smId],
+                ["Designation", smProfile.designation],
+                ["Mobile Number", smProfile.contact],
+                ["Email ID", `${smId.toLowerCase()}@rail.in`],
+                ["Account Status", "Active"],
+                ["Current Zone", "Central Railway"],
+                ["Current Division", "Nagpur"],
+                ["Current Station Placement", smProfile.station],
+                ["Reporting Officer", smProfile.reportingOfficer]
+              ].map(([lbl, val]) => (
+                <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "12px 16px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                  <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.9rem" }}>{val}</div>
+                </div>
+              ))}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
-              <div>
-                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  Isolator Certificate Issued Date
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
-                  {smProfile.isolatorCertificateIssuedDate}
-                </dd>
+            {/* Operational Specifications */}
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '14px', color: '#0f172a', fontWeight: '800', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px' }}>
+                Operational & Safety Dates
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', fontSize: '13px' }}>
+                <div><strong>PME Done Date:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>{smProfile.pmeDoneDate}</div></div>
+                <div><strong>PME Due Date:</strong><div style={{fontWeight: 700, color: "#991b1b", marginTop: 4}}>{smProfile.pmeDueDate}</div></div>
+                <div><strong>Isolator Certificate Issued:</strong><div style={{fontWeight: 700, color: "#0d2c4d", marginTop: 4}}>{smProfile.isolatorCertificateIssuedDate}</div></div>
+                <div><strong>Automatic Training Date:</strong><div style={{fontWeight: 700, color: "#0d2c4d", marginTop: 4}}>{smProfile.automaticTrainingDate}</div></div>
+                <div style={{ gridColumn: "span 2" }}><strong>Refresher Counselling Date:</strong><div style={{fontWeight: 700, color: "#d97706", marginTop: 4}}>{smProfile.counsellingDate}</div></div>
               </div>
-              <Award size={14} color="#7c3aed" />
             </div>
+          </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
-              <div>
-                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  Automatic Training Date
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
-                  {smProfile.automaticTrainingDate}
-                </dd>
-              </div>
-              <CalendarCheck2 size={14} color="#2563eb" />
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
-              <div>
-                <dt style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", margin: 0 }}>
-                  Counselling Date
-                </dt>
-                <dd style={{ margin: "2px 0 0", fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
-                  {smProfile.counsellingDate}
-                </dd>
-              </div>
-              <ClipboardCheck size={14} color="#d97706" />
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Score Trend</div>
+            <div className="sdom-chart-subtitle">Your assessment score progression</div>
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={personalScoreData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                  <XAxis dataKey="month" fontSize={11}/>
+                  <YAxis domain={[40, 100]} fontSize={11}/>
+                  <Tooltip/>
+                  <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 5 }}/>
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
       </div>
-    </section>
-  );
+    );
+  };
 
   /* ── POINTSMEN LIST ── */
   const renderPointsmen = () => {
     if (pageMode === "pmDetail" && selectedPm) return renderPmDetail(selectedPm);
     return (
-      <section className="sm2-card">
-        <div className="sm2-card-hdr"><h2>Pointsmen Management</h2></div>
+      <div className="sdom-fade">
+        <div style={{ marginBottom: 16 }}>
+          <h1 className="sdom-page-title">Pointsmen Management</h1>
+          <p className="sdom-page-subtitle">Search, filter and manage all pointsmen in your station limits.</p>
+        </div>
 
         {/* Filters */}
-        <div className="sm2-filter-row">
-          <div className="sm2-search-box">
-            <Search size={14}/>
-            <input placeholder="Search name / HRMS ID…" value={pmFilter.search}
-              onChange={e => setPmFilter(p => ({...p, search: e.target.value}))}/>
+        <div className="sdom-filter-bar" style={{ marginBottom: "20px" }}>
+          <div className="sdom-filter-field" style={{ minWidth: 200, flex: 1 }}>
+            <label>Name / ID</label>
+            <input 
+              placeholder="Search by name or HRMS ID..." 
+              value={pmFilter.search}
+              onChange={e => setPmFilter(p => ({...p, search: e.target.value}))}
+            />
           </div>
-          {[
-            { key:"grade",  label:"Grade",  opts:["All","A","B","C","D"] },
-            { key:"status", label:"Status", opts:["All","Approved","Pending","Rejected"] },
-            { key:"risk",   label:"Risk",   opts:["All","Low","Medium","High"] }
-          ].map(f => (
-            <select key={f.key} className="sm2-select"
-              value={pmFilter[f.key]}
-              onChange={e => setPmFilter(p => ({...p, [f.key]: e.target.value}))}>
-              {f.opts.map(o => <option key={o}>{o}</option>)}
+          <div className="sdom-filter-field" style={{ width: 140 }}>
+            <label>Grade</label>
+            <select
+              value={pmFilter.grade}
+              onChange={e => setPmFilter(p => ({...p, grade: e.target.value}))}>
+              {["All","A","B","C","D"].map(o => <option key={o}>{o}</option>)}
             </select>
-          ))}
+          </div>
+          <div className="sdom-filter-field" style={{ width: 140 }}>
+            <label>Risk Level</label>
+            <select
+              value={pmFilter.risk}
+              onChange={e => setPmFilter(p => ({...p, risk: e.target.value}))}>
+              {["All","Low","Medium","High"].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="sdom-filter-field" style={{ width: 140 }}>
+            <label>Status</label>
+            <select
+              value={pmFilter.status}
+              onChange={e => setPmFilter(p => ({...p, status: e.target.value}))}>
+              {["All","Approved","Pending","Rejected"].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
         </div>
 
         {/* Table */}
-        <div className="sm2-table-wrap">
-          <div className="sm2-table-head sm2-table-row-8">
-            {["Name","HRMS ID","Grade","Last Score","Last Assessed","Approval","Risk","Action"].map(h =>
-              <span key={h}>{h}</span>)}
+        <div className="sdom-chart-card">
+          <div className="sdom-table-wrap">
+            <table className="sdom-table">
+              <thead>
+                <tr><th>Name</th><th>HRMS ID</th><th>Grade</th><th>Last Score</th><th>Last Assessed</th><th>Approval</th><th>Risk</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                {filteredPm.length === 0 && (
+                  <tr><td colSpan={8} style={{ textAlign: "center", padding: 24, color: "#94a3b8" }}>No staff match the current filters.</td></tr>
+                )}
+                {filteredPm.map(p => {
+                  const cat = getCat(p.lastScore);
+                  const risk = riskLevel(p);
+                  return (
+                    <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => openPmDetail(p)}>
+                      <td style={{ fontWeight: 700 }}>{p.name}</td>
+                      <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{p.hrmsId}</td>
+                      <td>
+                        <span className={`sdom-badge ${cat === "A" ? "sdom-badge-success" : cat === "B" ? "sdom-badge-info" : cat === "C" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>Cat. {cat}</span>
+                      </td>
+                      <td style={{ fontWeight: 700 }}>{p.lastScore}/100</td>
+                      <td>{pmAssessmentHistory[p.id]?.[0]?.date || "—"}</td>
+                      <td>
+                        <span className={`sdom-badge ${p.approvalStatus === "Approved" ? "sdom-badge-success" : p.approvalStatus === "Pending" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{p.approvalStatus}</span>
+                      </td>
+                      <td>
+                        <span className={`sdom-badge ${risk === "Low" ? "sdom-badge-success" : risk === "Medium" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{risk}</span>
+                      </td>
+                      <td>
+                        <button className="sdom-btn-ghost" onClick={(e) => {
+                          e.stopPropagation();
+                          openPmDetail(p);
+                        }}>
+                          Monitor
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          {filteredPm.length === 0 && <p className="sm2-empty">No staff match the current filters.</p>}
-          {filteredPm.map(p => {
-            const cat = getCat(p.lastScore);
-            const risk = riskLevel(p);
-            return (
-              <div key={p.id} className="sm2-table-row-8 sm2-table-row-btn" onClick={() => openPmDetail(p)}>
-                <span className="sm2-name-cell"><strong>{p.name}</strong></span>
-                <span>{p.hrmsId}</span>
-                <span><span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span></span>
-                <span><strong>{p.lastScore}/100</strong></span>
-                <span>{pmAssessmentHistory[p.id]?.[0]?.date || "—"}</span>
-                <span>
-                  <span className={`sm2-status-pill sm2-status-${p.approvalStatus.toLowerCase()}`}>
-                    {p.approvalStatus}
-                  </span>
-                </span>
-                <span><span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk}</span></span>
-                <span>
-                  <button className="sm2-monitor-btn" onClick={(e) => {
-                    e.stopPropagation();
-                    openPmDetail(p);
-                  }}>
-                    Monitor
-                  </button>
-                </span>
-              </div>
-            );
-          })}
         </div>
-      </section>
+      </div>
     );
   };
 
@@ -1511,6 +1646,7 @@ function StationMasterModule({ user, onLogout }) {
       const mcqDataStr = localStorage.getItem(`pm_mcq_test_${assessTarget.hrmsId}`);
       const mcqData = mcqDataStr ? JSON.parse(mcqDataStr) : null;
       const isMcqCompleted = mcqData && mcqData.completed;
+      const isActivated = localStorage.getItem(`pm_test_activated_${assessTarget.hrmsId}`) === "true";
 
       const { knowledge, ynTotal, total: liveTotal } = computeScore(assessForm);
       const liveCat = getCat(liveTotal);
@@ -1589,8 +1725,10 @@ function StationMasterModule({ user, onLogout }) {
                 <div className="sm2-mcq-pending-card">
                   <div className="sm2-mcq-card-header">
                     <div className="sm2-mcq-status">
-                      <span className="sm2-status-dot amber"></span>
-                      <span className="sm2-status-text text-amber font-semibold">MCQ Test Pending</span>
+                      <span className={`sm2-status-dot ${isActivated ? "amber" : "red"}`}></span>
+                      <span className={`sm2-status-text text-${isActivated ? "amber" : "red"} font-semibold`}>
+                        {isActivated ? "MCQ Test Active" : "MCQ Test Locked"}
+                      </span>
                     </div>
                     <div className="sm2-mcq-lock-badge">
                       <Lock size={12} />
@@ -1598,19 +1736,52 @@ function StationMasterModule({ user, onLogout }) {
                     </div>
                   </div>
                   
-                  <div className="sm2-mcq-card-body pending">
-                    <div className="sm2-mcq-pending-message">
-                      <AlertTriangle size={24} color="#d97706" style={{marginTop: 2}} />
+                  <div className="sm2-mcq-card-body pending" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div className="sm2-mcq-pending-message" style={{ display: "flex", gap: "12px", background: isActivated ? "#fffbeb" : "#fef2f2", border: isActivated ? "1px solid #fef3c7" : "1px solid #fee2e2", padding: "16px", borderRadius: "8px" }}>
+                      <AlertTriangle size={24} color={isActivated ? "#d97706" : "#dc2626"} style={{marginTop: 2, flexShrink: 0}} />
                       <div>
-                        <h4 style={{margin:"0 0 4px", fontSize:14, color:"#b45309"}}>Action Required</h4>
-                        <p style={{margin:0, fontSize:12.5, lineHeight:1.5, color:"#d97706"}}>The Pointsman (<strong>{assessTarget.name}</strong>) has not yet completed their online MCQ exam from their portal. Please request them to log in and attempt the test to sync their scores automatically.</p>
+                        <h4 style={{margin:"0 0 4px", fontSize:14, color: isActivated ? "#b45309" : "#991b1b"}}>{isActivated ? "Awaiting Pointsman Attempt" : "Competency Exam Locked"}</h4>
+                        <p style={{margin:0, fontSize:12.5, lineHeight:1.5, color: isActivated ? "#d97706" : "#dc2626"}}>
+                          {isActivated ? (
+                            <span>The shunting safety competency trial is active. Request pointsman (<strong>{assessTarget.name}</strong>) to log into their portal and attempt the 25 safety questions to automatically sync scores.</span>
+                          ) : (
+                            <span>The pointsman shunting safety MCQ exam is currently locked. You must click the <strong>Activate Safety Exam</strong> button below to enable the pointsman to log in and attempt the test.</span>
+                          )}
+                        </p>
                       </div>
                     </div>
                     
+                    <div style={{ display: "flex", gap: "12px" }}>
+                      <button 
+                        type="button"
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          border: "none",
+                          background: isActivated ? "#fef2f2" : "#2563eb",
+                          color: isActivated ? "#dc2626" : "#ffffff",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                        }}
+                        onClick={() => {
+                          if (isActivated) {
+                            localStorage.setItem(`pm_test_activated_${assessTarget.hrmsId}`, "false");
+                          } else {
+                            localStorage.setItem(`pm_test_activated_${assessTarget.hrmsId}`, "true");
+                          }
+                          setActivatedTests(prev => ({ ...prev, [assessTarget.hrmsId]: !isActivated }));
+                        }}
+                      >
+                        {isActivated ? "Deactivate Safety Competency Exam" : "Activate Safety Competency Exam"}
+                      </button>
+                    </div>
+
                     <div className="sm2-mcq-meta-grid">
                       <div className="sm2-mcq-meta-item">
                         <span className="sm2-mcq-meta-label">Assessment Status</span>
-                        <strong className="sm2-mcq-meta-val text-amber">Pending Pointsman Action</strong>
+                        <strong className={`sm2-mcq-meta-val text-${isActivated ? "amber" : "red"}`}>{isActivated ? "Active & Awaiting Attempt" : "Locked (Awaiting Activation)"}</strong>
                       </div>
                       <div className="sm2-mcq-meta-item">
                         <span className="sm2-mcq-meta-label">Assessed Entity</span>
@@ -1631,7 +1802,7 @@ function StationMasterModule({ user, onLogout }) {
           {YN_SECTIONS.map((sec, si) => {
             const secScore = assessForm[sec.key].filter(v => v === "Yes").length * sec.weight;
             return (
-              <div key={sec.key} className="sm2-assess-section">
+              <div key={sec.key} className="sm2-assess-section" style={{ opacity: isMcqCompleted ? 1 : 0.6 }}>
                 <div className="sm2-assess-sec-hdr">
                   <span className="sm2-assess-sec-num">{String(si + 2).padStart(2,"0")}</span>
                   <div>
@@ -1646,13 +1817,13 @@ function StationMasterModule({ user, onLogout }) {
                       <span className="sm2-yn-label">{idx + 1}. {label}</span>
                       <div className="sm2-yn-btns">
                         <button
-                          type="button" disabled={assessLocked}
+                          type="button" disabled={!isMcqCompleted || assessLocked}
                           className={assessForm[sec.key][idx] === "Yes" ? "sm2-yn-btn sm2-yn-yes active" : "sm2-yn-btn sm2-yn-yes"}
                           onClick={() => toggleYN(sec.key, idx, "Yes")}>
                           Yes
                         </button>
                         <button
-                          type="button" disabled={assessLocked}
+                          type="button" disabled={!isMcqCompleted || assessLocked}
                           className={assessForm[sec.key][idx] === "No" ? "sm2-yn-btn sm2-yn-no active" : "sm2-yn-btn sm2-yn-no"}
                           onClick={() => toggleYN(sec.key, idx, "No")}>
                           No
@@ -1666,7 +1837,7 @@ function StationMasterModule({ user, onLogout }) {
           })}
 
           {/* ── Additional Details ── */}
-          <div className="sm2-assess-section">
+          <div className="sm2-assess-section" style={{ opacity: isMcqCompleted ? 1 : 0.6 }}>
             <div className="sm2-assess-sec-hdr">
               <span className="sm2-assess-sec-num">07</span>
               <div><strong>Additional Details</strong><span className="sm2-assess-sec-meta">Mandatory fields</span></div>
@@ -1675,7 +1846,7 @@ function StationMasterModule({ user, onLogout }) {
               <div className="sm2-form-field">
                 <label>Alcoholic / Non-Alcoholic <span style={{color:"#dc2626"}}>*</span></label>
                 <select
-                  disabled={assessLocked}
+                  disabled={!isMcqCompleted || assessLocked}
                   value={assessForm.alcoholicStatus}
                   onChange={e => setAssessForm(p => ({...p, alcoholicStatus: e.target.value}))}>
                   <option value="">Select…</option>
@@ -1685,7 +1856,7 @@ function StationMasterModule({ user, onLogout }) {
               </div>
               <div className="sm2-form-field">
                 <label>PME Status</label>
-                <select disabled={assessLocked} value={assessForm.pmeStatus}
+                <select disabled={!isMcqCompleted || assessLocked} value={assessForm.pmeStatus}
                   onChange={e => setAssessForm(p => ({...p, pmeStatus: e.target.value}))}>
                   <option>Fit</option>
                   <option>Unfit</option>
@@ -1694,7 +1865,7 @@ function StationMasterModule({ user, onLogout }) {
               </div>
               <div className="sm2-form-field">
                 <label>REF Status</label>
-                <select disabled={assessLocked} value={assessForm.refStatus}
+                <select disabled={!isMcqCompleted || assessLocked} value={assessForm.refStatus}
                   onChange={e => setAssessForm(p => ({...p, refStatus: e.target.value}))}>
                   <option>Cleared</option>
                   <option>Pending</option>
@@ -1703,7 +1874,7 @@ function StationMasterModule({ user, onLogout }) {
               </div>
               <div className="sm2-form-field">
                 <label>Automatic Training</label>
-                <select disabled={assessLocked} value={assessForm.automaticTraining}
+                <select disabled={!isMcqCompleted || assessLocked} value={assessForm.automaticTraining}
                   onChange={e => setAssessForm(p => ({...p, automaticTraining: e.target.value}))}>
                   <option>Not Required</option>
                   <option>Recommended</option>
@@ -1712,7 +1883,7 @@ function StationMasterModule({ user, onLogout }) {
               </div>
               <div className="sm2-form-field">
                 <label>Counselling</label>
-                <select disabled={assessLocked} value={assessForm.counselling}
+                <select disabled={!isMcqCompleted || assessLocked} value={assessForm.counselling}
                   onChange={e => setAssessForm(p => ({...p, counselling: e.target.value}))}>
                   <option>Not Required</option>
                   <option>Recommended</option>
@@ -1721,25 +1892,25 @@ function StationMasterModule({ user, onLogout }) {
               </div>
               <div className="sm2-form-field">
                 <label>Date of Appointment</label>
-                <input type="date" disabled={assessLocked} value={assessForm.dateOfAppointment}
+                <input type="date" disabled={!isMcqCompleted || assessLocked} value={assessForm.dateOfAppointment}
                   onChange={e => setAssessForm(p => ({...p, dateOfAppointment: e.target.value}))}/>
               </div>
               <div className="sm2-form-field">
                 <label>Working Since (current grade)</label>
-                <input type="date" disabled={assessLocked} value={assessForm.workingSince}
+                <input type="date" disabled={!isMcqCompleted || assessLocked} value={assessForm.workingSince}
                   onChange={e => setAssessForm(p => ({...p, workingSince: e.target.value}))}/>
               </div>
               <div className="sm2-form-field sm2-form-full">
                 <label>Remarks for Traffic Inspector</label>
-                <textarea rows={3} disabled={assessLocked} value={assessForm.remarks}
+                <textarea rows={3} disabled={!isMcqCompleted || assessLocked} value={assessForm.remarks}
                   onChange={e => setAssessForm(p => ({...p, remarks: e.target.value}))}
-                  placeholder="Enter observations, recommendations…"/>
+                  placeholder={isMcqCompleted ? "Enter observations, recommendations…" : "Please wait for Pointsman to complete the MCQ exam..."}/>
               </div>
             </div>
           </div>
 
           {/* ── Live Score Bar ── */}
-          <div className="sm2-live-score">
+          <div className="sm2-live-score" style={{ opacity: isMcqCompleted ? 1 : 0.6 }}>
             <div>
               <label>Knowledge (MCQ)</label>
               <strong>{knowledge} / 25</strong>
@@ -1765,11 +1936,18 @@ function StationMasterModule({ user, onLogout }) {
           )}
 
           {!assessLocked && (
-            <div className="sm2-assess-actions">
-              <button className="sm2-ghost-btn" onClick={() => submitAssessment(true)}>Save as Draft</button>
-              <button className="sm2-primary-btn" onClick={() => submitAssessment(false)}>
-                Submit for TI Approval
-              </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
+              <div className="sm2-assess-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                <button className="sm2-ghost-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "1px solid #cbd5e1", background: "#fff", cursor: isMcqCompleted ? "pointer" : "not-allowed" }} disabled={!isMcqCompleted} onClick={() => submitAssessment(true)}>Save as Draft</button>
+                <button className="sm2-primary-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "none", background: isMcqCompleted ? "#2563eb" : "#cbd5e1", color: "#fff", cursor: isMcqCompleted ? "pointer" : "not-allowed" }} disabled={!isMcqCompleted} onClick={() => submitAssessment(false)}>
+                  Submit for TI Approval
+                </button>
+              </div>
+              {!isMcqCompleted && (
+                <div style={{ color: "#dc2626", fontSize: "12.5px", fontWeight: "700", textAlign: "center", background: "#fef2f2", border: "1px solid #fee2e2", padding: "10px", borderRadius: "8px" }}>
+                  ⚠️ MCQ Safety Competency Trial is locked or incomplete. All shunting assessment marks are locked until the Pointsman completes the shunting safety exam.
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -1789,18 +1967,83 @@ function StationMasterModule({ user, onLogout }) {
           </div>
         ) : (
           <div className="sm2-assess-list">
-            {drafts.map(d => (
-              <div key={d.pointsmanId} className="sm2-assess-row">
-                <div>
-                  <strong>{d.name}</strong>
-                  <span>{d.hrmsId}</span>
+            {drafts.map(d => {
+              const mcqDataStr = localStorage.getItem(`pm_mcq_test_${d.hrmsId}`);
+              const mcqData = mcqDataStr ? JSON.parse(mcqDataStr) : null;
+              const isCompleted = mcqData && mcqData.completed;
+              const isActivated = localStorage.getItem(`pm_test_activated_${d.hrmsId}`) === "true";
+
+              return (
+                <div key={d.pointsmanId} className="sm2-assess-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", marginBottom: "12px" }}>
+                  <div>
+                    <strong style={{ fontSize: "15px", color: "#0f172a" }}>{d.name}</strong>
+                    <span style={{ display: "block", fontSize: "12px", color: "#64748b", marginTop: "2px" }}>{d.hrmsId}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    <span style={{ fontSize: "13px", color: "#64748b" }}>Last assessed: {d.lastDate}</span>
+                    
+                    {isCompleted ? (
+                      <span className="sdom-badge sdom-badge-success">
+                        MCQ Completed ({mcqData.correctCount}/25)
+                      </span>
+                    ) : isActivated ? (
+                      <span className="sdom-badge sdom-badge-warning">
+                        Exam Active
+                      </span>
+                    ) : (
+                      <span className="sdom-badge sdom-badge-neutral" style={{ background: "#f1f5f9", color: "#475569" }}>
+                        Exam Locked
+                      </span>
+                    )}
+
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {!isCompleted && (
+                        <button 
+                          className="sm2-ghost-btn-sm" 
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            border: "1px solid #cbd5e1",
+                            background: isActivated ? "#fef2f2" : "#eff6ff",
+                            color: isActivated ? "#dc2626" : "#2563eb"
+                          }}
+                          onClick={() => {
+                            if (isActivated) {
+                              localStorage.setItem(`pm_test_activated_${d.hrmsId}`, "false");
+                            } else {
+                              localStorage.setItem(`pm_test_activated_${d.hrmsId}`, "true");
+                            }
+                            setActivatedTests(prev => ({ ...prev, [d.hrmsId]: !isActivated }));
+                          }}
+                        >
+                          {isActivated ? "Deactivate Test" : "Activate Test"}
+                        </button>
+                      )}
+                      
+                      <button 
+                        className="sm2-primary-btn-sm" 
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          background: "#2563eb",
+                          color: "#fff",
+                          border: "none"
+                        }}
+                        onClick={() => openAssessForm(d)}
+                      >
+                        Open Form
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <span className="sm2-muted">Last assessed: {d.lastDate}</span>
-                <button className="sm2-primary-btn-sm" onClick={() => openAssessForm(d)}>
-                  Open Form
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -2667,106 +2910,163 @@ function StationMasterModule({ user, onLogout }) {
   };
 
   /* ── REPORTS ── */
-  const renderReports = () => (
-    <section className="sm2-card">
-      <div className="sm2-card-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-        <h2>Reports</h2>
-        <button
-          onClick={handleExportCSV}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 18px",
-            borderRadius: 8,
-            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-            color: "#ffffff",
-            border: "none",
-            fontWeight: 800,
-            fontSize: 13,
-            cursor: "pointer",
-            boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)",
-            transition: "all 0.15s ease"
-          }}
-          className="sm-btn-hover"
-        >
-          <FileDown size={15} /> Export CSV
-        </button>
-      </div>
+  const renderReports = () => {
+    // dynamically calculated KPI stats
+    const avgScore = pointsmen.length ? Math.round(pointsmen.reduce((s, p) => s + p.lastScore, 0) / pointsmen.length) : 0;
+    const safetyVal = pointsmen.length ? Math.round(pointsmen.reduce((s, p) => s + p.safetyScore, 0) / pointsmen.length) : 0;
+    const highRiskVal = pointsmen.filter(p => riskLevel(p) === "High").length;
+    const pendingVal = drafts.length;
 
-      {/* Filters */}
-      <div className="sm2-filter-row">
-        <div className="sm2-search-box">
-          <Search size={14}/>
-          <input placeholder="Search staff…" value={reportFilter.search}
-            onChange={e => setReportFilter(p => ({...p, search: e.target.value}))}/>
-        </div>
-        <select className="sm2-select" value={reportFilter.grade}
-          onChange={e => setReportFilter(p => ({...p, grade: e.target.value}))}>
-          {["All","A","B","C","D"].map(o => <option key={o}>{o}</option>)}
-        </select>
-        <select className="sm2-select" value={reportFilter.risk}
-          onChange={e => setReportFilter(p => ({...p, risk: e.target.value}))}>
-          {["All","Low","Medium","High"].map(o => <option key={o}>{o}</option>)}
-        </select>
-        <div className="sm2-sort-wrap">
-          <ArrowUpDown size={13}/>
-          <select value={reportFilter.sortBy}
-            onChange={e => setReportFilter(p => ({...p, sortBy: e.target.value}))}>
-            <option value="date-desc">Default</option>
-            <option value="score-desc">Highest Score</option>
-            <option value="score-asc">Lowest Score</option>
-          </select>
-        </div>
-      </div>
+    const divSummary = [
+      { label: "Average Station Score",  val: avgScore },
+      { label: "Safety Compliance %",     val: `${safetyVal}%` },
+      { label: "High-Risk Pointsmen",     val: highRiskVal },
+      { label: "Pending Assessments",     val: pendingVal },
+      { label: "Total Station Pointsmen", val: pointsmen.length },
+    ];
 
-      {/* Summary mini-cards */}
-      <div className="sm2-report-summary">
-        {[
-          { label:"Filtered Staff",   value: filteredReports.length },
-          { label:"Avg Score",        value: filteredReports.length ? Math.round(filteredReports.reduce((s,p)=>s+p.lastScore,0)/filteredReports.length) : "—" },
-          { label:"High Risk",        value: filteredReports.filter(p => riskLevel(p)==="High").length },
-          { label:"Cat. A",           value: filteredReports.filter(p => getCat(p.lastScore)==="A").length },
-        ].map(c => (
-          <div key={c.label} className="sm2-report-mini">
-            <label>{c.label}</label>
-            <strong>{c.value}</strong>
+    return (
+      <div className="sdom-fade">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <h1 className="sdom-page-title">Reports & Analytics</h1>
+            <p className="sdom-page-subtitle">Station-level reporting hub. Use filters below to generate specific pointsmen reports.</p>
           </div>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="sm2-table-wrap" style={{marginTop:16}}>
-        <div className="sm2-report-head sm2-report-row-8">
-          {["Name","HRMS ID","Score","Grade","Safety","Risk","Status","Action"].map(h => <span key={h}>{h}</span>)}
+          <button
+            onClick={handleExportCSV}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 18px",
+              borderRadius: 8,
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "#ffffff",
+              border: "none",
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)",
+              transition: "all 0.15s ease"
+            }}
+            className="sm-btn-hover"
+          >
+            <FileDown size={15} /> Export CSV
+          </button>
         </div>
-        {filteredReports.map(p => {
-          const cat = getCat(p.lastScore);
-          const risk = riskLevel(p);
-          return (
-            <div key={p.id} className="sm2-report-row-8 sm2-report-row-btn" onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
-              <span><strong>{p.name}</strong></span>
-              <span>{p.hrmsId}</span>
-              <span>{p.lastScore}/100</span>
-              <span><span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span></span>
-              <span>{p.safetyScore}%</span>
-              <span><span className="sm2-badge" style={{background:RISK_BG[risk],color:RISK_COLOR[risk]}}>{risk}</span></span>
-              <span><span className={`sm2-status-pill sm2-status-${p.approvalStatus.toLowerCase()}`}>{p.approvalStatus}</span></span>
-              <span>
-                <button className="sm2-monitor-btn" onClick={(e) => {
-                  e.stopPropagation();
-                  openPmDetail(p);
-                  setActiveTab("pointsmen");
-                }}>
-                  Monitor
-                </button>
-              </span>
+
+        {/* Summary */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 16, marginBottom: 24 }}>
+          {divSummary.map(c => (
+            <div key={c.label} className="sdom-stat-card">
+              <div className="sdom-stat-value">{c.val}</div>
+              <div className="sdom-stat-label">{c.label}</div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="sdom-filter-bar" style={{ marginBottom: "24px" }}>
+          <div className="sdom-filter-field" style={{ minWidth: 200, flex: 1 }}>
+            <label>Search Pointsman</label>
+            <input 
+              placeholder="Search by name or ID..." 
+              value={reportFilter.search}
+              onChange={e => {
+                setReportFilter(p => ({ ...p, search: e.target.value }));
+                setRepApplied(false);
+              }}
+            />
+          </div>
+          <div className="sdom-filter-field" style={{ width: 140 }}>
+            <label>Grade</label>
+            <select 
+              value={reportFilter.grade}
+              onChange={e => {
+                setReportFilter(p => ({ ...p, grade: e.target.value }));
+                setRepApplied(false);
+              }}>
+              {["All","A","B","C","D"].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="sdom-filter-field" style={{ width: 140 }}>
+            <label>Risk Level</label>
+            <select 
+              value={reportFilter.risk}
+              onChange={e => {
+                setReportFilter(p => ({ ...p, risk: e.target.value }));
+                setRepApplied(false);
+              }}>
+              {["All","Low","Medium","High"].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="sdom-filter-field" style={{ width: 160 }}>
+            <label>Sort By</label>
+            <select 
+              value={reportFilter.sortBy}
+              onChange={e => {
+                setReportFilter(p => ({ ...p, sortBy: e.target.value }));
+                setRepApplied(false);
+              }}>
+              <option value="date-desc">Default</option>
+              <option value="score-desc">Highest Score</option>
+              <option value="score-asc">Lowest Score</option>
+            </select>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <button className="sdom-btn-primary" style={{ padding: "10px 20px" }} onClick={() => setRepApplied(true)}>
+              <FileBarChart2 size={16}/> Generate Report
+            </button>
+          </div>
+        </div>
+
+        {repApplied ? (
+          <div className="sdom-chart-card">
+            <div style={{ marginBottom: 14, fontWeight: 700, color: "#1e293b" }}>{filteredReports.length} staff in report</div>
+            <div className="sdom-table-wrap">
+              <table className="sdom-table">
+                <thead>
+                  <tr><th>Name</th><th>HRMS ID</th><th>Score</th><th>Grade</th><th>Safety</th><th>Risk</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {filteredReports.length === 0 && (
+                    <tr><td colSpan={7} style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>No staff match the selected filters</td></tr>
+                  )}
+                  {filteredReports.map(p => {
+                    const cat = getCat(p.lastScore);
+                    const risk = riskLevel(p);
+                    return (
+                      <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
+                        <td style={{ fontWeight: 700 }}>{p.name}</td>
+                        <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{p.hrmsId}</td>
+                        <td style={{ fontWeight: 700 }}>{p.lastScore}/100</td>
+                        <td>
+                          <span className={`sdom-badge ${cat === "A" ? "sdom-badge-success" : cat === "B" ? "sdom-badge-info" : cat === "C" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>Cat. {cat}</span>
+                        </td>
+                        <td>{p.safetyScore}%</td>
+                        <td>
+                          <span className={`sdom-badge ${risk === "Low" ? "sdom-badge-success" : risk === "Medium" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{risk}</span>
+                        </td>
+                        <td>
+                          <span className={`sdom-badge ${p.approvalStatus === "Approved" ? "sdom-badge-success" : p.approvalStatus === "Pending" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{p.approvalStatus}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="sdom-empty" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "48px 24px", textAlign: "center" }}>
+            <FileBarChart2 size={32} style={{ marginBottom: 12, color: "#64748b" }}/>
+            <div className="sdom-empty-title" style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", marginBottom: "4px" }}>Select filters and click "Generate Report"</div>
+            <div className="sdom-empty-sub" style={{ fontSize: "13px", color: "#64748b" }}>Apply one or more filters above to generate a custom station pointsmen report.</div>
+          </div>
+        )}
       </div>
-    </section>
-  );
+    );
+  };
 
   /* ─── Dispatcher ─── */
   const renderContent = () => {
