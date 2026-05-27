@@ -4,7 +4,7 @@ import {
   Search, ShieldCheck, UserRound, Users, UserCheck, TrainFront,
   Plus, Edit, Trash2, ArrowRightLeft, ArrowLeft, TrendingUp,
   AlertTriangle, CheckCircle, Clock, XCircle, Activity,
-  MapPin, Phone, Calendar, Award
+  MapPin, Phone, Calendar, Award, UserPlus
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
@@ -46,6 +46,100 @@ const STATIONS_DATA = [
   { id:"ST08", name:"Kamptee",              code:"KTE",  ti:"TI NGP",  smCount:1, pmCount:14, score:89, safety:93, highRisk:1, pending:2 },
   { id:"ST09", name:"Multai",               code:"MAI",  ti:"TI AMLA", smCount:1, pmCount:12, score:71, safety:76, highRisk:8, pending:15 },
   { id:"ST10", name:"Jintur",               code:"JNR",  ti:"TI PAR",  smCount:1, pmCount:16, score:84, safety:88, highRisk:2, pending:5 },
+];
+
+const generate96Stations = () => {
+  const divisionMap = {
+    Nagpur: ["NGP", "WR", "BD", "AK", "SEGM", "AJNI", "PLO", "DMN", "MZR", "SEG", "MKU", "JL", "CSN", "ET"],
+    Pune: ["PUNE", "LNL", "SVJR", "KK", "DAPD", "CCH", "PMP", "TGN", "DEHR", "KAD", "DD", "ANG", "KPG", "SNSI", "STR"],
+    Mumbai: ["CSMT", "BY", "DR", "CLA", "GC", "TNA", "DIVA", "DI", "KYN", "SHAD", "ABY", "AMR", "ULNR", "VLDI"],
+    Solapur: ["SUR", "KWV", "PVR", "LUR", "UMD", "BTW"],
+    Bhusawal: ["BSL", "NK", "MMR", "JL", "BAU", "KNW", "HD", "DVL"]
+  };
+
+  const stationsData = [];
+  const divisions = Object.keys(divisionMap);
+  const categories = ["A", "B", "C", "D"];
+  const risks = ["Low", "Medium", "High"];
+  const statuses = ["Approved", "Pending", "Completed"];
+  
+  const baseNames = [
+    "Nagpur Main", "Wardha Junction", "Badnera Town", "Akola Junction", "Sewagram", "Ajni Central", 
+    "Pulgaon", "Dhamangaon", "Murtajapur", "Shegaon", "Malkapur", "Jalgaon Junction", "Chalisgaon", 
+    "Itarsi Jn", "Bhopal Junction", "Dongargarh", "Gondia Jn", "Durg Jn", "Raipur Jn", "Bilaspur Jn",
+    "Pune Junction", "Lonavala", "Shivajinagar", "Khadki", "Dapodi", "Chinchwad", "Pimpri", 
+    "Taloja", "Dehu Road", "Khadala", "Daund Jn", "Ahmednagar", "Kopargaon", "Sainagar Shirdi", 
+    "Satara", "Kolhapur", "Sangli", "Miraj Jn", "Londa", "Ghatprabha",
+    "CSMT Terminal", "Byculla", "Dadar Central", "Kurla Jn", "Ghatkopar", "Thane Main", "Diva Jn", 
+    "Dombivli", "Kalyan Jn", "Shahad", "Ambivali", "Titwala", "Ulhasnagar", "Vithalwadi", "Badlapur", 
+    "Vashi", "Karjat Jn", "Igatpuri", "Bhandup", "Mulund",
+    "Solapur Jn", "Kurduvadi Jn", "Pandharpur", "Latur Town", "Osmanabad", "Barsi Town",
+    "Bhusawal Jn", "Nashik Road", "Manmad Jn", "Burhanpur", "Khandwa Jn", "Harda", "Devlali", 
+    "Khamgaon", "Pachora", "Nandurbar", "Amravati", "Chandrapur", "Ballarshah", "Wardha East",
+    "Sindi Town", "Butibori", "Kalmeshwar", "Katol", "Narkher", "Pandhurna", "Multai", "Amla Jn",
+    "Betul", "Ghoradongri", "Itarsi West", "Hoshangabad", "Budni", "Obaidullaganj", "Mandideep"
+  ];
+
+  for (let i = 0; i < 96; i++) {
+    const division = divisions[i % divisions.length];
+    const codeList = divisionMap[division];
+    const code = codeList[Math.floor(i / divisions.length) % codeList.length] + `_${10 + Math.floor(i/10)}`;
+    const name = baseNames[i % baseNames.length];
+    const completed = 200 + ((i * 17) % 600);
+    const pending = 15 + ((i * 11) % 130);
+    const avgScore = 72 + ((i * 3) % 25);
+    const category = categories[i % categories.length];
+    const riskLevel = i % 7 === 0 ? "High" : i % 3 === 0 ? "Medium" : "Low";
+    const assessmentStatus = statuses[i % statuses.length];
+    
+    const day = 10 + (i % 45);
+    const lastUpdatedDate = `2026-04-${day < 10 ? "0" + day : day}`;
+
+    stationsData.push({
+      id: `ST_${1001 + i}`,
+      stationName: name,
+      stationCode: code,
+      division,
+      zone: "CR",
+      completed,
+      pending,
+      avgScore,
+      category,
+      riskLevel,
+      assessmentStatus,
+      lastUpdatedDate
+    });
+  }
+  return stationsData;
+};
+
+const DASHBOARD_96_STATIONS = generate96Stations();
+
+const stationProgressData = [
+  { station: "Nagpur", completed: 450, pending: 100 },
+  { station: "Wardha", completed: 490, pending: 130 },
+  { station: "Badnera", completed: 530, pending: 160 },
+  { station: "Akola", completed: 570, pending: 190 },
+  { station: "Yavatmal", completed: 610, pending: 220 },
+  { station: "Parbhani", completed: 640, pending: 250 },
+  { station: "Parli Vaijnath", completed: 680, pending: 95 },
+  { station: "Latur", completed: 710, pending: 130 },
+  { station: "Vikarabad", completed: 750, pending: 160 },
+  { station: "Aurangabad", completed: 790, pending: 190 },
+  { station: "Pundlik", completed: 830, pending: 210 },
+  { station: "Jalna", completed: 860, pending: 240 },
+  { station: "Partur", completed: 440, pending: 90 },
+  { station: "Mudkhed", completed: 480, pending: 120 },
+  { station: "Visapur", completed: 510, pending: 150 }
+];
+
+const stationAverageScoreData = [
+  { station: "Nagpur", avgScore: 86 },
+  { station: "Pune", avgScore: 89 },
+  { station: "Delhi", avgScore: 84 },
+  { station: "Mumbai", avgScore: 88 },
+  { station: "Jalna", avgScore: 91 },
+  { station: "Parbhani", avgScore: 82 }
 ];
 
 const ALL_STAFF = [
@@ -151,6 +245,49 @@ export default function SuperAdminModule({ user, onLogout }) {
   const [repF,  setRepF]    = useState({ role:"All", station:"All", cat:"All", risk:"All", ti:"All" });
   const [repApplied, setRepApplied] = useState(false);
 
+  // Chart Zoom Modal states (for showing the 96 stations graphical trends)
+  const [isChartZoomModalOpen, setIsChartZoomModalOpen] = useState(false);
+  const [selectedChartType, setSelectedChartType] = useState("progress"); // "progress", "score", or "category"
+  const [zoomPopupPage, setZoomPopupPage] = useState(1);
+  const [zoomPopupSearch, setZoomPopupSearch] = useState("");
+  const [zoomPopupZone, setZoomPopupZone] = useState("All");
+  const [zoomPopupDivision, setZoomPopupDivision] = useState("All");
+  const [zoomPopupStationName, setZoomPopupStationName] = useState("All");
+  const [zoomPopupStationCode, setZoomPopupStationCode] = useState("All");
+  const [zoomPopupCategory, setZoomPopupCategory] = useState("All");
+  const [zoomPopupRisk, setZoomPopupRisk] = useState("All");
+  const [zoomPopupStatus, setZoomPopupStatus] = useState("All");
+  const [zoomPopupStartDate, setZoomPopupStartDate] = useState("");
+  const [zoomPopupEndDate, setZoomPopupEndDate] = useState("");
+
+  const handleChartClick = (state, chartType) => {
+    if (state && state.activePayload && state.activePayload.length > 0) {
+      const clickedStationName = state.activePayload[0].payload.station;
+      if (clickedStationName) {
+        setZoomPopupSearch(clickedStationName);
+      }
+      setSelectedChartType(chartType);
+      setIsChartZoomModalOpen(true);
+      setZoomPopupPage(1);
+    } else {
+      setSelectedChartType(chartType);
+      setIsChartZoomModalOpen(true);
+      setZoomPopupPage(1);
+    }
+  };
+
+  const handlePieClick = (data) => {
+    if (data && data.name) {
+      const catLetter = data.name.replace("Category ", "").trim();
+      setZoomPopupCategory(catLetter);
+    } else {
+      setZoomPopupCategory("All");
+    }
+    setSelectedChartType("category");
+    setIsChartZoomModalOpen(true);
+    setZoomPopupPage(1);
+  };
+
   const STATION_OPTS = useMemo(() => ["All", ...stations.map(s => s.name)], [stations]);
   const TI_OPTS      = ["All","TI PAR","TI AMLA","TI NGP"];
   const ROLE_OPTS    = ["All","Pointsman","Station Master","Station Superintendent","Train Manager","Traffic Inspector"];
@@ -167,7 +304,35 @@ export default function SuperAdminModule({ user, onLogout }) {
 
   /* ------- CRUD ------- */
   function openAdd(role) {
-    setModal({ mode:"add", role, data:{ id:`EMP_${Date.now()}`, name:"", station:stations[0].name, ti:"TI PAR", cat:"A", risk:"Low", score:0, contact:"", lastDate:"", status:"Pending" } });
+    setModal({
+      mode: "add",
+      role,
+      data: {
+        id: `EMP_${Date.now()}`,
+        name: "",
+        station: stations[0].name,
+        ti: "TI PAR",
+        cat: "A",
+        risk: "Low",
+        score: 0,
+        contact: "",
+        lastDate: "",
+        status: "Pending",
+        email: "",
+        division: "Nagpur",
+        zone: "Central Railway",
+        // Role-specific defaults matching AOmModule.jsx
+        reportingSm: "",
+        workLocation: "",
+        shift: "",
+        smStation: stations[0].name,
+        smZone: "Central Railway",
+        smDivision: "Nagpur",
+        jurisdiction: "Nagpur Division",
+        reportingAom: "P. K. Verma (Sr. DOM)",
+        linkedStations: ""
+      }
+    });
   }
   function openEdit(s) {
     setModal({ mode:"edit", role:s.role, data:{ ...s } });
@@ -180,7 +345,7 @@ export default function SuperAdminModule({ user, onLogout }) {
     if (modal.mode === "add") {
       setStaff(p => [...p, { ...modal.data, role: modal.role }]);
     } else {
-      setStaff(p => p.map(s => s.id === modal.data.id ? { ...modal.data } : s));
+      setStaff(p => p.map(s => s.id === modal.data.id ? { ...modal.data, role: modal.role } : s));
     }
     setModal(null);
   }
@@ -290,6 +455,127 @@ export default function SuperAdminModule({ user, onLogout }) {
           ))}
         </div>
 
+        {/* ── Station-wise Evaluation Progress & Average Score at the Top ── */}
+        <div className="sdom-row-2">
+          {/* Station-wise Evaluation Progress */}
+          <div className="sdom-chart-card">
+            <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <div className="sdom-chart-title">Station-wise Evaluation Progress</div>
+                <div className="sdom-chart-subtitle">Click anywhere on chart to zoom & filter 96 stations</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleChartClick(null, "progress")}
+                style={{
+                  background: "var(--brand-primary, #0B1F3A)",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                View Full Screen
+              </button>
+            </div>
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={stationProgressData}
+                  margin={{ top: 8, right: 12, left: -20, bottom: 5 }}
+                  barGap={6}
+                  onClick={(state) => handleChartClick(state, "progress")}
+                  style={{ cursor: "pointer" }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
+                  <XAxis
+                    dataKey="station"
+                    tick={{ fontSize: 10, fill: "#627D98" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: "#627D98" }} axisLine={false} tickLine={false} />
+                  <RTooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
+                  <Bar
+                    dataKey="completed"
+                    fill="var(--brand-secondary, #1E3A5F)"
+                    radius={[4, 4, 0, 0]}
+                    name="Completed"
+                    barSize={12}
+                  />
+                  <Bar
+                    dataKey="pending"
+                    fill="#D69E2E"
+                    radius={[4, 4, 0, 0]}
+                    name="Pending"
+                    barSize={12}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Station-wise Average Score */}
+          <div className="sdom-chart-card">
+            <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <div className="sdom-chart-title">Station-wise Average Score</div>
+                <div className="sdom-chart-subtitle">Click anywhere on chart to zoom & filter 96 stations</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleChartClick(null, "score")}
+                style={{
+                  background: "#1f7a5c",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                View Full Screen
+              </button>
+            </div>
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={stationAverageScoreData}
+                  margin={{ top: 8, right: 12, left: -20, bottom: 5 }}
+                  onClick={(state) => handleChartClick(state, "score")}
+                  style={{ cursor: "pointer" }}
+                  barSize={18}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
+                  <XAxis
+                    dataKey="station"
+                    tick={{ fontSize: 10, fill: "#627D98" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#627D98" }} axisLine={false} tickLine={false} />
+                  <RTooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} formatter={(value) => [`${value}/100`, "Average Score"]} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
+                  <Bar
+                    dataKey="avgScore"
+                    fill="#1f7a5c"
+                    radius={[4, 4, 0, 0]}
+                    name="Average Score"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
         {/* ── Role-wise Distribution ── */}
         <div className="sdom-row-1">
           <div className="sdom-chart-card">
@@ -314,16 +600,46 @@ export default function SuperAdminModule({ user, onLogout }) {
         {/* ── Category + Safety ── */}
         <div className="sdom-row-2">
           <div className="sdom-chart-card">
-            <div className="sdom-chart-title">Category Distribution (Division-wide)</div>
-            <div className="sdom-chart-subtitle">A/B/C/D breakdown of all staff assessments</div>
+            <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <div className="sdom-chart-title">Category Distribution (Division-wide)</div>
+                <div className="sdom-chart-subtitle">Click anywhere on chart to zoom & filter 96 stations</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handlePieClick(null)}
+                style={{
+                  background: "var(--brand-primary, #0B1F3A)",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                View Full Screen
+              </button>
+            </div>
             <div style={{ height: 280 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={catData} cx="50%" cy="50%" innerRadius={70} outerRadius={110}
-                       dataKey="value" paddingAngle={3} label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`}>
-                    {catData.map((d,i) => <Cell key={i} fill={d.fill} />)}
+                <PieChart style={{ cursor: "pointer" }}>
+                  <Pie 
+                    data={catData} 
+                    cx="50%" 
+                    cy="50%" 
+                    innerRadius={70} 
+                    outerRadius={110}
+                    dataKey="value" 
+                    paddingAngle={3} 
+                    label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`}
+                    onClick={(data) => handlePieClick(data)}
+                  >
+                    {catData.map((d,i) => <Cell key={i} fill={d.fill} style={{ cursor: "pointer" }} />)}
                   </Pie>
-                  <Legend />
+                  <Legend onClick={(data) => handlePieClick({ name: data.value })} wrapperStyle={{ cursor: "pointer" }} />
                   <RTooltip />
                 </PieChart>
               </ResponsiveContainer>
@@ -553,7 +869,13 @@ export default function SuperAdminModule({ user, onLogout }) {
     return (
       <div className="sdom-fade">
         <div style={{marginBottom:24}}>
-          <button className="sdom-back-btn" onClick={closeView}><ArrowLeft size={16}/> Back to List</button>
+          <button className="sdom-back-btn" onClick={() => {
+            if (view?.returnTo === "stationDetail") {
+              setView({ type: "stationDetail", data: view.stationData });
+            } else {
+              closeView();
+            }
+          }}><ArrowLeft size={16}/> Back to List</button>
         </div>
 
         {/* Hero header */}
@@ -561,7 +883,7 @@ export default function SuperAdminModule({ user, onLogout }) {
           <div className="sdom-station-header-meta">
             <div style={{fontSize:"0.8rem",color:"rgba(255,255,255,0.6)",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.06em"}}>Staff Profile</div>
             <div style={{fontSize:"1.8rem",fontWeight:800,marginBottom:4}}>{s.name}</div>
-            <div style={{fontSize:"0.9rem",color:"rgba(255,255,255,0.7)"}}>{ROLE_MAP[s.role] || s.role} &bull; {s.station} &bull; {s.ti}</div>
+            <div style={{fontSize:"0.9rem",color:"rgba(255,255,255,0.7)"}}>{ROLE_MAP[s.role] || s.role} &bull; {s.station} &bull; {s.zone || "Central Railway"}</div>
             <div style={{marginTop:12,display:"flex",gap:10}}>
               {catBadge(s.cat)}
               {riskBadge(s.risk)}
@@ -589,26 +911,75 @@ export default function SuperAdminModule({ user, onLogout }) {
         {/* Info grid */}
         <div className="sdom-row-2">
           <div className="sdom-chart-card">
-            <div className="sdom-chart-title">Personal & Professional Details</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}}>
+            <div className="sdom-chart-title" style={{ marginBottom: "16px" }}>Personal & Professional Details</div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', paddingBottom: '20px' }}>
               {[
-                ["Employee ID", s.id], ["Designation", ROLE_MAP[s.role]||s.role],
-                ["Station", s.station], ["TI Area", s.ti],
-                ["Category", s.cat], ["Risk Level", s.risk],
-                ["Contact", s.contact], ["Assessment Status", s.status],
-              ].map(([lbl,val]) => (
-                <div key={lbl} style={{background:"#f8fafc",borderRadius:8,padding:"12px 16px",border:"1px solid #e2e8f0"}}>
-                  <div style={{fontSize:"0.78rem",color:"#64748b",fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.04em"}}>{lbl}</div>
-                  <div style={{fontWeight:700,color:"#0f172a"}}>{val}</div>
+                ["Employee ID / HRMS ID", s.id],
+                ["Designation", ROLE_MAP[s.role] || s.role],
+                ["Mobile Number", s.contact || "N/A"],
+                ["Email ID", s.email || `${s.id?.toLowerCase()}@rail.in`],
+                ["Account Status", s.status || "Active"],
+                ["Current Zone", s.zone || "Central Railway"],
+                ["Current Division", s.division || "Nagpur"],
+                ["Current Station Placement", s.station],
+                ["Reporting Officer", s.reportingAom || "P. K. Verma (Sr. DOM)"]
+              ].map(([lbl, val]) => (
+                <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "12px 16px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                  <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.9rem" }}>{val}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Operational Specifications (styled exactly like AOmModule) */}
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '14px', color: '#0f172a', fontWeight: '800', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px' }}>
+                Operational Profile Specifications
+              </h4>
+              
+              {s.role === "pointsmen" && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '13px' }}>
+                  <div><strong>Reporting Station Master:</strong><div style={{fontWeight: 700, color: "#1e3a5f", marginTop: 4}}>{s.reportingSm || "S. Deshmukh (SM)"}</div></div>
+                  <div><strong>Assigned Shift:</strong><div style={{fontWeight: 700, color: "#1e3a5f", marginTop: 4}}>{s.shift || "Morning Shift (06:00 - 14:00)"}</div></div>
+                  <div><strong>Work Location Setup:</strong><div style={{fontWeight: 700, color: "#1e3a5f", marginTop: 4}}>{s.workLocation || "Yard Area"}</div></div>
+                </div>
+              )}
+
+              {(s.role === "sm" || s.role === "ss") && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '13px' }}>
+                  <div><strong>Operational Station:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>{s.smStation || s.station || "N/A"}</div></div>
+                  <div><strong>Operational Division:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>{s.smDivision || s.division || "Nagpur"}</div></div>
+                  <div><strong>Operational Zone:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>{s.smZone || s.zone || "Central Railway"}</div></div>
+                </div>
+              )}
+
+              {s.role === "ti" && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '13px' }}>
+                  <div><strong>Jurisdiction Division:</strong><div style={{fontWeight: 700, color: "#92400e", marginTop: 4}}>{s.jurisdiction || "Nagpur Division"}</div></div>
+                  <div><strong>Reporting AOM Officer:</strong><div style={{fontWeight: 700, color: "#92400e", marginTop: 4}}>{s.reportingAom || "P. K. Verma (Sr. DOM)"}</div></div>
+                  <div style={{ gridColumn: 'span 3', marginTop: '6px' }}><strong>Linked Stations under supervision:</strong><div style={{fontWeight: 700, color: "#92400e", marginTop: 4}}>{s.linkedStations || "Nagpur Main, Wardha Jn, Sewagram"}</div></div>
+                </div>
+              )}
+
+              {s.role === "tm" && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '13px' }}>
+                  <div><strong>Crew Depot:</strong><div style={{fontWeight: 700, color: "#6b21a8", marginTop: 4}}>{s.workLocation || "Nagpur Depot"}</div></div>
+                  <div><strong>Assigned Section Beats:</strong><div style={{fontWeight: 700, color: "#6b21a8", marginTop: 4}}>{s.reportingSm || "NGP-BSL Section"}</div></div>
+                  <div><strong>Assigned Shift Beat Type:</strong><div style={{fontWeight: 700, color: "#6b21a8", marginTop: 4}}>{s.shift || "Goods Train Beat"}</div></div>
+                </div>
+              )}
+
+              {!["pointsmen", "sm", "ss", "ti", "tm"].includes(s.role) && (
+                <span style={{ fontSize: '13px', color: '#64748b' }}>No dynamic operational specifications required for this designation.</span>
+              )}
             </div>
           </div>
 
           <div className="sdom-chart-card">
             <div className="sdom-chart-title">Score Trend</div>
             <div className="sdom-chart-subtitle">Assessment score progression</div>
-            <div style={{height:260}}>
+            <div style={{height:300}}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={scoreData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false}/>
@@ -627,6 +998,7 @@ export default function SuperAdminModule({ user, onLogout }) {
 
   /* ── STATIONS ── */
   function renderStations() {
+    if (view?.type === "staffDetail") return renderStaffDetail(view.data);
     if (view?.type === "stationDetail") return renderStationDetail(view.data);
     const filtered = stations.filter(st =>
       !stF.name || st.name.toLowerCase().includes(stF.name.toLowerCase()) || st.code.toLowerCase().includes(stF.name.toLowerCase())
@@ -828,7 +1200,7 @@ export default function SuperAdminModule({ user, onLogout }) {
                       <td style={{fontWeight:700}}>{s.score}</td>
                       <td>{s.lastDate}</td>
                       <td>{statusBadge(s.status)}</td>
-                      <td><button className="sdom-btn-ghost" onClick={()=>openView("staffDetail",s)}>View Details</button></td>
+                      <td><button className="sdom-btn-ghost" onClick={()=>setView({ type: "staffDetail", data: s, returnTo: "stationDetail", stationData: st })}>View Details</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -854,7 +1226,7 @@ export default function SuperAdminModule({ user, onLogout }) {
                       <td>{riskBadge(s.risk)}</td>
                       <td style={{fontWeight:700}}>{s.score}</td>
                       <td>{statusBadge(s.status)}</td>
-                      <td><button className="sdom-btn-ghost" onClick={()=>openView("staffDetail",s)}>View Details</button></td>
+                      <td><button className="sdom-btn-ghost" onClick={()=>setView({ type: "staffDetail", data: s, returnTo: "stationDetail", stationData: st })}>View Details</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -876,7 +1248,7 @@ export default function SuperAdminModule({ user, onLogout }) {
                   <span style={{fontSize:"0.85rem",color:"#64748b"}}><b>Contact:</b> {tiPerson.contact}</span>
                 </div>
               </div>
-              <button className="sdom-btn-outline" onClick={()=>tiPerson.role && openView("staffDetail",tiPerson)}>View Profile</button>
+              <button className="sdom-btn-outline" onClick={()=>tiPerson.role && setView({ type: "staffDetail", data: tiPerson, returnTo: "stationDetail", stationData: st })}>View Profile</button>
             </div>
           </div>
         </div>
@@ -1147,43 +1519,927 @@ export default function SuperAdminModule({ user, onLogout }) {
     const isShift = modal.mode === "shift";
     return (
       <div className="sdom-modal-overlay" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-        <div className="sdom-modal">
-          <div className="sdom-modal-title">
-            {isShift ? "Shift Role" : modal.mode === "edit" ? "Edit Staff Member" : "Add New Staff Member"}
-          </div>
-          {!isShift && <>
-            <div className="sdom-modal-field"><label>Full Name</label><input value={modal.data.name} onChange={e=>setModal(p=>({...p,data:{...p.data,name:e.target.value}}))} /></div>
-            <div className="sdom-modal-field"><label>Employee ID</label><input value={modal.data.id} onChange={e=>setModal(p=>({...p,data:{...p.data,id:e.target.value}}))} /></div>
-            <div className="sdom-modal-field"><label>Contact</label><input value={modal.data.contact} onChange={e=>setModal(p=>({...p,data:{...p.data,contact:e.target.value}}))} /></div>
-            <div className="sdom-modal-field"><label>Station</label>
-              <select value={modal.data.station} onChange={e=>setModal(p=>({...p,data:{...p.data,station:e.target.value}}))}>
-                {stations.map(s=><option key={s.id}>{s.name}</option>)}
-              </select>
+        <div className="sdom-modal" style={!isShift ? { width: "900px", maxWidth: "95vw" } : undefined}>
+          
+          {!isShift ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Header inside modal */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+                  color: "#ffffff"
+                }}>
+                  <UserPlus size={28} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                    {modal.mode === "edit" ? "EDIT SYSTEM USER" : "ADD NEW SYSTEM USER"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                    Role-Based Operational Staff Provisioning & Management Console
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 1: General & Contact Information */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  1. General & Contact Information
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Full Name *</label>
+                    <input 
+                      value={modal.data.name || ""} 
+                      onChange={e => setModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))} 
+                      placeholder="Enter full name (e.g. A. K. Sharma)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Mobile Number *</label>
+                    <input 
+                      value={modal.data.contact || ""} 
+                      onChange={e => setModal(p => ({ ...p, data: { ...p.data, contact: e.target.value } }))} 
+                      placeholder="Enter 10-digit mobile number" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>HRMS ID / Employee ID *</label>
+                    <input 
+                      value={modal.data.id || ""} 
+                      disabled={modal.mode === "edit"}
+                      onChange={e => setModal(p => ({ ...p, data: { ...p.data, id: e.target.value } }))} 
+                      placeholder="Enter unique ID (e.g. PM_8820)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Email ID *</label>
+                    <input 
+                      value={modal.data.email || ""} 
+                      onChange={e => setModal(p => ({ ...p, data: { ...p.data, email: e.target.value } }))} 
+                      placeholder="Enter email address (e.g. user@rail.in)" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Designation & Station Placement Setup */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  2. Designation & Station Placement Setup
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Role / Designation *</label>
+                    <select 
+                      value={modal.role} 
+                      onChange={e => setModal(p => ({ ...p, role: e.target.value }))}
+                    >
+                      {Object.entries(ROLE_MAP).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Division *</label>
+                    <select 
+                      value={modal.data.division || "Nagpur"} 
+                      onChange={e => {
+                        const div = e.target.value;
+                        setModal(p => ({ ...p, data: { ...p.data, division: div, smDivision: div } }));
+                      }}
+                    >
+                      {["Nagpur", "Pune", "Mumbai", "Solapur", "Bhusawal"].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Railway Zone *</label>
+                    <select 
+                      value={modal.data.zone || "Central Railway"} 
+                      onChange={e => {
+                        const zone = e.target.value;
+                        setModal(p => ({ ...p, data: { ...p.data, zone: zone, smZone: zone } }));
+                      }}
+                    >
+                      {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Station Name *</label>
+                    <select 
+                      value={modal.data.station || ""} 
+                      onChange={e => {
+                        const stName = e.target.value;
+                        setModal(p => ({ ...p, data: { ...p.data, station: stName, smStation: stName } }));
+                      }}
+                    >
+                      {stations.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Category *</label>
+                    <select 
+                      value={modal.data.cat || "A"} 
+                      onChange={e => setModal(p => ({ ...p, data: { ...p.data, cat: e.target.value } }))}
+                    >
+                      <option>A</option><option>B</option><option>C</option><option>D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Dynamic Role-Based Custom Operational Profile */}
+              {modal.role === "pointsmen" && (
+                <div style={{ padding: 18, background: "#f0f7ff", border: "1px solid #c2e0ff", borderRadius: 10 }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                    Pointsman Operational Setup
+                  </h4>
+                  <div style={{ height: '1px', backgroundColor: '#c2e0ff', marginBottom: '16px' }}></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div className="sdom-modal-field">
+                      <label>Reporting Station Master *</label>
+                      <input 
+                        value={modal.data.reportingSm || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, reportingSm: e.target.value } }))} 
+                        placeholder="Station Master Name"
+                      />
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Work Location Setup *</label>
+                      <select 
+                        value={modal.data.workLocation || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, workLocation: e.target.value } }))}
+                      >
+                        <option value="">Select Location</option>
+                        <option value="Yard">Yard Area</option>
+                        <option value="Cabin A">Cabin A</option>
+                        <option value="Cabin B">Cabin B</option>
+                        <option value="Platform Area">Platform Area</option>
+                        <option value="Level Crossing Gate">Level Crossing Gate</option>
+                      </select>
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Assigned Shift *</label>
+                      <select 
+                        value={modal.data.shift || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, shift: e.target.value } }))}
+                      >
+                        <option value="">Select Shift</option>
+                        <option value="Morning Shift (06:00 - 14:00)">Morning Shift (06:00 - 14:00)</option>
+                        <option value="Evening Shift (14:00 - 22:00)">Evening Shift (14:00 - 22:00)</option>
+                        <option value="Night Shift (22:00 - 06:00)">Night Shift (22:00 - 06:00)</option>
+                        <option value="General Shift (09:00 - 18:00)">General Shift (09:00 - 18:00)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(modal.role === "sm" || modal.role === "ss") && (
+                <div style={{ padding: 18, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10 }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                    {ROLE_MAP[modal.role]} Operational Setup
+                  </h4>
+                  <div style={{ height: '1px', backgroundColor: '#a7f3d0', marginBottom: '16px' }}></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div className="sdom-modal-field">
+                      <label>Operational Station *</label>
+                      <select 
+                        value={modal.data.smStation || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, smStation: e.target.value, station: e.target.value } }))}
+                      >
+                        <option value="">Select Operational Station</option>
+                        {stations.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Operational Zone *</label>
+                      <select 
+                        value={modal.data.smZone || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, smZone: e.target.value, zone: e.target.value } }))}
+                      >
+                        <option value="">Select Zone</option>
+                        {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                      </select>
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Operational Division *</label>
+                      <select 
+                        value={modal.data.smDivision || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, smDivision: e.target.value, division: e.target.value } }))}
+                      >
+                        <option value="">Select Division</option>
+                        {["Nagpur", "Pune", "Mumbai", "Solapur", "Bhusawal"].map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {modal.role === "ti" && (
+                <div style={{ padding: 18, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10 }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#92400e', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                    Traffic Inspector Operational Setup
+                  </h4>
+                  <div style={{ height: '1px', backgroundColor: '#fde68a', marginBottom: '16px' }}></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div className="sdom-modal-field">
+                      <label>Jurisdiction Division *</label>
+                      <input 
+                        value={modal.data.jurisdiction || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, jurisdiction: e.target.value } }))} 
+                        placeholder="Enter Jurisdiction (e.g. Nagpur Division)"
+                      />
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Reporting AOM *</label>
+                      <select 
+                        value={modal.data.reportingAom || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, reportingAom: e.target.value } }))}
+                      >
+                        <option value="">Select AOM</option>
+                        <option value="A. K. Sinha (AOM/G)">A. K. Sinha (AOM/G)</option>
+                        <option value="M. K. Nair (AOM/Safety)">M. K. Nair (AOM/Safety)</option>
+                        <option value="R. S. Prasad (AOM/Chg)">R. S. Prasad (AOM/Chg)</option>
+                        <option value="P. K. Verma (Sr. DOM)">P. K. Verma (Sr. DOM)</option>
+                      </select>
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Linked Stations under supervision *</label>
+                      <input 
+                        value={modal.data.linkedStations || ""} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, linkedStations: e.target.value } }))} 
+                        placeholder="E.g. Nagpur Main, Wardha Jn, Sewagram"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {modal.role === "tm" && (
+                <div style={{ padding: 18, background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: 10 }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b21a8', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                    Train Manager Operational Setup
+                  </h4>
+                  <div style={{ height: '1px', backgroundColor: '#e9d5ff', marginBottom: '16px' }}></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div className="sdom-modal-field">
+                      <label>Crew Depot *</label>
+                      <select 
+                        value={modal.data.workLocation || "Nagpur Depot"} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, workLocation: e.target.value } }))}
+                      >
+                        <option value="Nagpur Depot">Nagpur Depot</option>
+                        <option value="Pune Depot">Pune Depot</option>
+                        <option value="Mumbai Depot">Mumbai Depot</option>
+                        <option value="Solapur Depot">Solapur Depot</option>
+                        <option value="Bhusawal Depot">Bhusawal Depot</option>
+                      </select>
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Assigned Section Beats *</label>
+                      <input 
+                        value={modal.data.reportingSm || "NGP-BSL Section"} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, reportingSm: e.target.value } }))} 
+                        placeholder="E.g. NGP-BSL, NGP-DURG"
+                      />
+                    </div>
+                    <div className="sdom-modal-field">
+                      <label>Assigned Shift *</label>
+                      <select 
+                        value={modal.data.shift || "Goods Train Beat"} 
+                        onChange={e => setModal(p => ({ ...p, data: { ...p.data, shift: e.target.value } }))}
+                      >
+                        <option value="Mail/Express Beat">Mail/Express Beat</option>
+                        <option value="Passenger Beat">Passenger Beat</option>
+                        <option value="Goods Train Beat">Goods Train Beat</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="sdom-modal-field"><label>TI Area</label>
-              <select value={modal.data.ti} onChange={e=>setModal(p=>({...p,data:{...p.data,ti:e.target.value}}))}>
-                {["TI PAR","TI AMLA","TI NGP"].map(o=><option key={o}>{o}</option>)}
-              </select>
-            </div>
-            <div className="sdom-modal-field"><label>Category</label>
-              <select value={modal.data.cat} onChange={e=>setModal(p=>({...p,data:{...p.data,cat:e.target.value}}))}>
-                <option>A</option><option>B</option><option>C</option><option>D</option>
-              </select>
-            </div>
-          </>}
-          <div className="sdom-modal-field"><label>Role {isShift && "(Shift to)"}</label>
-            <select value={modal.role} onChange={e=>setModal(p=>({...p,role:e.target.value}))}>
-              {Object.entries(ROLE_MAP).map(([k,v])=><option key={k} value={k}>{v}</option>)}
-            </select>
-          </div>
-          <div className="sdom-modal-actions">
-            <button className="sdom-btn-primary" style={{flex:1}} onClick={saveModal}>Save</button>
-            <button className="sdom-btn-ghost" style={{flex:1}} onClick={()=>setModal(null)}>Cancel</button>
+          ) : (
+            <>
+              <div className="sdom-modal-title" style={{ marginBottom: 20 }}>Shift Staff Role</div>
+              <div className="sdom-modal-field">
+                <label>Role (Shift to)</label>
+                <select value={modal.role} onChange={e=>setModal(p=>({...p,role:e.target.value}))}>
+                  {Object.entries(ROLE_MAP).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" style={{ flex: 1 }} onClick={saveModal}>
+              {modal.mode === "edit" ? "🔒 UPDATE USER ACCOUNT" : "👤 ADD USER ACCOUNT"}
+            </button>
+            <button className="sdom-btn-ghost" style={{ flex: 1 }} onClick={()=>setModal(null)}>Cancel</button>
           </div>
         </div>
       </div>
     );
   }
+
+  /* ── CHART ZOOM MODAL ── */
+  const renderChartZoomModal = () => {
+    if (!isChartZoomModalOpen) return null;
+
+    // Filter math logic on DASHBOARD_96_STATIONS
+    const filtered = DASHBOARD_96_STATIONS.filter(st => {
+      const q = zoomPopupSearch.trim().toLowerCase();
+      const matchesSearch = !q || st.stationName.toLowerCase().includes(q) || st.stationCode.toLowerCase().includes(q);
+      
+      const matchesZone = zoomPopupZone === "All" || st.zone === zoomPopupZone;
+      const matchesDivision = zoomPopupDivision === "All" || st.division === zoomPopupDivision;
+      
+      const matchesName = zoomPopupStationName === "All" || !zoomPopupStationName.trim() || st.stationName.toLowerCase().includes(zoomPopupStationName.toLowerCase());
+      const matchesCode = zoomPopupStationCode === "All" || !zoomPopupStationCode.trim() || st.stationCode.toLowerCase().includes(zoomPopupStationCode.toLowerCase());
+      
+      const matchesCategory = zoomPopupCategory === "All" || st.category === zoomPopupCategory;
+      const matchesRisk = zoomPopupRisk === "All" || st.riskLevel === zoomPopupRisk;
+      const matchesStatus = zoomPopupStatus === "All" || st.assessmentStatus === zoomPopupStatus;
+
+      let matchesDate = true;
+      if (zoomPopupStartDate) {
+        matchesDate = matchesDate && st.lastUpdatedDate >= zoomPopupStartDate;
+      }
+      if (zoomPopupEndDate) {
+        matchesDate = matchesDate && st.lastUpdatedDate <= zoomPopupEndDate;
+      }
+
+      return matchesSearch && matchesZone && matchesDivision && matchesName && matchesCode && matchesCategory && matchesRisk && matchesStatus && matchesDate;
+    });
+
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+    const currentPage = Math.min(zoomPopupPage, totalPages);
+
+    const paginated = filtered.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+
+    const modalChartData = paginated.map(st => ({
+      station: st.stationCode,
+      name: st.stationName,
+      completed: st.completed,
+      pending: st.pending,
+      avgScore: st.avgScore
+    }));
+
+    const catA = paginated.filter(s => s.category === "A").length;
+    const catB = paginated.filter(s => s.category === "B").length;
+    const catC = paginated.filter(s => s.category === "C").length;
+    const catD = paginated.filter(s => s.category === "D").length;
+    const totalCount = catA + catB + catC + catD;
+
+    const modalPieData = [
+      { name: "Category A", value: catA, color: "#1e40af" },
+      { name: "Category B", value: catB, color: "#5b21b6" },
+      { name: "Category C", value: catC, color: "#92400e" },
+      { name: "Category D", value: catD, color: "#9d174d" }
+    ].filter(item => item.value > 0);
+
+    const handleResetPopupFilters = () => {
+      setZoomPopupSearch("");
+      setZoomPopupZone("All");
+      setZoomPopupDivision("All");
+      setZoomPopupStationName("All");
+      setZoomPopupStationCode("All");
+      setZoomPopupCategory("All");
+      setZoomPopupRisk("All");
+      setZoomPopupStatus("All");
+      setZoomPopupStartDate("");
+      setZoomPopupEndDate("");
+      setZoomPopupPage(1);
+    };
+
+    return (
+      <div 
+        className="zoom-modal-overlay"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.75)",
+          backdropFilter: "blur(8px)",
+          zIndex: 9999,
+          overflowY: "auto",
+          display: "block",
+          padding: 0,
+          animation: "fadeIn 0.2s ease-out"
+        }}
+      >
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+        `}</style>
+        <div 
+          className="zoom-modal-container"
+          style={{
+            backgroundColor: "#ffffff",
+            borderRadius: 0,
+            width: "100%",
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "none",
+            overflow: "visible",
+            border: "none",
+            animation: "slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+          }}
+        >
+          {/* Modal Header */}
+          <div 
+            style={{
+              padding: "18px 24px",
+              borderBottom: "1px solid #e2e8f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#f8fafc",
+              position: "sticky",
+              top: 0,
+              zIndex: 100
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "800", color: "#0f172a" }}>
+                {selectedChartType === "progress" 
+                  ? "Station-wise Evaluation Progress" 
+                  : selectedChartType === "score" 
+                  ? "Station-wise Average Score" 
+                  : "Category Distribution"}
+              </h3>
+              <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                Page {currentPage} of {totalPages} (Showing 10 stations per page out of {filtered.length} matching stations)
+              </p>
+            </div>
+            
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={() => setIsChartZoomModalOpen(false)}
+                style={{
+                  background: "#fee2e2",
+                  color: "#dc2626",
+                  border: "1px solid #fecaca",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  cursor: "pointer"
+                }}
+              >
+                Close Zoom View
+              </button>
+            </div>
+          </div>
+
+          {/* Modal Body Container */}
+          <div style={{ flex: 1, padding: "24px", display: "flex", flexDirection: "column", gap: "20px", overflow: "visible" }}>
+            
+            {/* 1. FILTER CONTROLS GRID */}
+            <div 
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "16px"
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <h4 style={{ margin: 0, fontSize: "12px", fontWeight: "700", color: "#334155", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Operational Search & Diagnostics Filters
+                </h4>
+                <button
+                  type="button"
+                  onClick={handleResetPopupFilters}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#2563eb",
+                    fontSize: "12px",
+                    fontWeight: "750",
+                    cursor: "pointer",
+                    textDecoration: "underline"
+                  }}
+                >
+                  Reset Diagnostics Filters
+                </button>
+              </div>
+              <div 
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                  gap: "12px"
+                }}
+              >
+                {/* Search */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Quick Search</label>
+                  <input
+                    type="text"
+                    placeholder="Search name/code..."
+                    value={zoomPopupSearch}
+                    onChange={(e) => { setZoomPopupSearch(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px 10px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px" }}
+                  />
+                </div>
+
+                {/* Zone */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Zone</label>
+                  <select
+                    value={zoomPopupZone}
+                    onChange={(e) => { setZoomPopupZone(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px", background: "#ffffff", color: "#334155" }}
+                  >
+                    <option value="All">All Zones</option>
+                    <option value="CR">CR (Central Rly)</option>
+                  </select>
+                </div>
+
+                {/* Division */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Division</label>
+                  <select
+                    value={zoomPopupDivision}
+                    onChange={(e) => { setZoomPopupDivision(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px", background: "#ffffff", color: "#334155" }}
+                  >
+                    <option value="All">All Divisions</option>
+                    <option value="Nagpur">Nagpur</option>
+                    <option value="Pune">Pune</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Solapur">Solapur</option>
+                    <option value="Bhusawal">Bhusawal</option>
+                  </select>
+                </div>
+
+                {/* Station Name */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Station Name</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by name..."
+                    value={zoomPopupStationName === "All" ? "" : zoomPopupStationName}
+                    onChange={(e) => { setZoomPopupStationName(e.target.value || "All"); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px 10px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px" }}
+                  />
+                </div>
+
+                {/* Station Code */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Station Code</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by code..."
+                    value={zoomPopupStationCode === "All" ? "" : zoomPopupStationCode}
+                    onChange={(e) => { setZoomPopupStationCode(e.target.value || "All"); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px 10px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px" }}
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Category</label>
+                  <select
+                    value={zoomPopupCategory}
+                    onChange={(e) => { setZoomPopupCategory(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px", background: "#ffffff", color: "#334155" }}
+                  >
+                    <option value="All">All Categories</option>
+                    <option value="A">Cat. A</option>
+                    <option value="B">Cat. B</option>
+                    <option value="C">Cat. C</option>
+                    <option value="D">Cat. D</option>
+                  </select>
+                </div>
+
+                {/* Risk Level */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Risk Level</label>
+                  <select
+                    value={zoomPopupRisk}
+                    onChange={(e) => { setZoomPopupRisk(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px", background: "#ffffff", color: "#334155" }}
+                  >
+                    <option value="All">All Risks</option>
+                    <option value="Low">Low Risk</option>
+                    <option value="Medium">Medium Risk</option>
+                    <option value="High">High Risk</option>
+                  </select>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Status</label>
+                  <select
+                    value={zoomPopupStatus}
+                    onChange={(e) => { setZoomPopupStatus(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "6px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px", background: "#ffffff", color: "#334155" }}
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+
+                {/* Date range start */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>Start Date</label>
+                  <input
+                    type="date"
+                    value={zoomPopupStartDate}
+                    onChange={(e) => { setZoomPopupStartDate(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "5px 8px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px", color: "#334155" }}
+                  />
+                </div>
+
+                {/* Date range end */}
+                <div>
+                  <label style={{ display: "block", fontSize: "11px", color: "#64748b", fontWeight: "600", marginBottom: "4px" }}>End Date</label>
+                  <input
+                    type="date"
+                    value={zoomPopupEndDate}
+                    onChange={(e) => { setZoomPopupEndDate(e.target.value); setZoomPopupPage(1); }}
+                    style={{ width: "100%", padding: "5px 8px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "12px", color: "#334155" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. DYNAMIC REAL-TIME CHART BOX */}
+            <div 
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "20px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "750", color: "#0f172a" }}>
+                  {selectedChartType === "progress" 
+                    ? "Evaluation Progress Trends (Completed vs Pending)" 
+                    : selectedChartType === "score"
+                    ? "Average Safety Evaluation Scores (/100)"
+                    : "Category Distribution Breakdown"}
+                </h4>
+                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: "600" }}>
+                  Showing 10 stations on this page
+                </span>
+              </div>
+              
+              <div style={{ height: "260px", width: "100%" }}>
+                {selectedChartType === "category" ? (
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", gap: "60px" }}>
+                    <div style={{ width: "220px", height: "220px" }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={modalPieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={88}
+                            dataKey="value"
+                            label={({ name, value }) => `${name.replace("Category ", "")}: ${value}`}
+                          >
+                            {modalPieData.map((entry) => (
+                              <Cell key={entry.name} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <RTooltip formatter={(value) => [`${value} Station(s)`, "Count"]} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {modalPieData.map((item) => (
+                        <div key={item.name} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: "700", color: "#334155" }}>
+                          <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: item.color }} />
+                          <span>{item.name}:</span>
+                          <span style={{ color: "#0f172a" }}>{item.value} Station(s) ({((item.value / (totalCount || 1)) * 100).toFixed(0)}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={modalChartData}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                      barGap={6}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
+                      <XAxis
+                        dataKey="station"
+                        tick={{ fontSize: 10, fill: "#475569" }}
+                        height={40}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis tick={{ fontSize: 10, fill: "#475569" }} domain={selectedChartType === "score" ? [0, 100] : undefined} axisLine={false} tickLine={false} />
+                      <RTooltip 
+                        contentStyle={{ background: "#0f172a", color: "#ffffff", borderRadius: "8px", border: "none", fontSize: "12px" }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: "12px" }} />
+                      {selectedChartType === "progress" ? (
+                        <>
+                          <Bar dataKey="completed" fill="#1E3A5F" name="Completed Evaluations" radius={[4, 4, 0, 0]} barSize={12} />
+                          <Bar dataKey="pending" fill="#D69E2E" name="Pending Evaluations" radius={[4, 4, 0, 0]} barSize={12} />
+                        </>
+                      ) : (
+                        <Bar dataKey="avgScore" fill="#1f7a5c" name="Average Evaluation Score" radius={[4, 4, 0, 0]} barSize={18} />
+                      )}
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* 3. DETAILED STATION DATA TABLE */}
+            <div 
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "12px",
+                overflow: "hidden",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+              }}
+            >
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155" }}>Station Name</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155" }}>Code</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155" }}>Division</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155" }}>Zone</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155", textAlign: "right" }}>Completed</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155", textAlign: "right" }}>Pending</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155", textAlign: "right" }}>Avg. Score</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155", textAlign: "center" }}>Category</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155", textAlign: "center" }}>Risk Level</th>
+                    <th style={{ padding: "12px 16px", fontWeight: "700", color: "#334155" }}>Last Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.length === 0 ? (
+                    <tr>
+                      <td colSpan="10" style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>
+                        No stations matching the selected diagnostics criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginated.map((st) => {
+                      const riskColor = st.riskLevel === "High" ? "#ef4444" : st.riskLevel === "Medium" ? "#ea580c" : "#16a34a";
+                      const riskBg = st.riskLevel === "High" ? "#fef2f2" : st.riskLevel === "Medium" ? "#fff7ed" : "#dcfce7";
+                      const catBg = st.category === "A" ? "#eff6ff" : st.category === "B" ? "#f5f3ff" : st.category === "C" ? "#fffbeb" : "#fdf2f8";
+                      const catColor = st.category === "A" ? "#1e40af" : st.category === "B" ? "#5b21b6" : st.category === "C" ? "#92400e" : "#9d174d";
+
+                      return (
+                        <tr key={st.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px 16px", fontWeight: "600", color: "#0f172a" }}>{st.stationName}</td>
+                          <td style={{ padding: "12px 16px", fontWeight: "700", color: "#475569" }}>{st.stationCode}</td>
+                          <td style={{ padding: "12px 16px", color: "#475569" }}>{st.division}</td>
+                          <td style={{ padding: "12px 16px", color: "#475569" }}>{st.zone}</td>
+                          <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: "700", color: "#1E3A5F" }}>{st.completed}</td>
+                          <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: "700", color: "#D69E2E" }}>{st.pending}</td>
+                          <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: "700", color: "#1f7a5c" }}>{st.avgScore}/100</td>
+                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                            <span style={{ background: catBg, color: catColor, padding: "2px 8px", borderRadius: "4px", fontWeight: "700", fontSize: "11px" }}>
+                              Cat {st.category}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                            <span style={{ background: riskBg, color: riskColor, padding: "3px 8px", borderRadius: "6px", fontWeight: "700", fontSize: "11px" }}>
+                              {st.riskLevel}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 16px", color: "#64748b" }}>{st.lastUpdatedDate}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+          {/* Modal Footer (SLIDER / TABS PAGINATION) */}
+          <div 
+            style={{
+              padding: "16px 24px",
+              borderTop: "1px solid #e2e8f0",
+              background: "#f8fafc",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}
+          >
+            <div style={{ fontSize: "13px", color: "#475569", fontWeight: "600" }}>
+              Showing {filtered.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} stations
+            </div>
+            
+            {/* Page tabs */}
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setZoomPopupPage(p => Math.max(p - 1, 1))}
+                style={{
+                  padding: "6px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "6px",
+                  background: "#ffffff",
+                  color: "#334155",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  opacity: currentPage === 1 ? 0.5 : 1
+                }}
+              >
+                Previous
+              </button>
+
+              <div style={{ display: "flex", gap: "4px" }}>
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pageNum = i + 1;
+                  const isActive = currentPage === pageNum;
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setZoomPopupPage(pageNum)}
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        border: isActive ? "1px solid #2563eb" : "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        background: isActive ? "#2563eb" : "#ffffff",
+                        color: isActive ? "#ffffff" : "#334155",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease"
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setZoomPopupPage(p => Math.min(p + 1, totalPages))}
+                style={{
+                  padding: "6px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "6px",
+                  background: "#ffffff",
+                  color: "#334155",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  opacity: currentPage === totalPages ? 0.5 : 1
+                }}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  };
 
   /* ── RENDER ── */
   return (
@@ -1233,6 +2489,7 @@ export default function SuperAdminModule({ user, onLogout }) {
       </div>
 
       {renderModal()}
+      {renderChartZoomModal()}
     </div>
   );
 }
