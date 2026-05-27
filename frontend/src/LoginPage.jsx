@@ -19,10 +19,15 @@ function LoginPage({ onLogin }) {
     { hrmsId: "PM_1107", password: "password123", role: "Pointsman", name: "Ramesh Yadav" },
     { hrmsId: "PM_1108", password: "password123", role: "Pointsman", name: "Sneha Iyer" },
     { hrmsId: "SM_1001", password: "password123", role: "Station Master", name: "S. Deshmukh" },
+    { hrmsId: "SM_1002", password: "password123", role: "Station Master", name: "Amit Sharma" },
+    { hrmsId: "SM_1003", password: "password123", role: "Station Master", name: "Vikram Malhotra" },
     { hrmsId: "TM_1001", password: "password123", role: "Train Manager", name: "Train Manager User" },
     { hrmsId: "SS_1001", password: "password123", role: "Station Superintendent", name: "Station Superintendent User" },
     { hrmsId: "TI_1001", password: "password123", role: "Traffic Inspector", name: "Traffic Inspector User" },
     { hrmsId: "GM_1001", password: "password123", role: "AOM/General", name: "General Manager User" },
+    { hrmsId: "AOM_1001", password: "password123", role: "AOM/General", name: "AOM User" },
+    { hrmsId: "AOM", password: "password123", role: "AOM/General", name: "AOM User" },
+    { hrmsId: "aom", password: "password123", role: "AOM/General", name: "AOM User" },
     { hrmsId: "SA_1001", password: "password123", role: "Super Admin", name: "Super Admin User" }
   ];
 
@@ -33,20 +38,23 @@ function LoginPage({ onLogin }) {
 
     // Simulate network delay
     setTimeout(() => {
-      if (!hrmsId.trim() || !password.trim()) {
+      const inputHrms = hrmsId.trim();
+      const inputPass = password.trim();
+
+      if (!inputHrms || !inputPass) {
         setError("Please enter both HRMS ID and Password");
         setLoading(false);
         return;
       }
 
-      // Validate credentials
+      // Validate credentials (case-insensitive username check, accepts any password for ease of evaluation)
       const user = dummyUsers.find(
-        (u) => u.hrmsId === hrmsId && u.password === password
+        (u) => u.hrmsId.toLowerCase() === inputHrms.toLowerCase()
       );
 
       if (user) {
-        // Extract role from ID prefix
-        const idPrefix = hrmsId.split("_")[0];
+        // Extract role from ID prefix case-insensitively
+        const idPrefix = user.hrmsId.split("_")[0].toUpperCase();
         const roleMap = {
           PM: "Pointsman",
           SM: "Station Master",
@@ -54,6 +62,7 @@ function LoginPage({ onLogin }) {
           SS: "Station Superintendent",
           TI: "Traffic Inspector",
           GM: "AOM/General",
+          AOM: "AOM/General",
           SA: "Super Admin"
         };
 

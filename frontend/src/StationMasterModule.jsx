@@ -20,7 +20,9 @@ import {
   Activity,
   Lock,
   Info,
-  Shield
+  Shield,
+  FileDown,
+  Maximize2
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -181,11 +183,190 @@ const defaultAssessForm = {
   remarks: ""
 };
 
+/* ─── SM TEST QUESTIONS (25 MCQs) ─── */
+const smTestQuestions = [
+  {
+    id: 1,
+    text: "Under Station Working Rules (SWR), what is the maximum speed permitted for a train passing through when main line points are set for loop line?",
+    options: ["15 km/h", "30 km/h", "50 km/h", "As per Maximum Permissible Speed"],
+    answer: 1,
+    explanation: "As per standard operating manuals, the speed over loop lines is restricted to 30 km/h unless specifically authorized for 50 km/h with high-speed turnouts."
+  },
+  {
+    id: 2,
+    text: "In the Absolute Block System, what is the minimum distance required between two block stations to grant 'Line Clear'?",
+    options: ["Station section length", "Block section length", "Adequate distance (usually 180m or 120m)", "Sighting board distance"],
+    answer: 2,
+    explanation: "Line Clear cannot be granted until the block section is clear and adequate distance (180m for absolute block, 120m for automatic block) is clear beyond the first stop signal."
+  },
+  {
+    id: 3,
+    text: "What does a double yellow aspect on a distant signal indicate to the loco pilot?",
+    options: ["Proceed at Maximum Permissible Speed", "Prepare to stop at the next stop signal", "Prepare to pass next signal at caution/restricted speed", "Stop immediately"],
+    answer: 2,
+    explanation: "A double yellow aspect is an attention signal, warning the driver that they are approaching a signal showing a restrictive aspect (single yellow or red)."
+  },
+  {
+    id: 4,
+    text: "Who holds the ultimate administrative responsibility for the safe reception and dispatch of trains within station limits?",
+    options: ["Section Controller", "Pointsman on duty", "Station Master", "Traffic Inspector"],
+    answer: 2,
+    explanation: "The Station Master is the overall in-charge of station limits and is personally responsible for ensuring all safety rules are followed during train reception and dispatch."
+  },
+  {
+    id: 5,
+    text: "When a passenger train is stopped at a station for an extended duration, what safety precaution must the Station Master take regarding the signals?",
+    options: ["Ensure all reception signals are kept at green", "Ensure starter and advanced starter signals are kept at danger", "Inform the control room to disconnect track circuits", "Authorize the pointsman to reverse the points manually"],
+    answer: 1,
+    explanation: "Starter and advanced starter signals must be kept at 'Danger' to prevent accidental rolling or unauthorized departure of the train."
+  },
+  {
+    id: 6,
+    text: "If a train has parted mid-section, what is the primary duty of the Station Master upon noticing the parting?",
+    options: ["Lower the Home signal for the next train", "Show red hand signal to the guard, do not lower signals for opposing directions", "Shunt the train immediately", "Call the Divisional Railway Manager"],
+    answer: 1,
+    explanation: "The SM must alert the train staff using a red hand signal to warn them of parting and ensure no other trains are authorized into the affected block section."
+  },
+  {
+    id: 7,
+    text: "What color of banner flag is used to protect a track section under engineering obstruction?",
+    options: ["Green", "Yellow", "Red", "White"],
+    answer: 2,
+    explanation: "A red banner flag is placed across the rails to provide immediate visual protection for any track section undergoing maintenance or having an obstruction."
+  },
+  {
+    id: 8,
+    text: "How many detonators should be placed on the track to protect a train stalled in a block section on a double line?",
+    options: ["1 detonator at 500m", "2 detonators at 1000m", "3 detonators (1 at 600m, 1 at 1200m, and 1 more 10m ahead)", "4 detonators placed randomly"],
+    answer: 2,
+    explanation: "According to general rules, 3 detonators must be placed: 1st at 600m, 2nd at 1200m, and the 3rd at 1210m from the stalled train to give warning in case of emergency."
+  },
+  {
+    id: 9,
+    text: "When points are blocked due to ballast or obstruction, what indication is observed on the VDU/Control Panel?",
+    options: ["Steady green light", "Steady yellow light", "Flashing red/no indication (out of correspondence)", "Audible bell with green flashing light"],
+    answer: 2,
+    explanation: "When points cannot complete their operation and lock properly, they are 'out of correspondence,' showing a flashing red indicator or blank status on the panel."
+  },
+  {
+    id: 10,
+    text: "A 'Calling-on' signal is used under which of the following circumstances?",
+    options: ["To permit a train to enter an obstructed line at slow speed", "To start a train from a loop line when starter is defective", "To warn the driver of an upcoming steep gradient", "To bypass shunting limits during night hours"],
+    answer: 0,
+    explanation: "A calling-on signal is a miniature signal fixed below a stop signal, used to admit a train into an occupied or obstructed line at restricted speed when the main signal cannot be cleared."
+  },
+  {
+    id: 11,
+    text: "Under what circumstances can a train pass a Semi-Automatic signal showing Red (Danger) in automatic territory?",
+    options: ["After waiting for 1 minute by day / 2 minutes by night, then proceeding at restricted speed", "Only with written authority T-369(3b)", "Immediately at 15 km/h without stopping", "Only when accompanied by a pointsman"],
+    answer: 0,
+    explanation: "In automatic signaling territory, a loco pilot can pass a semi-automatic signal in automatic mode at danger after stopping for 1 min (day) or 2 min (night), proceeding with extreme caution at 10-15 km/h."
+  },
+  {
+    id: 12,
+    text: "What is the frequency of testing the emergency slide valves and emergency crossover operations by the Station Master?",
+    options: ["Daily", "Weekly", "Fortnightly", "Monthly"],
+    answer: 0,
+    explanation: "Emergency crossover points and emergency signaling controls must be tested daily by the Station Master on duty to ensure high availability."
+  },
+  {
+    id: 13,
+    text: "During shunting of passenger coaches containing passengers, what is the maximum speed allowed?",
+    options: ["15 km/h", "10 km/h", "5 km/h", "30 km/h"],
+    answer: 0,
+    explanation: "Shunting speed is strictly restricted to 15 km/h. When shunting coaching stock containing passengers, it must be performed with utmost care under direct supervisor control."
+  },
+  {
+    id: 14,
+    text: "What signal is used to indicate that the line is clear and shunting operations are authorized?",
+    options: ["Shunt signal showing yellow", "Starter signal", "Home signal", "Shunt signal showing two white diagonal lights (or off position)"],
+    answer: 3,
+    explanation: "A position-light shunt signal in the 'off' position displays two diagonal white lights, indicating that shunting may proceed."
+  },
+  {
+    id: 15,
+    text: "To whom does a Gateman at an interlocked level crossing gate report immediately in case of gate defects?",
+    options: ["Section Engineer (P-Way)", "Station Master in control of the section", "Traffic Inspector", "Divisional Safety Officer"],
+    answer: 1,
+    explanation: "The Gateman is under the direct operational control of the SM and must immediately report any gate defect or track obstruction to the SM on duty."
+  },
+  {
+    id: 16,
+    text: "Under the Absolute Block System, a train cannot enter the block section without obtaining:",
+    options: ["Line Clear authority from the block station ahead", "Guard's hand signal", "Driver's whistle", "Passenger manifest clearance"],
+    answer: 0,
+    explanation: "Line Clear is the primary authority to proceed under the Absolute Block System, ensuring that the block section ahead is completely clear of other trains."
+  },
+  {
+    id: 17,
+    text: "The 'Advance Starter' signal is defined as:",
+    options: ["The last stop signal of a station controlling entry into the block section", "The first stop signal of a station", "Shunting authority indicator", "Calling-on signal"],
+    answer: 0,
+    explanation: "The Advanced Starter is the last stop signal at a station, marking the boundary of station limits. Passing it represents entry into the block section."
+  },
+  {
+    id: 18,
+    text: "In case of total failure of communications on a single line section, which authority is given to the Loco Pilot?",
+    options: ["T/B 602 (Authority to proceed during total failure)", "T/A 602", "T/C 602", "T/D 602"],
+    answer: 0,
+    explanation: "Form T/B 602 is the official authority issued to run trains during total failure of communication on a single line block section."
+  },
+  {
+    id: 19,
+    text: "When points are to be hand-cranked due to motor failure, what safety action is mandatory for the Station Master?",
+    options: ["Ensure crank handle is locked back in the key box or kept in personal custody after use", "Rely entirely on the pointsman's verbal confirmation", "Lower the reception signals before cranking begins", "None, cranking is done independently by P-Way staff"],
+    answer: 0,
+    explanation: "The SM must keep the crank handle in safe custody or locked in the transmission box to prevent unauthorized point reversal during train movements."
+  },
+  {
+    id: 20,
+    text: "What form is issued to authorize a train to pass a defective Reception Stop Signal at Danger?",
+    options: ["T/511", "T/512", "T/369(3b)", "T/806"],
+    answer: 2,
+    explanation: "Form T/369(3b) is the written authority to pass a defective reception stop signal at danger, which also contains speed restriction instructions."
+  },
+  {
+    id: 21,
+    text: "A Sighting Board is placed at what minimum distance before the First Stop Signal?",
+    options: ["1400 metres", "1000 metres", "800 metres", "2000 metres"],
+    answer: 0,
+    explanation: "A sighting board is placed 1400 meters before the First Stop Signal (FSS) on high-speed lines to warn loco pilots of the upcoming signal location."
+  },
+  {
+    id: 22,
+    text: "What is the minimum adequate distance (overlap) required for shunting within station limits in the face of an approaching train?",
+    options: ["45 metres", "180 metres", "120 metres", "90 metres"],
+    answer: 1,
+    explanation: "Under general safety rules, shunting must not be permitted within 180 meters of the path of an approaching train to prevent collision hazards."
+  },
+  {
+    id: 23,
+    text: "A flashing amber aspect on an auxiliary route indicator warns the driver of:",
+    options: ["Severe speed restriction ahead", "Route deviation ahead onto a loop line", "Normal running speed on the main line", "Stop at next block station"],
+    answer: 1,
+    explanation: "A flashing amber aspect warns the loco pilot that the train is being routed onto a loop line or crossing over points, requiring an immediate speed reduction."
+  },
+  {
+    id: 24,
+    text: "During heavy rains or waterlogging exceeding rail level, what is the duty of the Station Master?",
+    options: ["Suspend all traffic on the affected line and inform the controller", "Allow trains to pass at 15 km/h", "Allow trains only if the guard issues a permit", "Keep reception signals green to clear the yard"],
+    answer: 0,
+    explanation: "If water rises above rail level, the SM must immediately suspend train movements over that section, protect the track, and report the condition to the section controller."
+  },
+  {
+    id: 25,
+    text: "For shunting over a facing point that is not interlocked or has defective interlocking, what is the mandatory safety precaution?",
+    options: ["Points must be clipped and padlocked", "Points must be clamped only", "Pointsman must hold the point lever manually", "No precaution needed, shunting speed is slow"],
+    answer: 0,
+    explanation: "Non-interlocked facing points must be securely clipped and padlocked before any train or shunting movement is authorized over them to prevent derailments."
+  }
+];
+
 /* ─── SM SELF-ASSESSMENT HISTORY (done by TI) ─── */
 const smAssessmentHistory = [
   {
     id: 1, date: "2026-03-25", period: "Q1 2026",
-    assessedBy: "TI_2001 — A. Kulkarni",
+    assessedBy: "TI_2001 — R. Khan",
     totalScore: 86, category: "A", approvalStatus: "Approved",
     tiRemarks: "Station demonstrates strong operational discipline and safety culture.",
     sections: [
@@ -194,11 +375,12 @@ const smAssessmentHistory = [
       { title:"Staff Supervision",          marks:16, outOf:20 },
       { title:"Emergency Handling",         marks:17, outOf:20 },
       { title:"Documentation & Compliance", marks:18, outOf:20 }
-    ]
+    ],
+    mcqResponses: [1, 2, 2, 2, 1, 1, 2, 2, 2, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0, 2, 0, 1, 1, 0, 0]
   },
   {
     id: 2, date: "2025-12-18", period: "Q4 2025",
-    assessedBy: "TI_2001 — A. Kulkarni",
+    assessedBy: "TI_2001 — R. Khan",
     totalScore: 79, category: "B", approvalStatus: "Approved",
     tiRemarks: "Good performance. Minor gaps in documentation — addressed in training.",
     sections: [
@@ -207,11 +389,12 @@ const smAssessmentHistory = [
       { title:"Staff Supervision",          marks:15, outOf:20 },
       { title:"Emergency Handling",         marks:16, outOf:20 },
       { title:"Documentation & Compliance", marks:17, outOf:20 }
-    ]
+    ],
+    mcqResponses: [1, 2, 3, 2, 1, 1, 2, 2, 2, 1, 0, 0, 0, 2, 1, 0, 0, 2, 0, 2, 0, 1, 1, 1, 0]
   },
   {
     id: 3, date: "2025-09-10", period: "Q3 2025",
-    assessedBy: "TI_2001 — A. Kulkarni",
+    assessedBy: "TI_2001 — R. Khan",
     totalScore: 91, category: "A", approvalStatus: "Approved",
     tiRemarks: "Excellent quarter. Exceptional handling of monsoon disruptions.",
     sections: [
@@ -220,11 +403,12 @@ const smAssessmentHistory = [
       { title:"Staff Supervision",          marks:18, outOf:20 },
       { title:"Emergency Handling",         marks:19, outOf:20 },
       { title:"Documentation & Compliance", marks:17, outOf:20 }
-    ]
+    ],
+    mcqResponses: [1, 2, 2, 2, 1, 1, 2, 2, 2, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0, 2, 0, 1, 1, 0, 0]
   },
   {
     id: 4, date: "2025-06-14", period: "Q2 2025",
-    assessedBy: "TI_2001 — A. Kulkarni",
+    assessedBy: "TI_2001 — R. Khan",
     totalScore: 74, category: "B", approvalStatus: "Approved",
     tiRemarks: "Satisfactory. Focus needed on staff supervision logs.",
     sections: [
@@ -233,7 +417,8 @@ const smAssessmentHistory = [
       { title:"Staff Supervision",          marks:14, outOf:20 },
       { title:"Emergency Handling",         marks:15, outOf:20 },
       { title:"Documentation & Compliance", marks:16, outOf:20 }
-    ]
+    ],
+    mcqResponses: [1, 2, 3, 2, 1, 2, 2, 1, 2, 1, 0, 1, 0, 2, 1, 0, 0, 2, 0, 2, 1, 1, 1, 1, 0]
   }
 ];
 
@@ -241,7 +426,7 @@ const smAssessmentHistory = [
 const smSelfAssessment = {
   date: "2026-03-25",
   period: "Q1 2026",
-  assessedBy: "TI_2001 — A. Kulkarni",
+  assessedBy: "TI_2001 — R. Khan",
   totalScore: 86,
   category: "A",
   approvalStatus: "Approved",
@@ -359,8 +544,155 @@ function StationMasterModule({ user, onLogout }) {
     { q: "In emergency track clearing, the first protection detonator is placed at:", opts: ["600 meters", "800 meters", "1200 meters", "2000 meters"], ans: 0 }
   ];
 
+  // Fullscreen Analytics States
+  const [fullscreenChart, setFullscreenChart] = useState(null); // 'monthly' | 'safety' | 'performance' | null
+  const [fsStartDate, setFsStartDate]         = useState("");
+  const [fsEndDate, setFsEndDate]             = useState("");
+  const [fsCategory, setFsCategory]           = useState("All");
+  const [fsRisk, setFsRisk]                   = useState("All");
+  const [fsSearch, setFsSearch]               = useState("");
+
   const smName = user?.name || smProfile.name;
   const smId   = user?.hrmsId || smProfile.employeeId;
+
+  // Reactively Filtered Pointsmen for Fullscreen View
+  const filteredFsPointsmen = useMemo(() => {
+    return pointsmen.filter(p => {
+      const q = fsSearch.toLowerCase();
+      const matchSearch = !q || p.name.toLowerCase().includes(q) || p.hrmsId.toLowerCase().includes(q);
+      const matchCategory = fsCategory === "All" || getCat(p.lastScore) === fsCategory;
+      const matchRisk = fsRisk === "All" || riskLevel(p) === fsRisk;
+      
+      const pmHistoryList = pmAssessmentHistory[p.id] || [];
+      const mostRecentDate = pmHistoryList.length > 0 ? pmHistoryList[0].date : p.doj;
+      let matchDate = true;
+      if (fsStartDate) matchDate = matchDate && mostRecentDate >= fsStartDate;
+      if (fsEndDate) matchDate = matchDate && mostRecentDate <= fsEndDate;
+      
+      return matchSearch && matchCategory && matchRisk && matchDate;
+    });
+  }, [pointsmen, fsSearch, fsCategory, fsRisk, fsStartDate, fsEndDate]);
+
+  // Reactively Recalculated Monthly Trend for Fullscreen View
+  const dynamicMonthlyTrend = useMemo(() => {
+    const months = [
+      { label: "Nov 25", start: "2025-11-01", end: "2025-11-30", fallbackScore: 71, fallbackSafety: 68 },
+      { label: "Dec 25", start: "2025-12-01", end: "2025-12-31", fallbackScore: 74, fallbackSafety: 72 },
+      { label: "Jan 26", start: "2026-01-01", end: "2026-01-31", fallbackScore: 68, fallbackSafety: 70 },
+      { label: "Feb 26", start: "2026-02-01", end: "2026-02-28", fallbackScore: 77, fallbackSafety: 75 },
+      { label: "Mar 26", start: "2026-03-01", end: "2026-03-31", fallbackScore: 80, fallbackSafety: 79 }
+    ];
+
+    return months.map(m => {
+      let totalScore = 0;
+      let totalSafety = 0;
+      let count = 0;
+
+      filteredFsPointsmen.forEach(p => {
+        const pmHistoryList = pmAssessmentHistory[p.id] || [];
+        const matches = pmHistoryList.filter(h => h.date >= m.start && h.date <= m.end);
+        matches.forEach(h => {
+          totalScore += h.total;
+          totalSafety += p.safetyScore;
+          count++;
+        });
+      });
+
+      return {
+        month: m.label,
+        assessments: count > 0 ? count : 5,
+        avgScore: count > 0 ? Math.round(totalScore / count) : m.fallbackScore,
+        safetyAvg: count > 0 ? Math.round(totalSafety / count) : m.fallbackSafety
+      };
+    });
+  }, [filteredFsPointsmen]);
+
+  // History State
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem(`sm_history_${smId}`);
+    return saved ? JSON.parse(saved) : smAssessmentHistory;
+  });
+
+  // MCQ Test State
+  const [smMcqTest, setSmMcqTest] = useState(() => {
+    const saved = localStorage.getItem(`sm_mcq_test_${smId}`);
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // MCQ Test Assignment State
+  const [testAssigned, setTestAssigned] = useState(() => {
+    const saved = localStorage.getItem(`sm_test_assigned_${smId}`);
+    if (saved === null) {
+      localStorage.setItem(`sm_test_assigned_${smId}`, "Assigned");
+      return "Assigned";
+    }
+    return saved;
+  });
+
+  // Active MCQ Attempt States
+  const [activeQIdx, setActiveQIdx] = useState(0);
+  const [testResponses, setTestResponses] = useState(() => Array(25).fill(null));
+
+  const startTestAttempt = () => {
+    setActiveQIdx(0);
+    setTestResponses(Array(25).fill(null));
+    setPageMode("takeTest");
+  };
+
+  const handleSubmitTestAttempt = () => {
+    const correctCount = testResponses.filter((r, idx) => r === smTestQuestions[idx].answer).length;
+    const percentage = Math.round((correctCount / 25) * 100);
+    const passStatus = percentage >= 60 ? "PASSED" : "FAILED";
+    const today = new Date().toISOString().slice(0, 10);
+    
+    // Save to local storage for SM
+    const testResult = {
+      completed: true,
+      correctCount: correctCount,
+      responses: [...testResponses],
+      submittedDate: today,
+      percentage: percentage,
+      passStatus: passStatus
+    };
+    localStorage.setItem(`sm_mcq_test_${smId}`, JSON.stringify(testResult));
+    setSmMcqTest(testResult);
+
+    // Update assigned status to 'Completed'
+    localStorage.setItem(`sm_test_assigned_${smId}`, "Completed");
+    setTestAssigned("Completed");
+
+    // Generate a completed History record representing the Online self-exam
+    const record = {
+      id: Date.now(),
+      date: today,
+      period: "Q2 2026",
+      assessedBy: "Online Self-Exam",
+      totalScore: correctCount,
+      category: getCat(percentage),
+      approvalStatus: "Completed",
+      tiRemarks: `Completed online safety competency assessment. Score: ${percentage}% (${correctCount}/25 correct). Awaiting TI evaluation.`,
+      sections: [
+        { title: "MCQ Safety & Rule Exam", marks: correctCount, outOf: 25 }
+      ],
+      mcqResponses: [...testResponses],
+      isOnlineExam: true
+    };
+
+    const newHistory = [record, ...history];
+    setHistory(newHistory);
+    localStorage.setItem(`sm_history_${smId}`, JSON.stringify(newHistory));
+
+    // Also notify TI list in localStorage!
+    let tiSmListStr = localStorage.getItem("ti_sm_list");
+    let tiSmList = tiSmListStr ? JSON.parse(tiSmListStr) : null;
+    if (tiSmList) {
+      tiSmList = tiSmList.map(s => s.hrmsId === smId ? { ...s, status: "Submitted", score: correctCount } : s);
+      localStorage.setItem("ti_sm_list", JSON.stringify(tiSmList));
+    }
+
+    setPageMode("default");
+    setStatusMsg(`Assessment submitted! Score: ${percentage}% (${correctCount}/25). Status: Completed.`);
+  };
 
   /* ─── Derived: stats ─── */
   const stats = useMemo(() => {
@@ -555,7 +887,32 @@ function StationMasterModule({ user, onLogout }) {
 
         {/* Line: Score trend */}
         <div className="sm2-chart-card">
-          <div className="sm2-chart-hdr"><TrendingUp size={15}/><h3>Monthly Assessment Trend</h3></div>
+          <div className="sm2-chart-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+              <TrendingUp size={15}/>
+              <h3>Monthly Assessment Trend</h3>
+            </div>
+            <button 
+              onClick={() => { setFullscreenChart("monthly"); setFsStartDate(""); setFsEndDate(""); setFsCategory("All"); setFsRisk("All"); setFsSearch(""); }} 
+              style={{
+                background: "none", 
+                border: "none", 
+                color: "#2563eb", 
+                fontSize: "11px", 
+                fontWeight: "700", 
+                cursor: "pointer", 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "4px",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                transition: "all 0.15s"
+              }}
+              className="sm2-fullscreen-btn"
+            >
+              <Maximize2 size={11}/> View Full Screen
+            </button>
+          </div>
           <ResponsiveContainer width="100%" height={210}>
             <LineChart data={monthlyTrend} margin={{top:6,right:16,left:-14,bottom:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
@@ -570,7 +927,32 @@ function StationMasterModule({ user, onLogout }) {
 
         {/* Bar: Safety compliance */}
         <div className="sm2-chart-card">
-          <div className="sm2-chart-hdr"><Activity size={15}/><h3>Safety Compliance Trend</h3></div>
+          <div className="sm2-chart-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+              <Activity size={15}/>
+              <h3>Safety Compliance Trend</h3>
+            </div>
+            <button 
+              onClick={() => { setFullscreenChart("safety"); setFsStartDate(""); setFsEndDate(""); setFsCategory("All"); setFsRisk("All"); setFsSearch(""); }} 
+              style={{
+                background: "none", 
+                border: "none", 
+                color: "#2563eb", 
+                fontSize: "11px", 
+                fontWeight: "700", 
+                cursor: "pointer", 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "4px",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                transition: "all 0.15s"
+              }}
+              className="sm2-fullscreen-btn"
+            >
+              <Maximize2 size={11}/> View Full Screen
+            </button>
+          </div>
           <ResponsiveContainer width="100%" height={210}>
             <BarChart data={monthlyTrend} margin={{top:6,right:16,left:-14,bottom:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
@@ -584,7 +966,32 @@ function StationMasterModule({ user, onLogout }) {
 
         {/* Pie: Category dist */}
         <div className="sm2-chart-card">
-          <div className="sm2-chart-hdr"><BarChart3 size={15}/><h3>Performance Distribution</h3></div>
+          <div className="sm2-chart-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+            <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+              <BarChart3 size={15}/>
+              <h3>Performance Distribution</h3>
+            </div>
+            <button 
+              onClick={() => { setFullscreenChart("performance"); setFsStartDate(""); setFsEndDate(""); setFsCategory("All"); setFsRisk("All"); setFsSearch(""); }} 
+              style={{
+                background: "none", 
+                border: "none", 
+                color: "#2563eb", 
+                fontSize: "11px", 
+                fontWeight: "700", 
+                cursor: "pointer", 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "4px",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                transition: "all 0.15s"
+              }}
+              className="sm2-fullscreen-btn"
+            >
+              <Maximize2 size={11}/> View Full Screen
+            </button>
+          </div>
           <ResponsiveContainer width="100%" height={210}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="44%" innerRadius={52} outerRadius={80} dataKey="value" paddingAngle={3}>
@@ -1020,6 +1427,100 @@ function StationMasterModule({ user, onLogout }) {
           </div>
         </div>
 
+        {/* 📈 PERFORMANCE TREND & SAFETY COMPETENCY breakdown */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "20px", marginTop: "20px" }}>
+          
+          {/* Performance Improvement Trend Chart */}
+          <div style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "20px",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)"
+          }}>
+            <h4 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+              <TrendingUp size={16} color="#2563eb" /> Performance Improvement Trend
+            </h4>
+            {hist.length === 0 ? (
+              <p style={{ color: "#64748b", fontStyle: "italic", fontSize: "13px" }}>No history to plot trend.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={[...hist].reverse().map((h, i) => ({ attempt: `Eval ${i+1}`, score: h.total, date: h.date }))} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="attempt" tick={{ fontSize: 10, fill: "#64748b" }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#64748b" }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: "#2563eb" }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            <div style={{ marginTop: "12px", fontSize: "12px", color: "#64748b", lineHeight: "1.4" }}>
+              💡 The timeline shows overall competence score growth over review periods. Target compliance rate is <strong>60% minimum</strong>.
+            </div>
+          </div>
+
+          {/* Correct / Wrong Answers Audit */}
+          <div style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "20px",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.02)"
+          }}>
+            <h4 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+              <ShieldCheck size={16} color="#16a34a" /> Safety Competency Audit Breakdown
+            </h4>
+            <div style={{ maxHeight: "200px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", paddingRight: "4px" }}>
+              {[
+                { q: "Speed limit permitted over loop lines?", ans: "30 km/h", key: 1 },
+                { q: "Signal below stop signal to admit train into occupied lines?", ans: "Calling-on signal", key: 2 },
+                { q: "Maximum speed limit during shunting operations?", ans: "15 km/h", key: 3 },
+                { q: "Vigilance action upon noticing hot axle on train?", ans: "Display Danger Hand Signal", key: 4 },
+                { q: "Detonator count required for emergency protection?", ans: "3 Detonators", key: 5 },
+                { q: "Frequency of mandatory refresher training?", ans: "Every 3 years", key: 6 },
+                { q: "Who delivers key/token to loco pilots?", ans: "Authorized Pointsman", key: 7 },
+                { q: "Shunting indicator signal light type?", ans: "Position Light Type", key: 8 }
+              ].map((item, index) => {
+                const isCorrect = pm.lastScore >= (index + 1) * 11;
+                return (
+                  <div key={item.key} style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    background: isCorrect ? "#f0fdf4" : "#fef2f2",
+                    border: isCorrect ? "1px solid #dcfce7" : "1px solid #fee2e2"
+                  }}>
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "18px",
+                      height: "18px",
+                      borderRadius: "50%",
+                      background: isCorrect ? "#16a34a" : "#dc2626",
+                      color: "#ffffff",
+                      fontSize: "10px",
+                      fontWeight: "bold",
+                      marginTop: "1px",
+                      flexShrink: 0
+                    }}>
+                      {isCorrect ? "✓" : "✗"}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: "12px", fontWeight: "600", color: "#1e293b" }}>{item.q}</p>
+                      <p style={{ margin: "2px 0 0", fontSize: "11px", color: isCorrect ? "#16a34a" : "#dc2626", fontWeight: "500" }}>
+                        {isCorrect ? `Correct Answer: ${item.ans}` : `Incorrect (Selected wrong threshold)`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* Assessment History */}
         <div style={{marginTop:20}}>
           <h4 style={{margin:"0 0 12px",fontSize:14,color:"#0f172a"}}>Assessment History</h4>
@@ -1386,10 +1887,12 @@ function StationMasterModule({ user, onLogout }) {
           <div className="sm2-sc-hero">
             <div className="sm2-sc-circle" style={{borderColor: CAT_COLOR[cat]}}>
               <strong style={{color: CAT_COLOR[cat]}}>{sc.totalScore}</strong>
-              <span>/100</span>
+              <span>/{sc.isOnlineExam ? 25 : 100}</span>
             </div>
             <div>
-              <span className="sm2-cat-badge-lg" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Category {cat}</span>
+              <span className="sm2-cat-badge-lg" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>
+                {sc.isOnlineExam ? "Online Competency Exam" : `Category ${cat}`}
+              </span>
               <p className="sm2-sc-period" title={sc.period}>{formatQuarterPeriod(sc.period)}</p>
               <p className="sm2-sc-date">Date: {sc.date}</p>
               <p className="sm2-sc-by">By: {sc.assessedBy}</p>
@@ -1402,19 +1905,20 @@ function StationMasterModule({ user, onLogout }) {
           </div>
 
           <h4 style={{margin:"20px 0 12px",fontSize:14,color:"#0f172a"}}>Section-wise Breakdown</h4>
-          <div className="sm2-sc-sections">
+          <div className="sm2-sc-sections" style={{display:"flex", flexDirection:"column", gap:10}}>
             {sc.sections.map(s => {
               const pct = Math.round((s.marks / s.outOf) * 100);
               return (
-                <div key={s.title} className="sm2-sc-row">
-                  <span className="sm2-sc-name">{s.title}</span>
-                  <div className="sm2-sc-bar-wrap">
+                <div key={s.title} className="sm2-sc-row" style={{background: "#f8fafc", padding: "10px 14px", borderRadius: 8, border: "1px solid #e2e8f0"}}>
+                  <span className="sm2-sc-name" style={{color: "#1e293b", fontWeight: 700, width: 220}}>{s.title}</span>
+                  <div className="sm2-sc-bar-wrap" style={{flex: 1, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden", margin: "0 16px"}}>
                     <div className="sm2-sc-bar-fill" style={{
                       width:`${pct}%`,
-                      background: pct >= 80 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#dc2626"
+                      height: "100%",
+                      background: pct >= 80 ? "#10b981" : pct >= 60 ? "#3b82f6" : pct >= 40 ? "#f59e0b" : "#ef4444"
                     }}/>
                   </div>
-                  <span className="sm2-sc-marks">{s.marks}/{s.outOf}</span>
+                  <span className="sm2-sc-marks" style={{color: "#334155", fontWeight: 700}}>{s.marks}/{s.outOf}</span>
                 </div>
               );
             })}
@@ -1424,13 +1928,268 @@ function StationMasterModule({ user, onLogout }) {
             <div className="sm2-ti-rmk-hdr"><Award size={15} color="#7c3aed"/> <strong>TI Remarks</strong></div>
             <p>"{sc.tiRemarks}"</p>
           </div>
+
+          {/* 📋 Rule-Based MCQ Exam Review (25 Questions) */}
+          <h4 style={{margin:"28px 0 16px",fontSize:15,color:"#0f172a",borderBottom:"1px solid #e2e8f0",paddingBottom:8}}>
+            📋 Rule-Based MCQ Exam Review (25 Questions)
+          </h4>
+          <div className="sm2-mcq-review-list" style={{display:"flex",flexDirection:"column",gap:20}}>
+            {smTestQuestions.map((q, idx) => {
+              const selectedAns = sc.mcqResponses ? sc.mcqResponses[idx] : null;
+              const isCorrect = selectedAns === q.answer;
+              const isUnanswered = selectedAns === null || selectedAns === undefined;
+              
+              let statusText = "Correct";
+              let badgeColor = "#16a34a";
+              let badgeBg = "#dcfce7";
+              let icon = "✓";
+              
+              if (isUnanswered) {
+                statusText = "Skipped / Unanswered";
+                badgeColor = "#d97706";
+                badgeBg = "#fef3c7";
+                icon = "⚠️";
+              } else if (!isCorrect) {
+                statusText = "Wrong";
+                badgeColor = "#dc2626";
+                badgeBg = "#fee2e2";
+                icon = "✗";
+              }
+
+              return (
+                <div key={q.id} style={{
+                  border:"1px solid #e2e8f0",
+                  borderRadius:12,
+                  padding:20,
+                  background:isUnanswered ? "#fffdf5" : isCorrect ? "#fcfdfc" : "#fffcfc",
+                  boxShadow:"0 2px 4px rgba(0,0,0,0.02)"
+                }}>
+                  {/* Header info */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"start",gap:12,marginBottom:14}}>
+                    <span style={{
+                      fontWeight:700,
+                      background:"#e2e8f0",
+                      padding:"3px 10px",
+                      borderRadius:6,
+                      fontSize:12.5,
+                      color:"#334155"
+                    }}>Q{q.id}</span>
+                    <div style={{flex:1,fontWeight:600,color:"#0f172a",fontSize:14.5,lineHeight:1.4}}>{q.text}</div>
+                    <span style={{
+                      background:badgeBg,
+                      color:badgeColor,
+                      padding:"4px 12px",
+                      borderRadius:12,
+                      fontSize:12,
+                      fontWeight:700,
+                      display:"inline-flex",
+                      alignItems:"center",
+                      gap:4,
+                      whiteSpace:"nowrap"
+                    }}>{icon} {statusText}</span>
+                  </div>
+
+                  {/* Options List JEE Exam style */}
+                  <div style={{display:"flex",flexDirection:"column",gap:8,margin:"16px 0"}}>
+                    {q.options.map((opt, oIdx) => {
+                      const isSelected = selectedAns === oIdx;
+                      const isOptionCorrect = q.answer === oIdx;
+                      
+                      let optBg = "#ffffff";
+                      let optBorder = "1.5px solid #e2e8f0";
+                      let optColor = "#334155";
+                      let badge = null;
+
+                      if (isSelected) {
+                        if (isOptionCorrect) {
+                          optBg = "#dcfce7";
+                          optBorder = "2px solid #22c55e";
+                          optColor = "#14532d";
+                          badge = (
+                            <span style={{
+                              marginLeft:"auto",
+                              fontSize:10.5,
+                              fontWeight:700,
+                              background:"#22c55e",
+                              color:"#ffffff",
+                              padding:"2px 8px",
+                              borderRadius:4
+                            }}>YOUR ANSWER (CORRECT)</span>
+                          );
+                        } else {
+                          optBg = "#fee2e2";
+                          optBorder = "2px solid #ef4444";
+                          optColor = "#7f1d1d";
+                          badge = (
+                            <span style={{
+                              marginLeft:"auto",
+                              fontSize:10.5,
+                              fontWeight:700,
+                              background:"#ef4444",
+                              color:"#ffffff",
+                              padding:"2px 8px",
+                              borderRadius:4
+                            }}>YOUR ANSWER (WRONG)</span>
+                          );
+                        }
+                      } else if (isOptionCorrect) {
+                        optBg = "#eff6ff";
+                        optBorder = "2px dashed #3b82f6";
+                        optColor = "#1e3a8a";
+                        badge = (
+                          <span style={{
+                            marginLeft:"auto",
+                            fontSize:10.5,
+                            fontWeight:700,
+                            background:"#3b82f6",
+                            color:"#ffffff",
+                            padding:"2px 8px",
+                            borderRadius:4
+                          }}>CORRECT OPTION</span>
+                        );
+                      }
+
+                      return (
+                        <div key={opt} style={{
+                          display:"flex",
+                          alignItems:"center",
+                          gap:12,
+                          padding:"12px 16px",
+                          borderRadius:8,
+                          background:optBg,
+                          border:optBorder,
+                          color:optColor,
+                          fontSize:13.5,
+                          fontWeight: (isSelected || isOptionCorrect) ? 600 : 500,
+                          transition:"all 0.15s ease"
+                        }}>
+                          <span style={{
+                            fontSize:13,
+                            fontWeight:700,
+                            width:20,
+                            opacity:0.8
+                          }}>{["A", "B", "C", "D"][oIdx]}</span>
+                          <span>{opt}</span>
+                          {badge}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Explanation card */}
+                  <div style={{
+                    fontSize:12.5,
+                    color:"#475569",
+                    marginTop:10,
+                    display:"flex",
+                    gap:8,
+                    alignItems:"start",
+                    background:"#f8fafc",
+                    border:"1px solid #edf2f7",
+                    padding:"10px 14px",
+                    borderRadius:8
+                  }}>
+                    <span style={{color:"#2563eb",fontWeight:700}}>Explanation:</span>
+                    <span style={{lineHeight:1.4}}>{q.explanation}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
       );
     }
 
+    const testActive = testAssigned === "Assigned" && (!smMcqTest || !smMcqTest.completed);
+
     /* History list */
     return (
       <section className="sm2-card">
+        {/* MCQ Assessment Assignment Banner */}
+        {testActive ? (
+          <div style={{
+            background:"linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)",
+            border:"1.5px solid #fed7aa",
+            borderRadius:12,
+            padding:20,
+            marginBottom:24,
+            boxShadow:"0 4px 6px -1px rgba(0,0,0,0.05)"
+          }}>
+            <div style={{display:"flex", gap:16, alignItems:"start"}}>
+              <div style={{
+                background:"#ffedd5",
+                borderRadius:50,
+                width:42,
+                height:42,
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+                flexShrink:0
+              }}>
+                <ShieldCheck size={22} color="#ea580c"/>
+              </div>
+              <div style={{flex:1}}>
+                <h3 style={{margin:"0 0 6px", fontSize:16, fontWeight:700, color:"#c2410c"}}>
+                  ⚠️ Pending Competency Assessment
+                </h3>
+                <p style={{margin:"0 0 14px", fontSize:13, color:"#9a3412", lineHeight:1.4}}>
+                  Your supervisor (Traffic Inspector) has scheduled a periodic safety &amp; competency assessment for you. You must complete the 25-question MCQ exam.
+                </p>
+                <button
+                  onClick={startTestAttempt}
+                  style={{
+                    background:"#ea580c",
+                    color:"#ffffff",
+                    border:"none",
+                    padding:"10px 20px",
+                    borderRadius:8,
+                    fontSize:13.5,
+                    fontWeight:700,
+                    cursor:"pointer",
+                    boxShadow:"0 4px 6px rgba(234, 88, 12, 0.2)",
+                    display:"flex",
+                    alignItems:"center",
+                    gap:8
+                  }}
+                >
+                  Start 25 MCQ Online Assessment
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            background:"#f0fdf4",
+            border:"1.5px solid #bbf7d0",
+            borderRadius:12,
+            padding:18,
+            marginBottom:24,
+            display:"flex",
+            alignItems:"center",
+            gap:14
+          }}>
+            <ShieldCheck size={24} color="#16a34a"/>
+            <div style={{flex:1}}>
+              <h3 style={{margin:"0 0 2px", fontSize:14.5, fontWeight:700, color:"#14532d"}}>
+                All assessments are up to date. No pending test available.
+              </h3>
+              <p style={{margin:0, fontSize:12, color:"#166534"}}>
+                Your periodic safety and competency evaluation is currently active and compliant.
+              </p>
+            </div>
+            <div style={{display:"flex", gap:16, fontSize:12, textAlign:"right"}}>
+              <div>
+                <span style={{color:"#166534", display:"block"}}>Last Exam Score</span>
+                <strong style={{color:"#14532d", fontSize:13}}>{smMcqTest ? `${smMcqTest.correctCount}/25 (${smMcqTest.percentage}%)` : `${history[0]?.sections.find(s=>s.title.includes("MCQ"))?.marks || 22}/25 (88%)`}</strong>
+              </div>
+              <div style={{borderLeft:"1px solid #bbf7d0", paddingLeft:16}}>
+                <span style={{color:"#166534", display:"block"}}>Next Due Date</span>
+                <strong style={{color:"#14532d", fontSize:13}}>25 Sep 2026</strong>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="sm2-card-hdr"><h2>My Assessment History (by TI)</h2></div>
         <p className="sm2-subtitle">All assessments conducted by the Traffic Inspector for your station. Click any row to view the detailed scorecard.</p>
 
@@ -1438,29 +2197,36 @@ function StationMasterModule({ user, onLogout }) {
         <div className="sm2-myassess-summary">
           <div className="sm2-report-mini">
             <label>Total Assessments</label>
-            <strong>{smAssessmentHistory.length}</strong>
+            <strong>{history.length}</strong>
           </div>
           <div className="sm2-report-mini">
             <label>Latest Score</label>
-            <strong>{smAssessmentHistory[0]?.totalScore}/100</strong>
+            <strong>{history[0]?.totalScore}/{history[0]?.isOnlineExam ? 25 : 100}</strong>
           </div>
           <div className="sm2-report-mini">
-            <label>Average Score</label>
-            <strong>{Math.round(smAssessmentHistory.reduce((s,a) => s + a.totalScore, 0) / smAssessmentHistory.length)}/100</strong>
+            <label>Average TI Score</label>
+            <strong>{
+              (() => {
+                const regs = history.filter(h => !h.isOnlineExam);
+                return regs.length ? `${Math.round(regs.reduce((s, a) => s + a.totalScore, 0) / regs.length)}/100` : "—";
+              })()
+            }</strong>
           </div>
           <div className="sm2-report-mini">
-            <label>Latest Category</label>
-            <strong style={{color: CAT_COLOR[smAssessmentHistory[0]?.category]}}>Category {smAssessmentHistory[0]?.category}</strong>
+            <label>Latest Assessment</label>
+            <strong style={{color: CAT_COLOR[history[0]?.category]}}>
+              {history[0]?.isOnlineExam ? "Online CBT" : `Category ${history[0]?.category}`}
+            </strong>
           </div>
         </div>
 
         {/* List */}
         <div className="sm2-myassess-list">
           <div className="sm2-myassess-head">
-            {["Period","Date","Total Score","Category","Assessed By","Status",""].map(h =>
+            {["Period","Date","Score Scale","Category","Assessed By","Status",""].map(h =>
               <span key={h}>{h}</span>)}
           </div>
-          {smAssessmentHistory.map(sc => {
+          {history.map(sc => {
             const cat = sc.category;
             return (
               <button key={sc.id} className="sm2-myassess-row" onClick={() => setMyAssessSelected(sc)}>
@@ -1468,9 +2234,11 @@ function StationMasterModule({ user, onLogout }) {
                   <strong>{formatQuarterPeriod(sc.period)}</strong>
                 </span>
                 <span>{sc.date}</span>
-                <span><strong>{sc.totalScore}/100</strong></span>
+                <span><strong>{sc.totalScore}/{sc.isOnlineExam ? 25 : 100}</strong></span>
                 <span>
-                  <span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>Cat. {cat}</span>
+                  <span className="sm2-badge" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>
+                    {sc.isOnlineExam ? "CBT Exam" : `Cat. ${cat}`}
+                  </span>
                 </span>
                 <span style={{fontSize:11,color:"#64748b"}}>{sc.assessedBy}</span>
                 <span>
@@ -1485,10 +2253,493 @@ function StationMasterModule({ user, onLogout }) {
     );
   };
 
+  /* ─── ONLINE MCQ SAFETY & RULE EXAM ATTEMPT SCREEN ─── */
+  const renderTakeTest = () => {
+    const question = smTestQuestions[activeQIdx];
+    const answeredCount = testResponses.filter(r => r !== null && r !== undefined).length;
+    const completionRate = Math.round((answeredCount / 25) * 100);
+    const unansweredCount = 25 - answeredCount;
+
+    return (
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999999,
+        background: "#f1f5f9",
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        width: "100vw",
+        overflow: "hidden"
+      }}>
+        {/* Header Bar: TCS iON Style */}
+        <header style={{
+          background: "#1e293b",
+          color: "#ffffff",
+          padding: "16px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+          height: "70px",
+          flexShrink: 0
+        }}>
+          <div style={{display: "flex", alignItems: "center", gap: 12}}>
+            <ShieldCheck size={28} color="#f97316"/>
+            <div>
+              <h1 style={{fontSize: 18, fontWeight: 800, margin: 0, color: "#ffffff", letterSpacing: "0.5px"}}>
+                STATION MASTER CBT COMPETENCY EVALUATION
+              </h1>
+              <p style={{margin: 0, fontSize: 11, color: "#94a3b8", fontWeight: 500}}>
+                Official Online Railway Rules &amp; Operational Safety Examination (2026 Cycle)
+              </p>
+            </div>
+          </div>
+          
+          <div style={{display: "flex", alignItems: "center", gap: 16}}>
+            <div style={{
+              background: "#334155",
+              padding: "6px 16px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#cbd5e1",
+              border: "1px solid #475569"
+            }}>
+              ⏳ TIME ELAPSED: <span style={{color: "#3b82f6"}}>Active Session</span>
+            </div>
+            
+            <button 
+              onClick={() => {
+                if (window.confirm("Are you sure you want to exit the exam? Your progress will not be saved.")) {
+                  setPageMode("default");
+                }
+              }} 
+              style={{
+                padding: "8px 18px", 
+                borderRadius: 8, 
+                fontSize: 13, 
+                background: "#ef4444", 
+                color: "#ffffff", 
+                border: "none", 
+                fontWeight: 700, 
+                cursor: "pointer",
+                boxShadow: "0 2px 4px rgba(239, 68, 68, 0.2)",
+                transition: "all 0.2s ease"
+              }}
+            >
+              Exit Exam
+            </button>
+          </div>
+        </header>
+
+        {/* Candidate & Progress Strip */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "#ffffff",
+          borderBottom: "1.5px solid #e2e8f0",
+          padding: "12px 24px",
+          height: "50px",
+          flexShrink: 0,
+          fontSize: 13.5,
+          color: "#334155"
+        }}>
+          <div>
+            Candidate Name: <strong style={{color: "#1e3a8a"}}>{smName}</strong> &nbsp;|&nbsp; HRMS ID: <strong style={{color: "#1e3a8a"}}>{smId}</strong> &nbsp;|&nbsp; Station: <strong>Nagpur Junction (NGP)</strong>
+          </div>
+          <div style={{display: "flex", alignItems: "center", gap: 12}}>
+            <span style={{fontWeight: 600}}>Progress: <strong style={{color: "#2563eb"}}>{answeredCount} / 25 Answered</strong> ({completionRate}%)</span>
+            <div style={{width: 140, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden"}}>
+              <div style={{width: `${completionRate}%`, height: "100%", background: "#2563eb", borderRadius: 4}}/>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Split Body */}
+        <div style={{
+          display: "grid", 
+          gridTemplateColumns: "1fr 340px", 
+          flex: 1, 
+          overflow: "hidden"
+        }}>
+          
+          {/* Left Column: Spacious Question Pane */}
+          <div style={{
+            padding: "32px 40px", 
+            display: "flex", 
+            flexDirection: "column", 
+            background: "#f8fafc",
+            overflowY: "auto",
+            height: "100%"
+          }}>
+            
+            {/* Immersive Question Card */}
+            <div style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 14,
+              padding: 36,
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              marginBottom: 24
+            }}>
+              <div>
+                <span style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: "#2563eb",
+                  background: "#dbeafe",
+                  padding: "6px 14px",
+                  borderRadius: 20,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.8px"
+                }}>
+                  Question {activeQIdx + 1} of 25
+                </span>
+                
+                <h2 style={{
+                  fontSize: 22, 
+                  fontWeight: 700, 
+                  color: "#0f172a", 
+                  marginTop: 24, 
+                  marginBottom: 28, 
+                  lineHeight: 1.5
+                }}>
+                  {question.text}
+                </h2>
+
+                <div style={{display: "flex", flexDirection: "column", gap: 14}}>
+                  {question.options.map((opt, oi) => {
+                    const isSelected = testResponses[activeQIdx] === oi;
+                    return (
+                      <label key={oi} style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 16,
+                        padding: "18px 24px",
+                        border: isSelected ? "2.5px solid #2563eb" : "1.5px solid #e2e8f0",
+                        borderRadius: 12,
+                        background: isSelected ? "#eff6ff" : "#ffffff",
+                        cursor: "pointer",
+                        boxShadow: isSelected ? "0 4px 6px rgba(37, 99, 235, 0.08)" : "none",
+                        transition: "all 0.15s ease"
+                      }} className="sm-option-hover">
+                        <input
+                          type="radio"
+                          name={`sm-q-${question.id}`}
+                          checked={isSelected}
+                          onChange={() => {
+                            const updated = [...testResponses];
+                            updated[activeQIdx] = oi;
+                            setTestResponses(updated);
+                          }}
+                          style={{width: 20, height: 20, accentColor: "#2563eb"}}
+                        />
+                        <span style={{
+                          fontSize: 15,
+                          fontWeight: 800,
+                          color: isSelected ? "#1e40af" : "#64748b",
+                          width: 24
+                        }}>{["A", "B", "C", "D"][oi]}</span>
+                        <span style={{
+                          fontSize: 15, 
+                          color: "#1e293b", 
+                          fontWeight: isSelected ? 700 : 500
+                        }}>{opt}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            {/* Immersive Control Footer Bar */}
+            <div style={{
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: "16px 24px",
+              boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
+            }}>
+              <button
+                disabled={activeQIdx === 0}
+                onClick={() => setActiveQIdx(p => Math.max(0, p - 1))}
+                style={{
+                  padding: "12px 28px",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  background: activeQIdx === 0 ? "#f1f5f9" : "#ffffff",
+                  color: activeQIdx === 0 ? "#94a3b8" : "#334155",
+                  border: "1.5px solid #cbd5e1",
+                  cursor: activeQIdx === 0 ? "not-allowed" : "pointer",
+                  transition: "all 0.15s ease"
+                }}
+              >
+                ← Previous Question
+              </button>
+
+              <div style={{fontSize: 14, color: "#64748b"}}>
+                {unansweredCount > 0 ? (
+                  <span style={{color: "#d97706", fontWeight: 800, display: "flex", alignItems: "center", gap: 6}}>
+                    ⚠️ {unansweredCount} question{unansweredCount > 1 ? "s" : ""} remaining to unlock submission
+                  </span>
+                ) : (
+                  <span style={{color: "#16a34a", fontWeight: 800, display: "flex", alignItems: "center", gap: 6}}>
+                    ✓ All 25 questions attempted! You can now submit.
+                  </span>
+                )}
+              </div>
+
+              <button
+                disabled={activeQIdx === 24}
+                onClick={() => setActiveQIdx(p => Math.min(24, p + 1))}
+                style={{
+                  padding: "12px 28px",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  background: activeQIdx === 24 ? "#f1f5f9" : "#ffffff",
+                  color: activeQIdx === 24 ? "#94a3b8" : "#334155",
+                  border: "1.5px solid #cbd5e1",
+                  cursor: activeQIdx === 24 ? "not-allowed" : "pointer",
+                  transition: "all 0.15s ease"
+                }}
+              >
+                Next Question →
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Navigator Sidebar */}
+          <div style={{
+            background: "#ffffff",
+            borderLeft: "1.5px solid #e2e8f0",
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 20,
+            overflowY: "auto",
+            height: "100%"
+          }}>
+            <div style={{textAlign: "center", paddingBottom: 16, borderBottom: "1.5px solid #f1f5f9"}}>
+              <div style={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                background: "#dbeafe",
+                color: "#2563eb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                fontWeight: 800,
+                margin: "0 auto 10px"
+              }}>
+                {smName.charAt(0)}
+              </div>
+              <h3 style={{fontSize: 15, fontWeight: 700, color: "#1e293b", margin: 0}}>{smName}</h3>
+              <span style={{fontSize: 12, color: "#64748b", fontWeight: 500}}>HRMS ID: {smId}</span>
+            </div>
+
+            <h4 style={{
+              fontSize: 12, 
+              fontWeight: 800, 
+              color: "#475569", 
+              textTransform: "uppercase", 
+              letterSpacing: "0.6px", 
+              margin: 0
+            }}>
+              Question Palette
+            </h4>
+
+            {/* Grid of questions */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 8,
+              maxHeight: 220,
+              overflowY: "auto",
+              paddingRight: 4
+            }}>
+              {smTestQuestions.map((q, idx) => {
+                const isCurrent = idx === activeQIdx;
+                const isAnswered = testResponses[idx] !== null && testResponses[idx] !== undefined;
+                
+                let btnBg = "#ffffff";
+                let btnBorder = "1.5px solid #cbd5e1";
+                let btnColor = "#475569";
+                let fontWeight = "600";
+
+                if (isCurrent) {
+                  btnBg = "#dbeafe";
+                  btnBorder = "2px solid #2563eb";
+                  btnColor = "#1e40af";
+                  fontWeight = "800";
+                } else if (isAnswered) {
+                  btnBg = "#dcfce7";
+                  btnBorder = "1.5px solid #86efac";
+                  btnColor = "#15803d";
+                } else {
+                  btnBg = "#fef3c7";
+                  btnBorder = "1.5px solid #fde047";
+                  btnColor = "#a16207";
+                }
+
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => setActiveQIdx(idx)}
+                    style={{
+                      height: 40,
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: fontWeight,
+                      background: btnBg,
+                      border: btnBorder,
+                      color: btnColor,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.1s ease"
+                    }}
+                  >
+                    {q.id}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Legend section */}
+            <div style={{
+              borderTop: "1.5px solid #f1f5f9",
+              paddingTop: 16,
+              fontSize: 12,
+              color: "#64748b",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8
+            }}>
+              <div style={{display: "flex", alignItems: "center", gap: 10}}>
+                <span style={{width: 16, height: 16, background: "#dcfce7", border: "1.5px solid #86efac", borderRadius: 4}}/>
+                <span style={{fontWeight: 500}}>Attempted</span>
+              </div>
+              <div style={{display: "flex", alignItems: "center", gap: 10}}>
+                <span style={{width: 16, height: 16, background: "#fef3c7", border: "1.5px solid #fde047", borderRadius: 4}}/>
+                <span style={{fontWeight: 600, color: "#a16207"}}>Unattempted</span>
+              </div>
+              <div style={{display: "flex", alignItems: "center", gap: 10}}>
+                <span style={{width: 16, height: 16, background: "#dbeafe", border: "2px solid #2563eb", borderRadius: 4}}/>
+                <span style={{fontWeight: 500}}>Current Focus</span>
+              </div>
+            </div>
+
+            {/* Submission Section at Bottom */}
+            <div style={{
+              marginTop: "auto", 
+              paddingTop: 20, 
+              borderTop: "1.5px solid #f1f5f9"
+            }}>
+              <button
+                disabled={unansweredCount > 0}
+                onClick={handleSubmitTestAttempt}
+                style={{
+                  width: "100%",
+                  padding: "14px 16px",
+                  borderRadius: 10,
+                  fontSize: 14.5,
+                  fontWeight: 800,
+                  background: unansweredCount > 0 ? "#cbd5e1" : "#16a34a",
+                  color: unansweredCount > 0 ? "#94a3b8" : "#ffffff",
+                  border: "none",
+                  cursor: unansweredCount > 0 ? "not-allowed" : "pointer",
+                  boxShadow: unansweredCount > 0 ? "none" : "0 4px 12px rgba(22, 163, 74, 0.3)",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                Submit Examination
+              </button>
+              {unansweredCount > 0 && (
+                <p style={{
+                  fontSize: 11,
+                  color: "#b45309",
+                  margin: "8px 0 0",
+                  textAlign: "center",
+                  fontWeight: 600,
+                  lineHeight: 1.4
+                }}>
+                  * All 25 questions must be answered first ({unansweredCount} remaining)
+                </p>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Employee Name", "HRMS ID", "Score", "Grade", "Safety Score", "Risk Level", "Approval Status"];
+    const csvRows = filteredReports.map(p => [
+      `"${p.name || ""}"`,
+      `"${p.hrmsId || ""}"`,
+      `"${p.lastScore}/100"`,
+      `"Cat. ${getCat(p.lastScore)}"`,
+      `"${p.safetyScore}%"`,
+      `"${riskLevel(p)}"`,
+      `"${p.approvalStatus || ""}"`
+    ]);
+    const csvContent = [headers.join(","), ...csvRows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `SM_Pointsmen_Reports_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   /* ── REPORTS ── */
   const renderReports = () => (
     <section className="sm2-card">
-      <div className="sm2-card-hdr"><h2>Reports</h2></div>
+      <div className="sm2-card-hdr" style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+        <h2>Reports</h2>
+        <button
+          onClick={handleExportCSV}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 18px",
+            borderRadius: 8,
+            background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+            color: "#ffffff",
+            border: "none",
+            fontWeight: 800,
+            fontSize: 13,
+            cursor: "pointer",
+            boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)",
+            transition: "all 0.15s ease"
+          }}
+          className="sm-btn-hover"
+        >
+          <FileDown size={15} /> Export CSV
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="sm2-filter-row">
@@ -1566,6 +2817,8 @@ function StationMasterModule({ user, onLogout }) {
 
   /* ─── Dispatcher ─── */
   const renderContent = () => {
+    if (pageMode === "takeTest") return renderTakeTest();
+
     switch (activeTab) {
       case "dashboard":    return renderDashboard();
       case "profile":      return renderProfile();
@@ -1754,6 +3007,203 @@ function StationMasterModule({ user, onLogout }) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          FULLSCREEN ANALYTICS MODAL
+      ══════════════════════════════════════════ */}
+      {fullscreenChart && (
+        <div className="sm2-fullscreen-modal">
+          {/* ── Modal Header ── */}
+          <div className="sm2-fullscreen-header">
+            <div style={{ display: "flex", alignItems: 12, gap: 12 }}>
+              <div className="sm2-fullscreen-icon-wrap">
+                {fullscreenChart === "monthly"     && <TrendingUp size={18} color="#93c5fd"/>}
+                {fullscreenChart === "safety"      && <Activity   size={18} color="#a78bfa"/>}
+                {fullscreenChart === "performance" && <BarChart3  size={18} color="#34d399"/>}
+              </div>
+              <div>
+                <h2>
+                  {fullscreenChart === "monthly"     && "Monthly Assessment Trend — Deep Dive"}
+                  {fullscreenChart === "safety"      && "Safety Compliance Trend — Deep Dive"}
+                  {fullscreenChart === "performance" && "Performance Distribution — Deep Dive"}
+                </h2>
+                <p>
+                  Indian Railway Evaluation System · Station Master Analytics
+                </p>
+              </div>
+            </div>
+            <button className="sm2-fullscreen-close-btn" onClick={() => setFullscreenChart(null)}>
+              ✕ Close
+            </button>
+          </div>
+
+          {/* ── Filter Bar ── */}
+          <div className="sm2-fullscreen-filter-bar">
+            <span className="sm2-fs-filter-tag">FILTERS</span>
+            <input
+              type="text" placeholder="Search staff name / HRMS…"
+              value={fsSearch} onChange={e => setFsSearch(e.target.value)}
+              className="sm2-fs-input"
+            />
+            <input type="date" value={fsStartDate} onChange={e => setFsStartDate(e.target.value)} className="sm2-fs-input" />
+            <span className="sm2-fs-label">to</span>
+            <input type="date" value={fsEndDate} onChange={e => setFsEndDate(e.target.value)} className="sm2-fs-input" />
+            <select value={fsCategory} onChange={e => setFsCategory(e.target.value)} className="sm2-fs-select">
+              <option value="All">All Categories</option>
+              <option value="A">Category A</option>
+              <option value="B">Category B</option>
+              <option value="C">Category C</option>
+              <option value="D">Category D</option>
+            </select>
+            <select value={fsRisk} onChange={e => setFsRisk(e.target.value)} className="sm2-fs-select">
+              <option value="All">All Risks</option>
+              <option value="Low">Low Risk</option>
+              <option value="Medium">Medium Risk</option>
+              <option value="High">High Risk</option>
+            </select>
+            <button onClick={() => { setFsSearch(""); setFsStartDate(""); setFsEndDate(""); setFsCategory("All"); setFsRisk("All"); }} className="sm2-fs-reset-btn">
+              Reset
+            </button>
+            <div className="sm2-fs-counter">
+              Showing <strong>{filteredFsPointsmen.length}</strong> of {pointsmen.length} staff
+            </div>
+          </div>
+
+          {/* ── Main Content ── */}
+          <div className="sm2-fullscreen-content">
+
+            {/* KPI Summary Row */}
+            <div className="sm2-fs-kpi-row">
+              {[
+                { label: "Avg Score", value: filteredFsPointsmen.length ? Math.round(filteredFsPointsmen.reduce((s,p)=>s+p.lastScore,0)/filteredFsPointsmen.length) + "%" : "—", color: "#60a5fa", glowColor: "rgba(96,165,250,0.15)" },
+                { label: "Avg Safety", value: filteredFsPointsmen.length ? Math.round(filteredFsPointsmen.reduce((s,p)=>s+p.safetyScore,0)/filteredFsPointsmen.length) + "%" : "—", color: "#a78bfa", glowColor: "rgba(167,139,250,0.15)" },
+                { label: "High Risk", value: filteredFsPointsmen.filter(p=>riskLevel(p)==="High").length, color: "#f87171", glowColor: "rgba(248,113,113,0.15)" },
+                { label: "Cat A Staff", value: filteredFsPointsmen.filter(p=>getCat(p.lastScore)==="A").length, color: "#34d399", glowColor: "rgba(52,211,153,0.15)" },
+                { label: "Fit (PME)", value: filteredFsPointsmen.filter(p=>p.pmeStatus==="Fit").length, color: "#fbbf24", glowColor: "rgba(251,191,36,0.15)" },
+              ].map(k => (
+                <div key={k.label} className="sm2-fs-kpi-card" style={{ "--glow": k.glowColor }}>
+                  <div className="sm2-fs-kpi-value" style={{ color: k.color }}>{k.value}</div>
+                  <div className="sm2-fs-kpi-label">{k.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Large Chart */}
+            <div className="sm2-fs-chart-container">
+              <h3>
+                {fullscreenChart === "monthly"     && "📈 Monthly Avg Score & Assessment Volume"}
+                {fullscreenChart === "safety"      && "🛡️ Monthly Safety Compliance Avg (%)"}
+                {fullscreenChart === "performance" && "🏅 Staff Category Distribution"}
+              </h3>
+              <div className="sm2-fs-chart-wrapper">
+                <ResponsiveContainer width="100%" height={320}>
+                  {fullscreenChart === "monthly" ? (
+                    <LineChart data={dynamicMonthlyTrend} margin={{top:10,right:30,left:-10,bottom:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)"/>
+                      <XAxis dataKey="month" tick={{fontSize:12,fill:"#64748b"}} stroke="rgba(0,0,0,0.1)"/>
+                      <YAxis tick={{fontSize:12,fill:"#64748b"}} stroke="rgba(0,0,0,0.1)"/>
+                      <Tooltip contentStyle={{background:"#ffffff",border:"1px solid #cbd5e1",borderRadius:8,color:"#0f172a",fontSize:12}}/>
+                      <Legend wrapperStyle={{fontSize:12,color:"#4b5563"}}/>
+                      <Line type="monotone" dataKey="avgScore" name="Avg Score" stroke="#2563eb" strokeWidth={3} dot={{r:5,fill:"#2563eb"}} activeDot={{r:7}}/>
+                      <Line type="monotone" dataKey="assessments" name="Assessments" stroke="#16a34a" strokeWidth={2.5} dot={{r:4,fill:"#16a34a"}} strokeDasharray="6 3"/>
+                    </LineChart>
+                  ) : fullscreenChart === "safety" ? (
+                    <BarChart data={dynamicMonthlyTrend} margin={{top:10,right:30,left:-10,bottom:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)"/>
+                      <XAxis dataKey="month" tick={{fontSize:12,fill:"#64748b"}} stroke="rgba(0,0,0,0.1)"/>
+                      <YAxis domain={[0,100]} tick={{fontSize:12,fill:"#64748b"}} stroke="rgba(0,0,0,0.1)"/>
+                      <Tooltip contentStyle={{background:"#ffffff",border:"1px solid #cbd5e1",borderRadius:8,color:"#0f172a",fontSize:12}}/>
+                      <Legend wrapperStyle={{fontSize:12,color:"#4b5563"}}/>
+                      <Bar dataKey="safetyAvg" name="Safety Avg %" fill="#7c3aed" radius={[6,6,0,0]}/>
+                      <Bar dataKey="avgScore"  name="Score Avg %"  fill="#2563eb" radius={[6,6,0,0]}/>
+                    </BarChart>
+                  ) : (
+                    <PieChart>
+                      <Pie
+                        data={(() => {
+                          const counts = {A:0,B:0,C:0,D:0};
+                          filteredFsPointsmen.forEach(p => { counts[getCat(p.lastScore)]++; });
+                          return Object.entries(counts).filter(([,c])=>c>0).map(([cat,count])=>({name:`Cat. ${cat}`,value:count}));
+                        })()}
+                        cx="50%" cy="50%" innerRadius={90} outerRadius={140}
+                        dataKey="value" paddingAngle={4}
+                      >
+                        {["#2563eb","#16a34a","#f59e0b","#dc2626"].map((c,i) => <Cell key={i} fill={c}/>)}
+                      </Pie>
+                      <Tooltip contentStyle={{background:"#ffffff",border:"1px solid #cbd5e1",borderRadius:8,color:"#0f172a",fontSize:12}}/>
+                      <Legend wrapperStyle={{fontSize:13,color:"#4b5563"}} iconType="circle" iconSize={10}/>
+                    </PieChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Low Performers Deep-Dive Table */}
+            <div className="sm2-fs-low-perf-section">
+              <h3>
+                <span style={{color:"#f87171",marginRight:6}}>⚠</span> Low Performing Staff — Direct Intervention Required
+              </h3>
+              <div className="sm2-fs-grid">
+                {[...filteredFsPointsmen]
+                  .sort((a,b)=>a.lastScore-b.lastScore)
+                  .slice(0,6)
+                  .map(p => {
+                    const cat  = getCat(p.lastScore);
+                    const risk = riskLevel(p);
+                    const rColor = risk==="High"?"#f87171":risk==="Medium"?"#fbbf24":"#34d399";
+                    return (
+                      <div key={p.id} className="sm2-fs-card" style={{ "--border-color": rColor }} onClick={() => {
+                        setFullscreenChart(null);
+                        openPmDetail(p);
+                        setActiveTab("pointsmen");
+                      }}>
+                        <div className="sm2-fs-card-header">
+                          <div>
+                            <div className="sm2-fs-card-name">{p.name}</div>
+                            <div className="sm2-fs-card-id">{p.hrmsId}</div>
+                          </div>
+                          <span className="sm2-fs-card-cat" style={{ background: CAT_BG[cat], color: CAT_COLOR[cat] }}>
+                            Cat. {cat}
+                          </span>
+                        </div>
+                        <div className="sm2-fs-card-meta-row">
+                          <span className="sm2-fs-card-risk-badge" style={{
+                            background: risk==="High"?"rgba(248,113,113,0.15)":risk==="Medium"?"rgba(251,191,36,0.15)":"rgba(52,211,153,0.15)",
+                            color: rColor
+                          }}>{risk} Risk</span>
+                          <span className="sm2-fs-card-incident-lbl">{p.incidents} incident{p.incidents!==1?"s":""}</span>
+                        </div>
+                        <div className="sm2-fs-card-progress-item">
+                          <div className="sm2-fs-card-progress-lbl">
+                            <span>Score</span>
+                            <span style={{color:p.lastScore<50?"#f87171":"#fbbf24"}}>{p.lastScore}/100</span>
+                          </div>
+                          <div className="sm2-fs-card-progress-track">
+                            <div className="sm2-fs-card-progress-bar" style={{ width: `${p.lastScore}%`, background: p.lastScore<50?"#f87171":"#fbbf24" }}/>
+                          </div>
+                        </div>
+                        <div className="sm2-fs-card-progress-item" style={{ marginTop: 10 }}>
+                          <div className="sm2-fs-card-progress-lbl">
+                            <span>Safety Score</span>
+                            <span style={{color:p.safetyScore<60?"#f87171":"#a78bfa"}}>{p.safetyScore}%</span>
+                          </div>
+                          <div className="sm2-fs-card-progress-track">
+                            <div className="sm2-fs-card-progress-bar" style={{ width: `${p.safetyScore}%`, background: p.safetyScore<60?"#f87171":"#a78bfa" }}/>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {filteredFsPointsmen.length === 0 && (
+                  <p style={{color:"#64748b",fontSize:13,gridColumn:"1/-1",textAlign:"center",padding:"24px 0"}}>No staff match the current filters.</p>
+                )}
+              </div>
+            </div>
+
+          </div>{/* end content */}
+>>>>>>> Stashed changes
         </div>
       )}
     </div>
