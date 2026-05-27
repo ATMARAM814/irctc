@@ -787,6 +787,8 @@ function StationMasterModule({ user, onLogout }) {
 
   /* ── DASHBOARD ── */
   const renderDashboard = () => {
+    const tiSmListStr = localStorage.getItem("ti_sm_list");
+    const smList = tiSmListStr ? JSON.parse(tiSmListStr) : [];
     const myAssess = smList.find(s => s.hrmsId === smId);
     const hasAssignedExam = myAssess && myAssess.status === "Exam Sent";
 
