@@ -129,15 +129,14 @@ const categoryData = [
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", active: true },
-  { icon: Building2, label: "Station Management" },
+  { icon: UserPlus, label: "User Management" },
+  { icon: Users, label: "Employee Management" },
   { icon: ClipboardCheck, label: "Traffic Inspector" },
+  { icon: Building2, label: "Station Masters" },
   { icon: FileCheck, label: "Assessments" },
   { icon: BarChart3, label: "Reports" },
-  { icon: Users, label: "Employee Management" },
-  { icon: UserPlus, label: "User Management" },
-  { icon: Building2, label: "Station Masters" },
-  { icon: Cog, label: "Settings" },
-  { icon: UserRoundSearch, label: "Profile" }
+  { icon: UserRoundSearch, label: "Profile" },
+  { icon: Cog, label: "Settings" }
 ];
 
 const summaryCards = [
@@ -629,6 +628,7 @@ function AOmModule({ user, onLogout }) {
   const [stationMasterSearch, setStationMasterSearch] = useState("");
   const [stationCurrentPage, setStationCurrentPage] = useState(1);
   const [selectedUserProfile, setSelectedUserProfile] = useState(null);
+  const [selectedSMProfile, setSelectedSMProfile] = useState(null);
   const [userShiftDrafts, setUserShiftDrafts] = useState({});
 
   // States for Pointsman Under Station Master Page
@@ -1655,6 +1655,7 @@ function AOmModule({ user, onLogout }) {
 
   const handleOpenTiProfile = (id) => {
     setSelectedTiId(id);
+    setActivePage("Traffic Inspector Profile");
   };
 
   const handleOpenLinkTi = (id) => {
@@ -3735,6 +3736,151 @@ function AOmModule({ user, onLogout }) {
 
   const renderPageContent = () => {
     switch (activePage) {
+      case "Station Master Profile":
+        if (!selectedSMProfile) return null;
+        return (
+          <div className="user-management-page">
+            <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#0f172a", margin: 0 }}>
+                  STATION MASTER PROFILE
+                </h2>
+                <p style={{ margin: "4px 0 0 0", fontSize: "14px", color: "#64748b" }}>
+                  Detailed operational card for Station Master <strong>{selectedSMProfile.name}</strong>
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="action-btn" 
+                onClick={() => setActivePage("Station Masters")}
+                style={{ background: "#64748b", color: "#fff", display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                ← Back to List
+              </button>
+            </div>
+
+            <div className="chart-card ti-profile-card animate-fade-in" style={{ borderTop: '4px solid #059669', backgroundColor: '#fcfdfe', padding: '20px' }}>
+              <div className="ti-profile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: '#059669', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: '800', fontSize: '18px' }}>
+                    {selectedSMProfile.name?.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '800', color: '#059669' }}>
+                      {selectedSMProfile.name}
+                    </h3>
+                    <p style={{ margin: '0', fontSize: '12px', color: '#64748b' }}>Designation: Station Master | Station: {selectedSMProfile.stationName} ({selectedSMProfile.stationCode})</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ti-profile-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', padding: '15px 0' }}>
+                <div><strong>Designation:</strong> <span style={{ color: '#059669', fontWeight: '700' }}>Station Master</span></div>
+                <div><strong>Mobile No:</strong> {selectedSMProfile.contactNumber}</div>
+                <div><strong>Email ID:</strong> {selectedSMProfile.emailId}</div>
+                <div><strong>Account Status:</strong> <span style={{ color: '#10b981', fontWeight: '700' }}>Active</span></div>
+                
+                <div><strong>Current Zone:</strong> {selectedSMProfile.zone}</div>
+                <div><strong>Current Division:</strong> {selectedSMProfile.division}</div>
+                <div><strong>Station Name:</strong> {selectedSMProfile.stationName}</div>
+                <div><strong>Station Code:</strong> {selectedSMProfile.stationCode}</div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '15px' }}>
+                <h4 style={{ margin: '0 0 10px', fontSize: '14px', color: '#0f172a', fontWeight: '800' }}>Station Master Operational Authority</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', fontSize: '13px' }}>
+                  <div><strong>Station Category:</strong> {selectedSMProfile.category}</div>
+                  <div><strong>Division HQ:</strong> {selectedSMProfile.division} Division</div>
+                  <div><strong>Supervising Authority:</strong> AOM ({selectedSMProfile.division})</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "Traffic Inspector Profile":
+        if (!selectedTiProfile) return null;
+        return (
+          <div className="user-management-page">
+            <div className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#0f172a", margin: 0 }}>
+                  TRAFFIC INSPECTOR PROFILE
+                </h2>
+                <p style={{ margin: "4px 0 0 0", fontSize: "14px", color: "#64748b" }}>
+                  Detailed operational card for Traffic Inspector <strong>{selectedTiProfile.name}</strong>
+                </p>
+              </div>
+              <button 
+                type="button" 
+                className="action-btn" 
+                onClick={() => setActivePage("Traffic Inspector")}
+                style={{ background: "#64748b", color: "#fff", display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                ← Back to List
+              </button>
+            </div>
+
+            <div className="chart-card ti-profile-card animate-fade-in" style={{ borderTop: '4px solid #2563eb', backgroundColor: '#fcfdfe', padding: '20px' }}>
+              <div className="ti-profile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '45px', height: '45px', borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: '800', fontSize: '18px' }}>
+                    {selectedTiProfile.name?.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '800', color: '#2563eb' }}>
+                      {selectedTiProfile.name}
+                    </h3>
+                    <p style={{ margin: '0', fontSize: '12px', color: '#64748b' }}>HRMS ID: {selectedTiProfile.employeeId} | Designation: {selectedTiProfile.category}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ti-profile-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', padding: '15px 0' }}>
+                <div><strong>Designation:</strong> <span style={{ color: '#2563eb', fontWeight: '700' }}>{selectedTiProfile.category}</span></div>
+                <div><strong>Employee ID:</strong> {selectedTiProfile.employeeId}</div>
+                <div><strong>Jurisdiction:</strong> {selectedTiProfile.jurisdiction} Division</div>
+                <div><strong>Account Status:</strong> <span style={{ color: '#10b981', fontWeight: '700' }}>Active</span></div>
+                
+                <div><strong>Mobile No:</strong> {selectedTiProfile.phone || "+91 98900 12211"}</div>
+                <div><strong>Email ID:</strong> {selectedTiProfile.email || "ti.officer@rail.in"}</div>
+                <div><strong>Assessment Status:</strong> <span style={{ color: selectedTiProfile.assessmentStatus === "Completed" ? '#10b981' : '#f59e0b', fontWeight: '700' }}>{selectedTiProfile.assessmentStatus}</span></div>
+                <div><strong>Department:</strong> Operations</div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '15px' }}>
+                <h4 style={{ margin: '0 0 10px', fontSize: '14px', color: '#0f172a', fontWeight: '800' }}>Assigned Supervision Jurisdiction</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', fontSize: '13px' }}>
+                  <div>
+                    <strong>Supervised Stations:</strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                      {selectedTiProfile.linkedStations && selectedTiProfile.linkedStations.length ? (
+                        selectedTiProfile.linkedStations.map(st => (
+                          <span key={st} className="station-code-chip" style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '4px', fontSize: '12px' }}>{st}</span>
+                        ))
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No stations linked yet. Use "Link Stations & SMs" to assign.</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '10px' }}>
+                    <strong>Supervised Station Masters:</strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                      {selectedTiProfile.linkedSms && selectedTiProfile.linkedSms.length ? (
+                        selectedTiProfile.linkedSms.map(sm => (
+                          <span key={sm} className="station-code-chip" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '3px 8px', borderRadius: '4px', fontSize: '12px' }}>{sm}</span>
+                        ))
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No Station Masters linked yet. Use "Link Stations & SMs" to assign.</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       case "Employee Management":
         return renderEmployeeManagement();
 
@@ -3937,26 +4083,8 @@ function AOmModule({ user, onLogout }) {
                 <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "12px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                     <h3>Category Distribution</h3>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>Click anywhere on chart to zoom & filter 96 stations</span>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Zoom & filter 96 stations</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handlePieClick(null)}
-                    style={{
-                      background: "#4f46e5",
-                      color: "#ffffff",
-                      border: "none",
-                      padding: "6px 14px",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      boxShadow: "0 2px 4px rgba(79, 70, 229, 0.15)"
-                    }}
-                  >
-                    View Full Screen
-                  </button>
                 </div>
                 <div className="donut-box">
                   <ResponsiveContainer width="100%" height="100%">
@@ -3965,8 +4093,8 @@ function AOmModule({ user, onLogout }) {
                         data={categoryData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={78}
-                        outerRadius={126}
+                        innerRadius={55}
+                        outerRadius={88}
                         dataKey="value"
                         label={({ value }) => `${value}%`}
                         onClick={(data) => handlePieClick(data)}
@@ -4200,12 +4328,33 @@ function AOmModule({ user, onLogout }) {
                     filteredStationMasters.map((row, index) => (
                       <div 
                         key={row.id} 
-                        className="table-row station-master-table-cols clickable-row"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => handleStationMasterClick(row)}
+                        className="table-row station-master-table-cols"
                       >
                         <div>{index + 1}</div>
-                        <div><strong>{row.name}</strong></div>
+                        <div>
+                          <button
+                            type="button"
+                            className="ti-name-link"
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#2563eb",
+                              textDecoration: "underline",
+                              cursor: "pointer",
+                              fontWeight: "bold",
+                              padding: 0,
+                              fontFamily: "inherit",
+                              fontSize: "inherit",
+                              textAlign: "left"
+                            }}
+                            onClick={() => {
+                              setSelectedSMProfile(row);
+                              setActivePage("Station Master Profile");
+                            }}
+                          >
+                            {row.name}
+                          </button>
+                        </div>
                         <div>{row.stationName}</div>
                         <div>
                           <span className="station-code-chip">{row.stationCode}</span>
@@ -4216,7 +4365,7 @@ function AOmModule({ user, onLogout }) {
                         <div>{row.contactNumber}</div>
                         <div>{row.emailId}</div>
                         <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
                               className="sm-btn sm-btn-view"
@@ -4926,116 +5075,6 @@ function AOmModule({ user, onLogout }) {
               </div>
             </div>
 
-            <div className="chart-card ti-add-section">
-              <div className="ti-add-switch">
-                <button
-                  type="button"
-                  className={`action-btn ${tiAddMode === "form" ? "action-edit" : ""}`}
-                  onClick={() => {
-                    setTiAddMode("form");
-                    setTiNotice("");
-                  }}
-                >
-                  Add TI via Form
-                </button>
-                <button
-                  type="button"
-                  className={`action-btn ${tiAddMode === "hrms" ? "action-edit" : ""}`}
-                  onClick={() => {
-                    setTiAddMode("hrms");
-                    setTiNotice("");
-                  }}
-                >
-                  Add TI via HRMS Search
-                </button>
-              </div>
-
-              {tiAddMode === "form" ? (
-                <form className="ti-add-form" onSubmit={handleAddTiByForm}>
-                  <div className="form-group">
-                    <label>Name *</label>
-                    <input name="name" value={tiFormData.name} onChange={handleTiFormChange} placeholder="Enter TI name" />
-                    {tiFormErrors.name && <span className="error-text">{tiFormErrors.name}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Employee ID *</label>
-                    <input
-                      name="employeeId"
-                      value={tiFormData.employeeId}
-                      onChange={handleTiFormChange}
-                      placeholder="Enter employee/HRMS ID"
-                    />
-                    {tiFormErrors.employeeId && <span className="error-text">{tiFormErrors.employeeId}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Jurisdiction *</label>
-                    <select name="jurisdiction" value={tiFormData.jurisdiction} onChange={handleTiFormChange}>
-                      <option value="">Select jurisdiction</option>
-                      {stationDivisionOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    {tiFormErrors.jurisdiction && <span className="error-text">{tiFormErrors.jurisdiction}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Category *</label>
-                    <select name="category" value={tiFormData.category} onChange={handleTiFormChange}>
-                      <option value="">Select category</option>
-                      {tiCategoryOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    {tiFormErrors.category && <span className="error-text">{tiFormErrors.category}</span>}
-                  </div>
-                  <div className="form-group">
-                    <label>Assessment Status</label>
-                    <select name="assessmentStatus" value={tiFormData.assessmentStatus} onChange={handleTiFormChange}>
-                      {tiAssessmentStatusOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="ti-form-submit-wrap">
-                    <button type="submit" className="submit-btn">
-                      Add TI
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="ti-hrms-add-wrap">
-                  <div className="ti-hrms-controls">
-                    <div className="ti-top-search-input-wrap">
-                      <UserRoundSearch size={16} />
-                      <input
-                        type="text"
-                        placeholder="Enter HRMS ID"
-                        value={tiHrmsSearch}
-                        onChange={(e) => setTiHrmsSearch(e.target.value)}
-                      />
-                    </div>
-                    <button type="button" className="submit-btn" onClick={handleAddTiByHrms}>
-                      Add From HRMS
-                    </button>
-                  </div>
-                  {matchedTiByHrms && (
-                    <div className="ti-hrms-preview">
-                      <strong>{matchedTiByHrms.name}</strong>
-                      <span>{matchedTiByHrms.hrmsId}</span>
-                      <span>{matchedTiByHrms.jurisdiction}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {tiNotice && <p className="ti-notice-text">{tiNotice}</p>}
-            </div>
-
             <div className="users-list-container">
               <div className="users-table-wrapper">
                 <div className="users-table ti-table-wide">
@@ -5130,31 +5169,7 @@ function AOmModule({ user, onLogout }) {
               </div>
             </div>
 
-            {selectedTiProfile && (
-              <div className="chart-card ti-profile-card">
-                <div className="ti-profile-header">
-                  <h3>TI Profile</h3>
-                  <button type="button" className="action-btn" onClick={() => setSelectedTiId(null)}>
-                    Close
-                  </button>
-                </div>
 
-                <div className="ti-profile-grid">
-                  <div><strong>Name:</strong> {selectedTiProfile.name}</div>
-                  <div><strong>Employee ID:</strong> {selectedTiProfile.employeeId}</div>
-                  <div><strong>Jurisdiction:</strong> {selectedTiProfile.jurisdiction}</div>
-                  <div><strong>Category:</strong> {renderCategoryBadge(selectedTiProfile.category)}</div>
-                  <div><strong>Assessment:</strong> {selectedTiProfile.assessmentStatus}</div>
-                  <div><strong>Phone:</strong> {selectedTiProfile.phone}</div>
-                  <div><strong>Email:</strong> {selectedTiProfile.email}</div>
-                </div>
-
-                <div className="ti-linked-meta">
-                  <p><strong>Linked Stations:</strong> {selectedTiProfile.linkedStations.length ? selectedTiProfile.linkedStations.join(", ") : "None"}</p>
-                  <p><strong>Linked SMs:</strong> {selectedTiProfile.linkedSms.length ? selectedTiProfile.linkedSms.join(", ") : "None"}</p>
-                </div>
-              </div>
-            )}
 
             {linkTargetTi && (
               <div className="chart-card ti-link-card">
