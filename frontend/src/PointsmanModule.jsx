@@ -296,13 +296,31 @@ function stopAlarmSound() {
 
 /* ─── Main component ─── */
 function PointsmanModule({ user, onLogout }) {
+  const fullName = user?.name && user.name !== "Pointsman User" ? user.name : pointsmanProfile.name;
+  const employeeId = user?.hrmsId || pointsmanProfile.hrmsId;
+
   const [activeNav, setActiveNav] = useState("dashboard");
   const [screenMode, setScreenMode] = useState("default");
-  const [history, setHistory] = useState(initialHistory);
+  
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem(`pm_history_${employeeId}`);
+    return saved ? JSON.parse(saved) : initialHistory;
+  });
+  
   const [historyDateSearch, setHistoryDateSearch] = useState("");
   const [historySortOrder, setHistorySortOrder] = useState("date-desc");
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [currentTest, setCurrentTest] = useState(currentTestSeed);
+  
+  const [currentTest, setCurrentTest] = useState(() => {
+    const saved = localStorage.getItem(`pm_current_test_${employeeId}`);
+    if (saved) return JSON.parse(saved);
+    const mcqResult = localStorage.getItem(`pm_mcq_test_${employeeId}`);
+    if (mcqResult && JSON.parse(mcqResult).completed) {
+      return null;
+    }
+    return currentTestSeed;
+  });
+  
   const [activeTest, setActiveTest] = useState(null);
   const [responses, setResponses] = useState(Array(25).fill(null));
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -364,9 +382,6 @@ function PointsmanModule({ user, onLogout }) {
   const [incidentTime, setIncidentTime] = useState("");
   const [incidentAction, setIncidentAction] = useState("");
 
-  const fullName = user?.name && user.name !== "Pointsman User" ? user.name : pointsmanProfile.name;
-  const employeeId = user?.hrmsId || pointsmanProfile.hrmsId;
-
   // Track user notifications unread count
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
@@ -405,7 +420,6 @@ function PointsmanModule({ user, onLogout }) {
     }
     return () => clearInterval(timer);
   }, [isAssessmentTimerRunning, assessmentTimeLeft]);
-
   /* ─── Derived metrics ─── */
   const latestScore = history.length ? history[0].totalScore : null;
   const latestCategory = latestScore !== null ? getCategory(latestScore) : "—";
@@ -546,8 +560,24 @@ function PointsmanModule({ user, onLogout }) {
       sections,
       responses: [...responses]
     };
-    setHistory(prev => [record, ...prev]);
+    const newHistory = [record, ...history];
+    setHistory(newHistory);
+    localStorage.setItem(`pm_history_${employeeId}`, JSON.stringify(newHistory));
+    
     setCurrentTest(null);
+    localStorage.setItem(`pm_current_test_${employeeId}`, JSON.stringify(null));
+
+    // Save MCQ result for Station Master
+    const correctCount = Math.round(totalScore / 4);
+    const percentage = Math.round((correctCount / 25) * 100);
+    const mcqResult = {
+      completed: true,
+      correctCount: correctCount,
+      submittedDate: today,
+      percentage: percentage
+    };
+    localStorage.setItem(`pm_mcq_test_${employeeId}`, JSON.stringify(mcqResult));
+
     setSelectedRecord(record);
     setActiveTest(null);
     setActiveNav("history");
