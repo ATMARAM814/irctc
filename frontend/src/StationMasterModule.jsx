@@ -25,7 +25,12 @@ import {
   Maximize2,
   Plus,
   ArrowLeft,
-  Building2
+  Building2,
+  Edit,
+  Trash2,
+  UserPlus,
+  ArrowRightLeft,
+  Clock
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -54,6 +59,20 @@ function getCat(score) {
 const CAT_COLOR   = { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" };
 const CAT_BG      = { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" };
 const PIE_COLORS  = ["#16a34a","#2563eb","#d97706","#dc2626"];
+
+function getPerformanceSummaryText(totalScore, sections) {
+  if (!sections || !sections.length) return "Periodic evaluation completed successfully.";
+  const lowestSec  = [...sections].sort((a, b) => a.marks - b.marks)[0];
+  const highestSec = [...sections].sort((a, b) => b.marks - a.marks)[0];
+  let summary = `Assessment score achieved: ${totalScore}/100 (${totalScore >= 80 ? 'Outstanding Competency' : totalScore >= 50 ? 'Satisfactory Operations' : 'Requires Training'}). `;
+  summary += `Demonstrated excellent competency in "${highestSec.title}" scoring ${highestSec.marks}/${highestSec.outOf} marks. `;
+  if (lowestSec.marks < lowestSec.outOf) {
+    summary += `However, low-scoring markers are observed in "${lowestSec.title}" (${lowestSec.marks}/${lowestSec.outOf}). It is highly recommended to study the Station Working Rules (SWR) and undergo periodic coaching.`;
+  } else {
+    summary += `Achieved flawless accuracy in all modules. Recommended to maintain this premium standard in daily operations.`;
+  }
+  return summary;
+}
 
 function riskLevel(pm) {
   if (pm.safetyScore < 60 || pm.lastScore < 50)  return "High";
@@ -504,7 +523,88 @@ function StationMasterModule({ user, onLogout }) {
     return saved ? JSON.parse(saved) : {};
   });
   const [repApplied, setRepApplied] = useState(false);
+  const [selectedReportUserId, setSelectedReportUserId] = useState(null);
+  const [repF, setRepF] = useState({ search: "", cat: "All", risk: "All" });
   const [viewingStaff, setViewingStaff] = useState(null);
+
+  // Pointsman Replicated Dashboard States & Helpers
+  const [pmModal, setPmModal] = useState(null);
+  const [pmF, setPmF] = useState({ name: "", station: "All", cat: "All", risk: "All" });
+  const [viewingPm, setViewingPm] = useState(null);
+
+  const openPmAdd = () => {
+    setPmModal({
+      mode: "add",
+      data: {
+        id: `PM_${Date.now().toString().slice(-4)}`,
+        hrmsId: `PM_${Date.now().toString().slice(-4)}`,
+        name: "",
+        role: "Pointsman",
+        designation: "Pointsman Grade I",
+        station: smProfile.station || "Nagpur Junction",
+        cat: "A",
+        lastAssessDate: new Date().toISOString().split('T')[0],
+        score: 80,
+        lastScore: 80,
+        safetyScore: 90,
+        totalAssessments: 1,
+        pmeStatus: "Fit",
+        refStatus: "Cleared",
+        contact: "",
+        joiningDate: new Date().toISOString().split('T')[0],
+        doj: new Date().toISOString().split('T')[0],
+        gender: "Male",
+        age: 35,
+        basePay: "₹25,000",
+        approvalStatus: "Approved",
+        reportingSm: smProfile.name || "S. Deshmukh (SM)",
+        workLocation: "Yard",
+        shift: "Morning Shift (06:00 - 14:00)"
+      }
+    });
+  };
+
+  const openPmEdit = (pm) => {
+    setPmModal({
+      mode: "edit",
+      data: { ...pm }
+    });
+  };
+
+  const openPmShift = (pm) => {
+    setPmModal({
+      mode: "shift",
+      data: { ...pm }
+    });
+  };
+
+  const savePmModal = () => {
+    if (!pmModal.data.name || !pmModal.data.hrmsId) {
+      alert("Name and HRMS ID are required.");
+      return;
+    }
+    if (pmModal.mode === "shift") {
+      const newRole = pmModal.role || "Pointsman";
+      if (newRole !== "Pointsman") {
+        setPointsmen(prev => prev.filter(u => u.hrmsId !== pmModal.data.hrmsId));
+        alert(`${pmModal.data.name} shifted to ${newRole} successfully.`);
+        setPmModal(null);
+        return;
+      }
+    }
+    if (pmModal.mode === "add") {
+      setPointsmen(prev => [pmModal.data, ...prev]);
+    } else {
+      setPointsmen(prev => prev.map(u => u.hrmsId === pmModal.data.hrmsId ? pmModal.data : u));
+    }
+    setPmModal(null);
+  };
+
+  const removePm = (hrmsId) => {
+    if (window.confirm("Remove this pointsman?")) {
+      setPointsmen(prev => prev.filter(u => u.hrmsId !== hrmsId));
+    }
+  };
 
   // Fullscreen Analytics States
   const [fullscreenChart, setFullscreenChart] = useState(null); // 'monthly' | 'safety' | 'performance' | null
@@ -684,14 +784,20 @@ function StationMasterModule({ user, onLogout }) {
   /* ─── Filtered pointsmen list ─── */
   const filteredPm = useMemo(() => {
     return pointsmen.filter(p => {
-      const q = pmFilter.search.toLowerCase();
-      const srch = !q || p.name.toLowerCase().includes(q) || p.hrmsId.toLowerCase().includes(q);
-      const grade = pmFilter.grade === "All" || getCat(p.lastScore) === pmFilter.grade;
-      const status = pmFilter.status === "All" || p.approvalStatus === pmFilter.status;
-      const risk = pmFilter.risk === "All" || riskLevel(p) === pmFilter.risk;
-      return srch && grade && status && risk;
+      const clean = s => s.toLowerCase().trim().replace(/\s+/g, '').replace(/junction|central|main|town|jn|station/gi, '');
+      const pmSt = p.station || "Nagpur Junction";
+      const smSt = smProfile.station || "Nagpur Junction";
+      if (clean(pmSt) !== clean(smSt) && !clean(pmSt).includes(clean(smSt)) && !clean(smSt).includes(clean(pmSt))) return false;
+
+      if (pmF.name) {
+        const s = pmF.name.toLowerCase();
+        if (!p.name.toLowerCase().includes(s) && !p.hrmsId.toLowerCase().includes(s)) return false;
+      }
+      if (pmF.cat !== "All" && getCat(p.lastScore) !== pmF.cat) return false;
+      if (pmF.risk !== "All" && riskLevel(p) !== pmF.risk) return false;
+      return true;
     });
-  }, [pointsmen, pmFilter]);
+  }, [pointsmen, pmF]);
 
   /* ─── Filtered reports ─── */
   const filteredReports = useMemo(() => {
@@ -708,7 +814,13 @@ function StationMasterModule({ user, onLogout }) {
   }, [pointsmen, reportFilter]);
 
   /* ─── Navigation ─── */
-  const switchTab = (tab) => { setActiveTab(tab); setPageMode("default"); setStatusMsg(""); };
+  const switchTab = (tab) => { 
+    setActiveTab(tab); 
+    setPageMode("default"); 
+    setStatusMsg(""); 
+    setSelectedReportUserId(null);
+    setRepApplied(false);
+  };
 
   /* ─── Open PM detail ─── */
   const openPmDetail = (pm) => { setSelectedPm(pm); setPageMode("pmDetail"); };
@@ -1212,92 +1324,392 @@ function StationMasterModule({ user, onLogout }) {
 
   /* ── POINTSMEN LIST ── */
   const renderPointsmen = () => {
-    if (pageMode === "pmDetail" && selectedPm) return renderPmDetail(selectedPm);
+    if (viewingPm) return renderPointsmenDetail(viewingPm);
+
+    const catMap = { A: "sdom-badge-success", B: "sdom-badge-info", C: "sdom-badge-warning", D: "sdom-badge-danger" };
+    const riskMap = { Low: "sdom-badge-success", Medium: "sdom-badge-warning", High: "sdom-badge-danger" };
+
     return (
       <div className="sdom-fade">
-        <div style={{ marginBottom: 16 }}>
-          <h1 className="sdom-page-title">Pointsmen Management</h1>
-          <p className="sdom-page-subtitle">Search, filter and manage all pointsmen in your station limits.</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <div>
+            <h1 className="sdom-page-title">Pointsman Management</h1>
+            <p className="sdom-page-subtitle">Search, filter and manage operational pointsmen in your station limits.</p>
+          </div>
+          <button className="sdom-btn-primary" onClick={openPmAdd}>
+            <Plus size={16} /> Add New Pointsman
+          </button>
         </div>
 
         {/* Filters */}
-        <div className="sdom-filter-bar" style={{ marginBottom: "20px" }}>
-          <div className="sdom-filter-field" style={{ minWidth: 200, flex: 1 }}>
+        <div className="sdom-filter-bar">
+          <div className="sdom-filter-field" style={{ minWidth: 200 }}>
             <label>Name / ID</label>
             <input 
-              placeholder="Search by name or HRMS ID..." 
-              value={pmFilter.search}
-              onChange={e => setPmFilter(p => ({...p, search: e.target.value}))}
+              value={pmF.name} 
+              onChange={e => setPmF(prev => ({ ...prev, name: e.target.value }))} 
+              placeholder="Search..." 
             />
           </div>
-          <div className="sdom-filter-field" style={{ width: 140 }}>
-            <label>Grade</label>
-            <select
-              value={pmFilter.grade}
-              onChange={e => setPmFilter(p => ({...p, grade: e.target.value}))}>
-              {["All","A","B","C","D"].map(o => <option key={o}>{o}</option>)}
+          <div className="sdom-filter-field">
+            <label>Category</label>
+            <select value={pmF.cat} onChange={e => setPmF(prev => ({ ...prev, cat: e.target.value }))}>
+              <option>All</option><option>A</option><option>B</option><option>C</option><option>D</option>
             </select>
           </div>
-          <div className="sdom-filter-field" style={{ width: 140 }}>
+          <div className="sdom-filter-field">
             <label>Risk Level</label>
-            <select
-              value={pmFilter.risk}
-              onChange={e => setPmFilter(p => ({...p, risk: e.target.value}))}>
-              {["All","Low","Medium","High"].map(o => <option key={o}>{o}</option>)}
-            </select>
-          </div>
-          <div className="sdom-filter-field" style={{ width: 140 }}>
-            <label>Status</label>
-            <select
-              value={pmFilter.status}
-              onChange={e => setPmFilter(p => ({...p, status: e.target.value}))}>
-              {["All","Approved","Pending","Rejected"].map(o => <option key={o}>{o}</option>)}
+            <select value={pmF.risk} onChange={e => setPmF(prev => ({ ...prev, risk: e.target.value }))}>
+              <option>All</option><option>Low</option><option>Medium</option><option>High</option>
             </select>
           </div>
         </div>
 
-        {/* Table */}
         <div className="sdom-chart-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <span style={{ fontWeight: 700, color: "#1e293b" }}>{filteredPm.length} pointsmen found</span>
+          </div>
           <div className="sdom-table-wrap">
             <table className="sdom-table">
               <thead>
-                <tr><th>Name</th><th>HRMS ID</th><th>Grade</th><th>Last Score</th><th>Last Assessed</th><th>Approval</th><th>Risk</th><th>Action</th></tr>
+                <tr>
+                  <th>Name</th>
+                  <th>Emp ID</th>
+                  <th>Station</th>
+                  <th>Category</th>
+                  <th>Risk</th>
+                  <th>Last Score</th>
+                  <th>PME Status</th>
+                  <th>REF Status</th>
+                  <th>Actions</th>
+                </tr>
               </thead>
               <tbody>
                 {filteredPm.length === 0 && (
-                  <tr><td colSpan={8} style={{ textAlign: "center", padding: 24, color: "#94a3b8" }}>No staff match the current filters.</td></tr>
+                  <tr><td colSpan={9} style={{ textAlign: "center", padding: 32, color: "#94a3b8" }}>No records found</td></tr>
                 )}
-                {filteredPm.map(p => {
-                  const cat = getCat(p.lastScore);
-                  const risk = riskLevel(p);
+                {filteredPm.map(s => {
+                  const riskVal = riskLevel(s);
+                  const catVal = getCat(s.lastScore);
                   return (
-                    <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => openPmDetail(p)}>
-                      <td style={{ fontWeight: 700 }}>{p.name}</td>
-                      <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{p.hrmsId}</td>
+                    <tr key={s.id || s.hrmsId}>
+                      <td style={{ fontWeight: 700 }}>{s.name}</td>
+                      <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{s.hrmsId}</td>
+                      <td>{s.station || smProfile.station}</td>
+                      <td><span className={`sdom-badge ${catMap[catVal] || "sdom-badge-neutral"}`}>{catVal}</span></td>
+                      <td><span className={`sdom-badge ${riskMap[riskVal] || "sdom-badge-neutral"}`}>{riskVal}</span></td>
+                      <td style={{ fontWeight: 700 }}>{s.lastScore || s.score || "–"}</td>
                       <td>
-                        <span className={`sdom-badge ${cat === "A" ? "sdom-badge-success" : cat === "B" ? "sdom-badge-info" : cat === "C" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>Cat. {cat}</span>
-                      </td>
-                      <td style={{ fontWeight: 700 }}>{p.lastScore}/100</td>
-                      <td>{pmAssessmentHistory[p.id]?.[0]?.date || "—"}</td>
-                      <td>
-                        <span className={`sdom-badge ${p.approvalStatus === "Approved" ? "sdom-badge-success" : p.approvalStatus === "Pending" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{p.approvalStatus}</span>
-                      </td>
-                      <td>
-                        <span className={`sdom-badge ${risk === "Low" ? "sdom-badge-success" : risk === "Medium" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{risk}</span>
+                        <span className={`sdom-badge ${s.pmeStatus === "Fit" ? "sdom-badge-success" : s.pmeStatus === "Pending" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>
+                          {s.pmeStatus || "Fit"}
+                        </span>
                       </td>
                       <td>
-                        <button className="sdom-btn-ghost" onClick={(e) => {
-                          e.stopPropagation();
-                          openPmDetail(p);
-                        }}>
-                          Monitor
-                        </button>
+                        <span className={`sdom-badge ${s.refStatus === "Cleared" ? "sdom-badge-success" : s.refStatus === "Pending" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>
+                          {s.refStatus || "Cleared"}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button className="sdom-btn-outline" style={{ padding: "5px 10px", fontSize: "0.8rem" }} onClick={() => setViewingPm(s)}>View</button>
+                          <button className="sdom-icon-btn" title="Edit" onClick={() => openPmEdit(s)}><Edit size={15} color="#2563eb" /></button>
+                          <button className="sdom-icon-btn" title="Shift" onClick={() => openPmShift(s)}><ArrowRightLeft size={15} color="#d97706" /></button>
+                          <button className="sdom-icon-btn" title="Remove" onClick={() => removePm(s.hrmsId)}><Trash2 size={15} color="#dc2626" /></button>
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPointsmenDetail = (s) => {
+    const trendScores = [
+      { month: "Dec 25", score: Math.max(50, (s.lastScore || s.score || 80) - 6) },
+      { month: "Jan 26", score: Math.max(50, (s.lastScore || s.score || 80) - 4) },
+      { month: "Feb 26", score: Math.max(50, (s.lastScore || s.score || 80) - 2) },
+      { month: "Mar 26", score: Math.max(50, (s.lastScore || s.score || 80) + 1) },
+      { month: "Apr 26", score: Math.max(50, (s.lastScore || s.score || 80) + 2) },
+      { month: "May 26", score: Math.max(50, (s.lastScore || s.score || 80)) },
+    ];
+    const catMap = { A: "sdom-badge-success", B: "sdom-badge-info", C: "sdom-badge-warning", D: "sdom-badge-danger" };
+    const pmRisk = riskLevel(s);
+    const riskMap = { Low: "sdom-badge-success", Medium: "sdom-badge-warning", High: "sdom-badge-danger" };
+    const catVal = getCat(s.lastScore);
+
+    return (
+      <div className="sdom-fade">
+        <div style={{ marginBottom: 24 }}>
+          <button className="sdom-back-btn" onClick={() => setViewingPm(null)}>
+            <ArrowLeft size={16} /> Back to List
+          </button>
+        </div>
+
+        {/* Hero header */}
+        <div className="sdom-station-header" style={{ marginBottom: 24 }}>
+          <div className="sdom-station-header-meta">
+            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Staff Profile</div>
+            <div style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 4 }}>{s.name}</div>
+            <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>Pointsman &bull; {s.station || smProfile.station} &bull; Central Railway</div>
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              <span className={`sdom-badge ${catMap[catVal] || "sdom-badge-neutral"}`}>{catVal}</span>
+              <span className={`sdom-badge ${riskMap[pmRisk] || "sdom-badge-neutral"}`}>{pmRisk}</span>
+              <span className="sdom-badge sdom-badge-success">Active</span>
+            </div>
+          </div>
+          <div className="sdom-station-header-stats">
+            <div className="sdom-station-header-stat">
+              <span className="val">{s.lastScore || s.score || "–"}</span>
+              <span className="lbl">Latest Score</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+            <div className="sdom-station-header-stat">
+              <span className="val">{s.contact || "—"}</span>
+              <span className="lbl">Contact</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+            <div className="sdom-station-header-stat">
+              <span className="val">{s.lastAssessDate || s.lastDate || "—"}</span>
+              <span className="lbl">Last Assessment</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Info grid */}
+        <div className="sdom-row-2">
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: 16 }}>Personal &amp; Professional Details</div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 15, paddingBottom: 20 }}>
+              {[
+                ["Employee ID / HRMS ID", s.hrmsId],
+                ["Designation", s.designation || "Pointsman"],
+                ["Mobile Number", s.contact || "N/A"],
+                ["Email ID", `${s.hrmsId?.toLowerCase()}@rail.in`],
+                ["Account Status", "Active"],
+                ["Current Zone", "Central Railway"],
+                ["Current Division", "Nagpur"],
+                ["Current Station Placement", s.station || smProfile.station],
+                ["Reporting Officer", smProfile.name || "Station Master"]
+              ].map(([lbl, val]) => (
+                <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "12px 16px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                  <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.9rem" }}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Operational Specifications */}
+            <div style={{ background: "#f8fafc", padding: 16, borderRadius: 10, border: "1px solid #e2e8f0", marginTop: 10 }}>
+              <h4 style={{ margin: "0 0 12px", fontSize: 14, color: "#0f172a", fontWeight: 800, borderBottom: "1px solid #cbd5e1", paddingBottom: 6 }}>
+                Operational Profile Specifications
+              </h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, fontSize: 13 }}>
+                <div><strong>Reporting Station Master:</strong><div style={{ fontWeight: 700, color: "#1e3a5f", marginTop: 4 }}>{s.reportingSm || smProfile.name}</div></div>
+                <div><strong>Assigned Shift:</strong><div style={{ fontWeight: 700, color: "#1e3a5f", marginTop: 4 }}>{s.shift || "Morning Shift (06:00 - 14:00)"}</div></div>
+                <div><strong>Work Location Setup:</strong><div style={{ fontWeight: 700, color: "#1e3a5f", marginTop: 4 }}>{s.workLocation || "Yard Area"}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Score Trend</div>
+            <div className="sdom-chart-subtitle">Assessment score progression</div>
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendScores}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" fontSize={11} />
+                  <YAxis domain={[40, 100]} fontSize={11} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPointsmenModal = () => {
+    if (!pmModal) return null;
+    const isShift = pmModal.mode === "shift";
+    return (
+      <div className="sdom-modal-overlay" style={{ zIndex: 99999 }} onClick={e=>e.target===e.currentTarget&&setPmModal(null)}>
+        <div className="sdom-modal" style={!isShift ? { width: "900px", maxWidth: "95vw" } : undefined}>
+          
+          {!isShift ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Header inside modal */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+                  color: "#ffffff"
+                }}>
+                  <UserPlus size={28} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                    {pmModal.mode === "edit" ? "EDIT OPERATIONAL POINTSMAN" : "ADD NEW OPERATIONAL POINTSMAN"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                    Role-Based Operational Staff Provisioning & Management Console
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 1: General & Contact Information */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  1. General & Contact Information
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Full Name *</label>
+                    <input 
+                      value={pmModal.data.name || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))} 
+                      placeholder="Enter full name (e.g. A. K. Sharma)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Mobile Number *</label>
+                    <input 
+                      value={pmModal.data.contact || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, contact: e.target.value } }))} 
+                      placeholder="Enter 10-digit mobile number" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>HRMS ID / Employee ID *</label>
+                    <input 
+                      value={pmModal.data.hrmsId || ""} 
+                      disabled={pmModal.mode === "edit"}
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, hrmsId: e.target.value, id: e.target.value } }))} 
+                      placeholder="Enter unique ID (e.g. PM_8820)" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Designation & Station Placement Setup */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  2. Designation & Station Placement Setup
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Role / Designation *</label>
+                    <select value="Pointsman" disabled>
+                      <option value="Pointsman">Pointsman</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Station Name *</label>
+                    <select value={pmModal.data.station || ""} disabled>
+                      <option value={smProfile.station}>{smProfile.station}</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Category *</label>
+                    <select 
+                      value={pmModal.data.cat || "A"} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, cat: e.target.value } }))}
+                    >
+                      <option>A</option><option>B</option><option>C</option><option>D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Pointsman Operational Setup */}
+              <div style={{ padding: 18, background: "#f0f7ff", border: "1px solid #c2e0ff", borderRadius: 10 }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                  Pointsman Operational Setup
+                </h4>
+                <div style={{ height: '1px', backgroundColor: '#c2e0ff', marginBottom: '16px' }}></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Reporting Station Master *</label>
+                    <input 
+                      value={pmModal.data.reportingSm || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, reportingSm: e.target.value } }))} 
+                      placeholder="Station Master Name"
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Work Location Setup *</label>
+                    <select 
+                      value={pmModal.data.workLocation || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, workLocation: e.target.value } }))}
+                    >
+                      <option value="">Select Location</option>
+                      <option value="Yard">Yard Area</option>
+                      <option value="Cabin A">Cabin A</option>
+                      <option value="Cabin B">Cabin B</option>
+                      <option value="Platform Area">Platform Area</option>
+                      <option value="Level Crossing Gate">Level Crossing Gate</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Assigned Shift *</label>
+                    <select 
+                      value={pmModal.data.shift || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, shift: e.target.value } }))}
+                    >
+                      <option value="">Select Shift</option>
+                      <option value="Morning Shift (06:00 - 14:00)">Morning Shift (06:00 - 14:00)</option>
+                      <option value="Evening Shift (14:00 - 22:00)">Evening Shift (14:00 - 22:00)</option>
+                      <option value="Night Shift (22:00 - 06:00)">Night Shift (22:00 - 06:00)</option>
+                      <option value="General Shift (09:00 - 18:00)">General Shift (09:00 - 18:00)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="sdom-modal-title" style={{ marginBottom: 20 }}>Shift Staff Role</div>
+              <div className="sdom-modal-field">
+                <label>Role (Shift to)</label>
+                <select 
+                  value={pmModal.role || "Pointsman"} 
+                  onChange={e=>setPmModal(p=>({...p, role: e.target.value}))}
+                >
+                  <option value="Pointsman">Pointsman</option>
+                  <option value="Station Master">Station Master</option>
+                  <option value="Station Superintendent">Station Superintendent</option>
+                  <option value="Train Manager">Train Manager</option>
+                  <option value="Traffic Inspector">Traffic Inspector</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" style={{ flex: 1 }} onClick={savePmModal}>
+              {pmModal.mode === "edit" ? "🔒 UPDATE POINTSMAN" : isShift ? "🔄 SHIFT POINTSMAN ROLE" : "👤 ADD POINTSMAN"}
+            </button>
+            <button className="sdom-btn-ghost" style={{ flex: 1 }} onClick={()=>setPmModal(null)}>Cancel</button>
           </div>
         </div>
       </div>
@@ -2055,228 +2467,121 @@ function StationMasterModule({ user, onLogout }) {
     /* Scorecard detail view */
     if (myAssessSelected) {
       const sc = myAssessSelected;
-      const cat = sc.category;
-      return (
-        <section className="sm2-card">
-          <div className="sm2-card-hdr">
-            <h2>Assessment Scorecard</h2>
-            <button className="sm2-link-btn" onClick={() => setMyAssessSelected(null)}>← Back to History</button>
-          </div>
-          <p className="sm2-subtitle">Period: <strong style={{color:"#0f172a"}}>{formatQuarterPeriod(sc.period)}</strong> ({sc.period}) · Assessed by: {sc.assessedBy}</p>
+      const cat = sc.category || "A";
+      const liveTotal = sc.totalScore || 0;
+      const performanceSummary = getPerformanceSummaryText(liveTotal, sc.sections);
 
-          <div className="sm2-sc-hero">
-            <div className="sm2-sc-circle" style={{borderColor: CAT_COLOR[cat]}}>
-              <strong style={{color: CAT_COLOR[cat]}}>{sc.totalScore}</strong>
-              <span>/{sc.isOnlineExam ? 25 : 100}</span>
+      return (
+        <div className="ti2-card animate-fade-in" style={{ padding: "24px", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
+          <div className="ti2-card-hdr" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "14px", marginBottom: "20px" }}>
+            <h2 style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0 }}><ShieldCheck size={22} color="#16a34a"/> Detailed Evaluation Scorecard</h2>
+            <button className="ti2-primary-btn" onClick={() => setMyAssessSelected(null)}>← Return to History</button>
+          </div>
+
+          <div className="pm-scorecard-hero" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "20px", display: "flex", alignItems: "center", gap: "24px", marginBottom: "24px" }}>
+            <div className="pm-sc-score-circle" style={{ width: "90px", height: "90px", borderRadius: "50%", border: `6px solid ${CAT_COLOR[cat] || "#2563eb"}`, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", flexShrink: 0, background: "#fff" }}>
+              <strong style={{ fontSize: "24px", color: CAT_COLOR[cat] || "#2563eb", fontWeight: "800" }}>{liveTotal}</strong>
+              <span style={{ fontSize: "10px", color: "#64748b", fontWeight: "600", marginTop: "-2px" }}>/100</span>
             </div>
             <div>
-              <span className="sm2-cat-badge-lg" style={{background:CAT_BG[cat],color:CAT_COLOR[cat]}}>
-                {sc.isOnlineExam ? "Online Competency Exam" : `Category ${cat}`}
+              <span className="pm-cat-badge-lg" style={{ background: CAT_BG[cat], color: CAT_COLOR[cat], display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", marginBottom: "6px" }}>
+                Final Category: Category {cat}
               </span>
-              <p className="sm2-sc-period" title={sc.period}>{formatQuarterPeriod(sc.period)}</p>
-              <p className="sm2-sc-date">Date: {sc.date}</p>
-              <p className="sm2-sc-by">By: {sc.assessedBy}</p>
-            </div>
-            <div style={{marginLeft:"auto"}}>
-              <span className={`sm2-status-pill sm2-status-${sc.approvalStatus.toLowerCase()}`} style={{fontSize:13,padding:"6px 16px"}}>
-                {sc.approvalStatus}
-              </span>
+              <p className="pm-sc-period" style={{ margin: "2px 0", fontSize: "14px", color: "#1e293b", fontWeight: "600" }}>{sc.period} - Self-Compliance Audit</p>
+              <p className="pm-sc-date" style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>Attempt Completed: {sc.date} &nbsp;·&nbsp; Assessed By: {sc.assessedBy || "Traffic Inspector"}</p>
             </div>
           </div>
 
-          <h4 style={{margin:"20px 0 12px",fontSize:14,color:"#0f172a"}}>Section-wise Breakdown</h4>
-          <div className="sm2-sc-sections" style={{display:"flex", flexDirection:"column", gap:10}}>
-            {sc.sections.map(s => {
-              const pct = Math.round((s.marks / s.outOf) * 100);
-              return (
-                <div key={s.title} className="sm2-sc-row" style={{background: "#f8fafc", padding: "10px 14px", borderRadius: 8, border: "1px solid #e2e8f0"}}>
-                  <span className="sm2-sc-name" style={{color: "#1e293b", fontWeight: 700, width: 220}}>{s.title}</span>
-                  <div className="sm2-sc-bar-wrap" style={{flex: 1, height: 8, background: "#e2e8f0", borderRadius: 4, overflow: "hidden", margin: "0 16px"}}>
-                    <div className="sm2-sc-bar-fill" style={{
-                      width:`${pct}%`,
-                      height: "100%",
-                      background: pct >= 80 ? "#10b981" : pct >= 60 ? "#3b82f6" : pct >= 40 ? "#f59e0b" : "#ef4444"
-                    }}/>
-                  </div>
-                  <span className="sm2-sc-marks" style={{color: "#334155", fontWeight: 700}}>{s.marks}/{s.outOf}</span>
-                </div>
-              );
-            })}
+          {/* Dynamic Performance Summary */}
+          <div className="pm-performance-summary-box" style={{ background: "#eff6ff", borderLeft: "4px solid #2563eb", padding: "16px", borderRadius: "8px", marginBottom: "24px" }}>
+            <h4 style={{ margin: "0 0 6px 0", fontSize: "14px", color: "#1e3a8a", display: "flex", alignItems: "center", gap: "6px" }}>📊 Official Performance Evaluation Summary</h4>
+            <p style={{ margin: 0, fontSize: "13px", color: "#1e3a8a", lineHeight: "1.5" }}>{performanceSummary}</p>
           </div>
 
-          <div className="sm2-ti-remarks">
-            <div className="sm2-ti-rmk-hdr"><Award size={15} color="#7c3aed"/> <strong>TI Remarks</strong></div>
-            <p>"{sc.tiRemarks}"</p>
+          {/* Competency Module Breakdown */}
+          <div className="pm-sc-sections" style={{ marginBottom: "30px" }}>
+            <h3 style={{ fontSize: "15px", color: "#0f172a", marginBottom: "16px", fontWeight: "700" }}>Safety Domain Competency Breakdown</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {sc.sections.map(s => {
+                const spc = Math.round((s.marks / s.outOf) * 100);
+                const barColor = spc >= 80 ? "#16a34a" : spc >= 50 ? "#2563eb" : spc >= 26 ? "#d97706" : "#dc2626";
+                return (
+                  <div key={s.title} className="pm-sc-section-row" style={{ display: "flex", alignItems: "center", gap: "14px", fontSize: "13px" }}>
+                    <span className="pm-sc-section-name" style={{ width: "260px", fontWeight: "600", color: "#334155" }}>{s.title}</span>
+                    <div className="pm-sc-bar-wrap" style={{ flexGrow: 1, height: "8px", background: "#e2e8f0", borderRadius: "999px", overflow: "hidden" }}>
+                      <div className="pm-sc-bar-fill" style={{ width: `${spc}%`, height: "100%", background: barColor, borderRadius: "999px" }} />
+                    </div>
+                    <span className="pm-sc-section-marks" style={{ width: "60px", textAlign: "right", fontWeight: "700", color: "#0f172a" }}>{s.marks}/{s.outOf}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* 📋 Rule-Based MCQ Exam Review (25 Questions) */}
-          <h4 style={{margin:"28px 0 16px",fontSize:15,color:"#0f172a",borderBottom:"1px solid #e2e8f0",paddingBottom:8}}>
-            📋 Rule-Based MCQ Exam Review (25 Questions)
-          </h4>
-          <div className="sm2-mcq-review-list" style={{display:"flex",flexDirection:"column",gap:20}}>
-            {smTestQuestions.map((q, idx) => {
-              const selectedAns = sc.mcqResponses ? sc.mcqResponses[idx] : null;
-              const isCorrect = selectedAns === q.answer;
-              const isUnanswered = selectedAns === null || selectedAns === undefined;
-              
-              let statusText = "Correct";
-              let badgeColor = "#16a34a";
-              let badgeBg = "#dcfce7";
-              let icon = "✓";
-              
-              if (isUnanswered) {
-                statusText = "Skipped / Unanswered";
-                badgeColor = "#d97706";
-                badgeBg = "#fef3c7";
-                icon = "⚠️";
-              } else if (!isCorrect) {
-                statusText = "Wrong";
-                badgeColor = "#dc2626";
-                badgeBg = "#fee2e2";
-                icon = "✗";
-              }
+          {/* Complete MCQ Question Review */}
+          <div className="pm-mcq-review-panel" style={{ borderTop: "1px solid #e2e8f0", paddingTop: "24px" }}>
+            <div className="pm-chart-header" style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Clock size={16} color="#475569"/>
+              <h3 style={{ margin: 0, fontSize: "15px", color: "#0f172a", fontWeight: "700" }}>Complete Assessment Question Review</h3>
+            </div>
+            <p className="pm-subtitle" style={{ fontSize: "12px", color: "#64748b", marginTop: "-10px", marginBottom: "20px" }}>
+              Below is the detailed response evaluation for all 25 compulsory questions. Correct responses are highlighted in green; incorrect choices are highlighted in red.
+            </p>
 
-              return (
-                <div key={q.id} style={{
-                  border:"1px solid #e2e8f0",
-                  borderRadius:12,
-                  padding:20,
-                  background:isUnanswered ? "#fffdf5" : isCorrect ? "#fcfdfc" : "#fffcfc",
-                  boxShadow:"0 2px 4px rgba(0,0,0,0.02)"
-                }}>
-                  {/* Header info */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"start",gap:12,marginBottom:14}}>
-                    <span style={{
-                      fontWeight:700,
-                      background:"#e2e8f0",
-                      padding:"3px 10px",
-                      borderRadius:6,
-                      fontSize:12.5,
-                      color:"#334155"
-                    }}>Q{q.id}</span>
-                    <div style={{flex:1,fontWeight:600,color:"#0f172a",fontSize:14.5,lineHeight:1.4}}>{q.text}</div>
-                    <span style={{
-                      background:badgeBg,
-                      color:badgeColor,
-                      padding:"4px 12px",
-                      borderRadius:12,
-                      fontSize:12,
-                      fontWeight:700,
-                      display:"inline-flex",
-                      alignItems:"center",
-                      gap:4,
-                      whiteSpace:"nowrap"
-                    }}>{icon} {statusText}</span>
-                  </div>
+            <div className="pm-review-questions-list" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {smTestQuestions.map((q, qIndex) => {
+                const selectedOpt = sc.mcqResponses ? sc.mcqResponses[qIndex] : null;
+                const isCorrect = selectedOpt === q.answer;
 
-                  {/* Options List JEE Exam style */}
-                  <div style={{display:"flex",flexDirection:"column",gap:8,margin:"16px 0"}}>
-                    {q.options.map((opt, oIdx) => {
-                      const isSelected = selectedAns === oIdx;
-                      const isOptionCorrect = q.answer === oIdx;
-                      
-                      let optBg = "#ffffff";
-                      let optBorder = "1.5px solid #e2e8f0";
-                      let optColor = "#334155";
-                      let badge = null;
+                return (
+                  <div key={qIndex} className={`pm-review-question-card ${isCorrect ? "correct-card" : "wrong-card"}`}>
+                    <div className="pm-rq-header">
+                      <span className="pm-rq-number">Question {qIndex + 1}</span>
+                      {isCorrect ? (
+                        <span className="pm-rq-badge success">Correct (+4 Marks)</span>
+                      ) : (
+                        <span className="pm-rq-badge danger">Incorrect (0 Marks)</span>
+                      )}
+                    </div>
+                    <h4 className="pm-rq-text">{q.text}</h4>
 
-                      if (isSelected) {
-                        if (isOptionCorrect) {
-                          optBg = "#dcfce7";
-                          optBorder = "2px solid #22c55e";
-                          optColor = "#14532d";
-                          badge = (
-                            <span style={{
-                              marginLeft:"auto",
-                              fontSize:10.5,
-                              fontWeight:700,
-                              background:"#22c55e",
-                              color:"#ffffff",
-                              padding:"2px 8px",
-                              borderRadius:4
-                            }}>YOUR ANSWER (CORRECT)</span>
-                          );
-                        } else {
-                          optBg = "#fee2e2";
-                          optBorder = "2px solid #ef4444";
-                          optColor = "#7f1d1d";
-                          badge = (
-                            <span style={{
-                              marginLeft:"auto",
-                              fontSize:10.5,
-                              fontWeight:700,
-                              background:"#ef4444",
-                              color:"#ffffff",
-                              padding:"2px 8px",
-                              borderRadius:4
-                            }}>YOUR ANSWER (WRONG)</span>
-                          );
+                    <div className="pm-rq-options-grid">
+                      {q.options.map((opt, oIdx) => {
+                        const wasSelected = selectedOpt === oIdx;
+                        const isOptCorrect = q.answer === oIdx;
+                        
+                        let optClass = "";
+                        if (wasSelected) {
+                          optClass = isCorrect ? "opt-selected-correct" : "opt-selected-wrong";
+                        } else if (isOptCorrect) {
+                          optClass = "opt-correct-unselected";
                         }
-                      } else if (isOptionCorrect) {
-                        optBg = "#eff6ff";
-                        optBorder = "2px dashed #3b82f6";
-                        optColor = "#1e3a8a";
-                        badge = (
-                          <span style={{
-                            marginLeft:"auto",
-                            fontSize:10.5,
-                            fontWeight:700,
-                            background:"#3b82f6",
-                            color:"#ffffff",
-                            padding:"2px 8px",
-                            borderRadius:4
-                          }}>CORRECT OPTION</span>
+
+                        return (
+                          <div key={oIdx} className={`pm-rq-option-item ${optClass}`}>
+                            <span className="font-mono opt-prefix">{["A", "B", "C", "D"][oIdx]}</span>
+                            <span className="opt-label-text">{opt}</span>
+                            {wasSelected && (
+                              <span className="opt-user-tag">{isCorrect ? "✓ Selected" : "✗ Selected"}</span>
+                            )}
+                            {!wasSelected && isOptCorrect && (
+                              <span className="opt-correct-tag">✓ Correct Key</span>
+                            )}
+                          </div>
                         );
-                      }
-
-                      return (
-                        <div key={opt} style={{
-                          display:"flex",
-                          alignItems:"center",
-                          gap:12,
-                          padding:"12px 16px",
-                          borderRadius:8,
-                          background:optBg,
-                          border:optBorder,
-                          color:optColor,
-                          fontSize:13.5,
-                          fontWeight: (isSelected || isOptionCorrect) ? 600 : 500,
-                          transition:"all 0.15s ease"
-                        }}>
-                          <span style={{
-                            fontSize:13,
-                            fontWeight:700,
-                            width:20,
-                            opacity:0.8
-                          }}>{["A", "B", "C", "D"][oIdx]}</span>
-                          <span>{opt}</span>
-                          {badge}
-                        </div>
-                      );
-                    })}
+                      })}
+                    </div>
+                    {q.explanation && (
+                      <div style={{ marginTop: "16px", background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", borderLeft: "4px solid #f97316", fontSize: "12.5px", color: "#334155" }}>
+                        <strong style={{ color: "#c2410c" }}>💡 Operational Safety Explanation: </strong> {q.explanation}
+                      </div>
+                    )}
                   </div>
-
-                  {/* Explanation card */}
-                  <div style={{
-                    fontSize:12.5,
-                    color:"#475569",
-                    marginTop:10,
-                    display:"flex",
-                    gap:8,
-                    alignItems:"start",
-                    background:"#f8fafc",
-                    border:"1px solid #edf2f7",
-                    padding:"10px 14px",
-                    borderRadius:8
-                  }}>
-                    <span style={{color:"#2563eb",fontWeight:700}}>Explanation:</span>
-                    <span style={{lineHeight:1.4}}>{q.explanation}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </section>
+        </div>
       );
     }
 
@@ -2424,7 +2729,7 @@ function StationMasterModule({ user, onLogout }) {
                 <span>
                   <span className={`sm2-status-pill sm2-status-${sc.approvalStatus.toLowerCase()}`}>{sc.approvalStatus}</span>
                 </span>
-                <span style={{color:"#2563eb",fontSize:12,fontWeight:600}}>View →</span>
+                <span style={{color:"#2563eb",fontSize:12,fontWeight:600}}>View Form</span>
               </button>
             );
           })}
@@ -2895,159 +3200,246 @@ function StationMasterModule({ user, onLogout }) {
 
   /* ── REPORTS ── */
   const renderReports = () => {
-    // dynamically calculated KPI stats
-    const avgScore = pointsmen.length ? Math.round(pointsmen.reduce((s, p) => s + p.lastScore, 0) / pointsmen.length) : 0;
-    const safetyVal = pointsmen.length ? Math.round(pointsmen.reduce((s, p) => s + p.safetyScore, 0) / pointsmen.length) : 0;
-    const highRiskVal = pointsmen.filter(p => riskLevel(p) === "High").length;
-    const pendingVal = drafts.length;
+    const ROLE_MAP = { pointsmen: "Pointsman", sm: "Station Master", ss: "Station Superintendent", tm: "Train Manager", ti: "Traffic Inspector", Pointsman: "Pointsman", "Station Master": "Station Master", "Station Superintendent": "Station Superintendent", "Train Manager": "Train Manager", "Traffic Inspector": "Traffic Inspector" };
+
+    if (selectedReportUserId) {
+      const u = pointsmen.find(x => x.hrmsId === selectedReportUserId);
+      if (!u) return null;
+
+      const getCat = s => s >= 80 ? "A" : s >= 50 ? "B" : s >= 26 ? "C" : "D";
+      const cat = getCat(u.lastScore || 0);
+      
+      const CAT_C  = { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" };
+      const CAT_B  = { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" };
+      const RISK_C = { High: "#dc2626", Medium: "#d97706", Low: "#16a34a" };
+      
+      const risk = riskLevel(u);
+      const isHighRisk = risk === "High";
+      const pmeVal = u.pmeStatus === "Fit" ? "FIT" : u.pmeStatus === "Pending" ? "PENDING" : u.pmeStatus === "Overdue" ? "OVERDUE" : "UNFIT";
+      const refVal = u.refStatus === "Cleared" ? "CLEARED" : "EXPIRED";
+
+      return (
+        <div className="ti2-card animate-fade-in" style={{ padding: "24px", background: "white", borderRadius: "12px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", border: "1px solid #e2e8f0" }}>
+          {/* Header section with back button */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid #e2edf8", paddingBottom: "16px", marginBottom: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div className="ti2-pm-avatar" style={{ width: 48, height: 48, fontSize: 18, background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontWeight: "700" }}>{u.name.charAt(0)}</div>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#0f172a", margin: 0 }}>{u.name}</h2>
+                <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#64748b", fontWeight: "700" }}>{ROLE_MAP[u.role] || u.designation || u.role} Dossier · {u.stationName}</p>
+              </div>
+            </div>
+            <button className="ti2-link-btn" onClick={() => setSelectedReportUserId(null)} style={{ fontSize: "13px", fontWeight: "800", color: "#2563eb", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+              ← Back to Reports
+            </button>
+          </div>
+
+          {/* Quick Info Summary metrics */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Grand Total Score</span>
+              <strong style={{ display: "block", fontSize: "24px", color: CAT_C[cat] || "#2563eb", marginTop: "4px", fontWeight: "900" }}>{u.lastScore}/100</strong>
+            </div>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Safety Grade</span>
+              <div>
+                <span className="ti2-badge" style={{ display: "inline-block", background: CAT_B[cat] || "#dbeafe", color: CAT_C[cat] || "#2563eb", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                  Category {cat}
+                </span>
+              </div>
+            </div>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>PME Clearance</span>
+              <div>
+                <span className="ti2-badge" style={{ display: "inline-block", background: pmeVal === "FIT" ? "#dcfce7" : "#fee2e2", color: pmeVal === "FIT" ? "#16a34a" : "#dc2626", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                  {pmeVal}
+                </span>
+              </div>
+            </div>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>REF Training</span>
+              <div>
+                <span className="ti2-badge" style={{ display: "inline-block", background: refVal === "CLEARED" ? "#dcfce7" : "#fee2e2", color: refVal === "CLEARED" ? "#16a34a" : "#dc2626", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                  {refVal}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: "24px" }}>
+            {/* Left side details card */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "14px", padding: "18px" }}>
+                <h3 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1.5px solid #e2edf8", paddingBottom: "8px" }}>Personnel Roster Details</h3>
+                <dl style={{ display: "flex", flexDirection: "column", gap: "12px", margin: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Employee HRMS ID</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.hrmsId}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Designation</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{ROLE_MAP[u.role] || u.designation || u.role}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Jurisdiction Station</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.stationName}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Contact Number</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.mobileNo || "+91 98765 11001"}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Date of Appointment</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.doj || "2018-02-12"}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Alcoholic Status</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#16a34a" }}>Non-Alcoholic</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Assigned Division Risk</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: RISK_C[risk] }}>{risk} Risk</dd></div>
+                </dl>
+              </div>
+
+              {/* Action button */}
+              <button className="ti2-primary-btn" onClick={() => alert("Exporting Dossier PDF...")} style={{ width: "100%", height: "42px", justifyContent: "center", background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", border: "none", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
+                <FileText size={16}/> Export Assessment Dossier (PDF)
+              </button>
+            </div>
+
+            {/* Right side Performance Breakdown */}
+            <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "14px", padding: "18px" }}>
+              <h3 style={{ margin: "0 0 16px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1.5px solid #e2edf8", paddingBottom: "8px" }}>Sectional Competency Breakdown</h3>
+              
+              {/* Pointsman sections competency progress bars */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {(() => {
+                  const secs = [
+                    { title: "Knowledge of Rules", score: Math.round((u.lastScore || 0) * 0.23), max: 25 },
+                    { title: "Alertness & Observation", score: Math.round((u.lastScore || 0) * 0.22), max: 25 },
+                    { title: "Safety Record", score: Math.round((u.lastScore || 0) * 0.14), max: 15 },
+                    { title: "Leadership & Management", score: Math.round((u.lastScore || 0) * 0.13), max: 15 },
+                    { title: "Discipline", score: Math.round((u.lastScore || 0) * 0.09), max: 10 },
+                    { title: "Appearance & Neatness", score: Math.round((u.lastScore || 0) * 0.09), max: 10 },
+                  ];
+                  return secs.map(s => {
+                    const pct = Math.round((s.score / s.max) * 100);
+                    return (
+                      <div key={s.title}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>
+                          <span>{s.title}</span>
+                          <strong>{s.score} / {s.max} ({pct}%)</strong>
+                        </div>
+                        <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#dc2626", borderRadius: "999px" }}/>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     const divSummary = [
-      { label: "Average Station Score",  val: avgScore },
-      { label: "Safety Compliance %",     val: `${safetyVal}%` },
-      { label: "High-Risk Pointsmen",     val: highRiskVal },
-      { label: "Pending Assessments",     val: pendingVal },
-      { label: "Total Station Pointsmen", val: pointsmen.length },
+      { label: "Average Division Score",  val: 87    },
+      { label: "Safety Compliance %",     val: "91%" },
+      { label: "High-Risk Staff",         val: 18    },
+      { label: "Pending Approvals",       val: 246   },
+      { label: "Total Reports Generated", val: 6245  },
     ];
 
+    const ROLE_OPTS    = ["All","Pointsman"];
+    const STATION_OPTS = ["All", smProfile.stationName];
+    const TI_OPTS      = ["All", "TI PAR", "TI AMLA", "TI NGP"];
+
+    const getCat = s => s >= 80 ? "A" : s >= 50 ? "B" : s >= 26 ? "C" : "D";
+
+    const repFiltered = pointsmen.filter(s => {
+      const matchesSearch = !repF.search || 
+        (s.name || "").toLowerCase().includes(repF.search.toLowerCase()) || 
+        (s.hrmsId || "").toLowerCase().includes(repF.search.toLowerCase());
+      const matchesCat = repF.cat === "All" || getCat(s.lastScore) === repF.cat;
+      const risk = riskLevel(s);
+      const matchesRisk = repF.risk === "All" || risk === repF.risk;
+      return matchesSearch && matchesCat && matchesRisk;
+    });
+
+    const catBadge = c => <span className="sdom-badge" style={{ background: { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" }[c] || "#f3f4f6", color: { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" }[c] || "#6b7280" }}>{c ? `Cat. ${c}` : "—"}</span>;
+    const riskBadge = r => <span className="sdom-badge" style={{ background: { Low: "#dcfce7", Medium: "#fef3c7", High: "#fee2e2" }[r] || "#f3f4f6", color: { Low: "#16a34a", Medium: "#d97706", High: "#dc2626" }[r] || "#6b7280" }}>{r}</span>;
+    const statusBadge = s => <span className="sdom-badge" style={{ background: { Approved: "#dcfce7", Pending: "#fef3c7", Rejected: "#fee2e2", Completed: "#dcfce7", Fit: "#dcfce7" }[s] || "#f3f4f6", color: { Approved: "#16a34a", Pending: "#d97706", Rejected: "#dc2626", Completed: "#16a34a", Fit: "#16a34a" }[s] || "#6b7280" }}>{s}</span>;
+
     return (
-      <div className="sdom-fade">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div>
-            <h1 className="sdom-page-title">Reports & Analytics</h1>
-            <p className="sdom-page-subtitle">Station-level reporting hub. Use filters below to generate specific pointsmen reports.</p>
-          </div>
-          <button
-            onClick={handleExportCSV}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 18px",
-              borderRadius: 8,
-              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-              color: "#ffffff",
-              border: "none",
-              fontWeight: 800,
-              fontSize: 13,
-              cursor: "pointer",
-              boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)",
-              transition: "all 0.15s ease"
-            }}
-            className="sm-btn-hover"
-          >
-            <FileDown size={15} /> Export CSV
-          </button>
-        </div>
+      <div className="sdom-fade" style={{ background: "#f8fafc", padding: "24px", borderRadius: "16px" }}>
+        <h1 className="sdom-page-title" style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "0 0 4px" }}>Reports &amp; Analytics</h1>
+        <p className="sdom-page-subtitle" style={{ fontSize: "14px", color: "#64748b", margin: "0 0 24px" }}>Division-level reporting hub. Use filters below to generate specific staff reports.</p>
 
         {/* Summary */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 16, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "24px" }}>
           {divSummary.map(c => (
-            <div key={c.label} className="sdom-stat-card">
-              <div className="sdom-stat-value">{c.val}</div>
-              <div className="sdom-stat-label">{c.label}</div>
+            <div key={c.label} className="sdom-stat-card" style={{ background: "white", border: "1px solid #e2e8f0", padding: "20px", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+              <div className="sdom-stat-value" style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a" }}>{c.val}</div>
+              <div className="sdom-stat-label" style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", fontWeight: "600", textTransform: "uppercase" }}>{c.label}</div>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div className="sdom-filter-bar" style={{ marginBottom: "24px" }}>
-          <div className="sdom-filter-field" style={{ minWidth: 200, flex: 1 }}>
-            <label>Search Pointsman</label>
-            <input 
-              placeholder="Search by name or ID..." 
-              value={reportFilter.search}
-              onChange={e => {
-                setReportFilter(p => ({ ...p, search: e.target.value }));
-                setRepApplied(false);
-              }}
-            />
+        <div className="sdom-filter-bar" style={{ display: "flex", gap: "16px", background: "white", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "24px", flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 2, minWidth: "200px" }}>
+            <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Search by Name/HRMS ID</label>
+            <div style={{ position: "relative" }}>
+              <Search size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }}/>
+              <input 
+                type="text" 
+                placeholder="Type name or HRMS ID..." 
+                value={repF.search || ""} 
+                onChange={e => setRepF(p => ({ ...p, search: e.target.value }))} 
+                style={{ width: "100%", height: "42px", padding: "0 12px 0 36px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600", outline: "none" }}
+              />
+            </div>
           </div>
-          <div className="sdom-filter-field" style={{ width: 140 }}>
-            <label>Grade</label>
-            <select 
-              value={reportFilter.grade}
-              onChange={e => {
-                setReportFilter(p => ({ ...p, grade: e.target.value }));
-                setRepApplied(false);
-              }}>
-              {["All","A","B","C","D"].map(o => <option key={o}>{o}</option>)}
+          <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "100px" }}>
+            <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Category</label>
+            <select value={repF.cat} onChange={e => setRepF(p => ({ ...p, cat: e.target.value }))} style={{ height: "42px", padding: "0 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600" }}>
+              <option>All</option><option>A</option><option>B</option><option>C</option><option>D</option>
             </select>
           </div>
-          <div className="sdom-filter-field" style={{ width: 140 }}>
-            <label>Risk Level</label>
-            <select 
-              value={reportFilter.risk}
-              onChange={e => {
-                setReportFilter(p => ({ ...p, risk: e.target.value }));
-                setRepApplied(false);
-              }}>
-              {["All","Low","Medium","High"].map(o => <option key={o}>{o}</option>)}
+          <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "120px" }}>
+            <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Risk Level</label>
+            <select value={repF.risk} onChange={e => setRepF(p => ({ ...p, risk: e.target.value }))} style={{ height: "42px", padding: "0 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600" }}>
+              <option>All</option><option>Low</option><option>Medium</option><option>High</option>
             </select>
           </div>
-          <div className="sdom-filter-field" style={{ width: 160 }}>
-            <label>Sort By</label>
-            <select 
-              value={reportFilter.sortBy}
-              onChange={e => {
-                setReportFilter(p => ({ ...p, sortBy: e.target.value }));
-                setRepApplied(false);
-              }}>
-              <option value="date-desc">Default</option>
-              <option value="score-desc">Highest Score</option>
-              <option value="score-asc">Lowest Score</option>
-            </select>
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <button className="sdom-btn-primary" style={{ padding: "10px 20px" }} onClick={() => setRepApplied(true)}>
-              <FileBarChart2 size={16}/> Generate Report
+          <div>
+            <button className="sdom-btn-primary" style={{ height: "42px", display: "flex", alignItems: "center", gap: "8px", background: "#2563eb", color: "white", padding: "0 20px", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}>
+              <Search size={16}/> Search
             </button>
           </div>
         </div>
 
-        {repApplied ? (
-          <div className="sdom-chart-card">
-            <div style={{ marginBottom: 14, fontWeight: 700, color: "#1e293b" }}>{filteredReports.length} staff in report</div>
-            <div className="sdom-table-wrap">
-              <table className="sdom-table">
-                <thead>
-                  <tr><th>Name</th><th>HRMS ID</th><th>Score</th><th>Grade</th><th>Safety</th><th>Risk</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                  {filteredReports.length === 0 && (
-                    <tr><td colSpan={7} style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>No staff match the selected filters</td></tr>
-                  )}
-                  {filteredReports.map(p => {
-                    const cat = getCat(p.lastScore);
-                    const risk = riskLevel(p);
-                    return (
-                      <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => { openPmDetail(p); setActiveTab("pointsmen"); }}>
-                        <td style={{ fontWeight: 700 }}>{p.name}</td>
-                        <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{p.hrmsId}</td>
-                        <td style={{ fontWeight: 700 }}>{p.lastScore}/100</td>
-                        <td>
-                          <span className={`sdom-badge ${cat === "A" ? "sdom-badge-success" : cat === "B" ? "sdom-badge-info" : cat === "C" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>Cat. {cat}</span>
-                        </td>
-                        <td>{p.safetyScore}%</td>
-                        <td>
-                          <span className={`sdom-badge ${risk === "Low" ? "sdom-badge-success" : risk === "Medium" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{risk}</span>
-                        </td>
-                        <td>
-                          <span className={`sdom-badge ${p.approvalStatus === "Approved" ? "sdom-badge-success" : p.approvalStatus === "Pending" ? "sdom-badge-warning" : "sdom-badge-danger"}`}>{p.approvalStatus}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+        <div className="sdom-chart-card" style={{ background: "white", border: "1px solid #e2e8f0", padding: "20px", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <div style={{ marginBottom: 14, fontWeight: 700, color: "#1e293b" }}>{repFiltered.length} staff in report</div>
+          <div className="sdom-table-wrap" style={{ overflowX: "auto" }}>
+            <table className="sdom-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1.5px solid #e2e8f0", background: "#f8fafc", textAlign: "left" }}>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Name</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Role</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Station</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>TI Area</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Score</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Category</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Risk</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {repFiltered.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>No staff match the selected filters</td></tr>}
+                {repFiltered.map(s => {
+                  const sCat = getCat(s.lastScore);
+                  const risk = riskLevel(s);
+                  return (
+                    <tr key={s.id} style={{ cursor: "pointer", borderBottom: "1px solid #f1f5f9" }} onClick={() => setSelectedReportUserId(s.hrmsId)}>
+                      <td style={{ padding: "12px 16px", fontWeight: 700, color: "#2563eb" }}>{s.name}</td>
+                      <td style={{ padding: "12px 16px", color: "#334155", fontWeight: "500" }}>{ROLE_MAP[s.role] || s.role}</td>
+                      <td style={{ padding: "12px 16px", color: "#334155", fontWeight: "500" }}>{s.stationName}</td>
+                      <td style={{ padding: "12px 16px", color: "#334155", fontWeight: "500" }}>TI PAR</td>
+                      <td style={{ padding: "12px 16px", fontWeight: 700, color: "#0f172a" }}>{s.lastScore}</td>
+                      <td style={{ padding: "12px 16px" }}>{catBadge(sCat)}</td>
+                      <td style={{ padding: "12px 16px" }}>{riskBadge(risk)}</td>
+                      <td style={{ padding: "12px 16px" }}>{statusBadge(s.approvalStatus)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="sdom-empty" style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "48px 24px", textAlign: "center" }}>
-            <FileBarChart2 size={32} style={{ marginBottom: 12, color: "#64748b" }}/>
-            <div className="sdom-empty-title" style={{ fontSize: "16px", fontWeight: "700", color: "#0f172a", marginBottom: "4px" }}>Select filters and click "Generate Report"</div>
-            <div className="sdom-empty-sub" style={{ fontSize: "13px", color: "#64748b" }}>Apply one or more filters above to generate a custom station pointsmen report.</div>
-          </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -3313,6 +3705,7 @@ function StationMasterModule({ user, onLogout }) {
           </div>{/* end content */}
         </div>
       )}
+      {renderPointsmenModal()}
     </div>
   );
 }

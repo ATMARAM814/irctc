@@ -4,7 +4,7 @@ import {
   Search, ShieldCheck, UserRound, Users, UserCheck, TrainFront,
   Plus, Edit, Trash2, ArrowRightLeft, ArrowLeft, TrendingUp,
   AlertTriangle, CheckCircle, Clock, XCircle, Activity,
-  MapPin, Phone, Calendar, Award, UserPlus
+  MapPin, Phone, Calendar, Award, UserPlus, FileText
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
@@ -27,6 +27,7 @@ const NAV = [
   { key: "stations",   label: "Stations",                 icon: Building2 },
   { key: "records",    label: "Assessment Records",       icon: ClipboardList },
   { key: "reports",    label: "Reports & Analytics",      icon: FileBarChart2 },
+  { key: "profile",    label: "My Profile",               icon: Award },
 ];
 
 // Enterprise palette — navy/slate only
@@ -306,6 +307,7 @@ export default function SuperAdminModule({ user, onLogout }) {
   const [recF,  setRecF]    = useState({ role:"All", station:"All", status:"All", name:"" });
   const [repF,  setRepF]    = useState({ role:"All", station:"All", cat:"All", risk:"All", ti:"All" });
   const [repApplied, setRepApplied] = useState(false);
+  const [selectedReportUserId, setSelectedReportUserId] = useState(null);
 
   // Chart Zoom Modal states (for showing the 96 stations graphical trends)
   const [isChartZoomModalOpen, setIsChartZoomModalOpen] = useState(false);
@@ -359,6 +361,7 @@ export default function SuperAdminModule({ user, onLogout }) {
   function navigate(p) {
     setPage(p);
     setView(null);
+    setSelectedReportUserId(null);
     setRoleF({ name:"", station:"All", ti:"All", cat:"All", risk:"All" });
   }
   function openView(type, data) { setView({ type, data }); }
@@ -1079,6 +1082,107 @@ export default function SuperAdminModule({ user, onLogout }) {
     );
   }
 
+  function renderProfile() {
+    const divisionPerformanceData = [
+      { month: "Dec'25", score: 74 },
+      { month: "Jan'26", score: 76 },
+      { month: "Feb'26", score: 78 },
+      { month: "Mar'26", score: 80 },
+      { month: "Apr'26", score: 82 },
+      { month: "May'26", score: 84 }
+    ];
+
+    return (
+      <div className="sdom-fade">
+        {/* Hero header */}
+        <div className="sdom-station-header" style={{ marginBottom: 24 }}>
+          <div className="sdom-station-header-meta">
+            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Staff Profile</div>
+            <div style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 4 }}>{user?.name || "Super Admin User"}</div>
+            <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>Senior Divisional Operations Manager (Sr. DOM) &bull; Nagpur Division &bull; Central Railway</div>
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              <span className="sdom-badge sdom-badge-success">Category A</span>
+              <span className="sdom-badge sdom-badge-success">Zonal HQ</span>
+              <span className="sdom-badge sdom-badge-success">Active</span>
+            </div>
+          </div>
+          <div className="sdom-station-header-stats">
+            <div className="sdom-station-header-stat">
+              <span className="val">84%</span>
+              <span className="lbl">Division Avg</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+            <div className="sdom-station-header-stat">
+              <span className="val">+91 98220 99001</span>
+              <span className="lbl">Contact</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+            <div className="sdom-station-header-stat">
+              <span className="val">2026-05-27</span>
+              <span className="lbl">Last Audit</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Info grid */}
+        <div className="sdom-row-2" style={{ marginBottom: "24px" }}>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: "16px" }}>Personal & Professional Details</div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', paddingBottom: '20px' }}>
+              {[
+                ["Employee ID / HRMS ID", user?.hrmsId || "SA_1001"],
+                ["Designation", "Senior Divisional Operations Manager (Sr. DOM)"],
+                ["Mobile Number", "+91 98220 99001"],
+                ["Email ID", "srdom.ngp@rail.in"],
+                ["Account Status", "Active"],
+                ["Current Zone", "Central Railway"],
+                ["Current Division", "Nagpur"],
+                ["Current Placement", "Nagpur Division HQ"],
+                ["Reporting Officer", "Zonal Chief Operations Manager (COM)"]
+              ].map(([lbl, val]) => (
+                <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "12px 16px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                  <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.9rem" }}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Operational Specifications */}
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: '14px', color: '#0f172a', fontWeight: '800', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px' }}>
+                Operational & Safety Dates
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', fontSize: '13px' }}>
+                <div><strong>Last Division Audit Done:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>2026-05-20</div></div>
+                <div><strong>Next Audit Due:</strong><div style={{fontWeight: 700, color: "#991b1b", marginTop: 4}}>2026-06-20</div></div>
+                <div><strong>Executive Safety Training:</strong><div style={{fontWeight: 700, color: "#0d2c4d", marginTop: 4}}>2025-10-12</div></div>
+                <div><strong>Safety Summit Attended:</strong><div style={{fontWeight: 700, color: "#0d2c4d", marginTop: 4}}>2026-03-15</div></div>
+                <div style={{ gridColumn: "span 2" }}><strong>Zonal Operations Review:</strong><div style={{fontWeight: 700, color: "#d97706", marginTop: 4}}>2026-04-18</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Division Performance Trend</div>
+            <div className="sdom-chart-subtitle">Nagpur Division Average Score progression</div>
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={divisionPerformanceData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                  <XAxis dataKey="month" fontSize={11}/>
+                  <YAxis domain={[40, 100]} fontSize={11}/>
+                  <RTooltip/>
+                  <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 5 }}/>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function renderStations() {
     if (view?.type === "staffDetail") return renderStaffDetail(view.data);
     if (view?.type === "stationDetail") return renderStationDetail(view.data);
@@ -1490,6 +1594,163 @@ export default function SuperAdminModule({ user, onLogout }) {
 
   /* ── REPORTS ── */
   function renderReports() {
+    if (selectedReportUserId) {
+      const u = staff.find(x => x.id === selectedReportUserId);
+      if (!u) return null;
+
+      const getCat = s => s >= 80 ? "A" : s >= 50 ? "B" : s >= 26 ? "C" : "D";
+      const cat = u.cat || getCat(u.score);
+      
+      const CAT_C  = { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" };
+      const CAT_B  = { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" };
+      const RISK_C = { High: "#dc2626", Medium: "#d97706", Low: "#16a34a" };
+      
+      const isHighRisk = u.risk === "High" || u.score < 50;
+      const risk = isHighRisk ? "High" : u.score >= 80 ? "Low" : "Medium";
+      const pmeVal = u.risk === "High" ? "PENDING" : "FIT";
+      const refVal = u.risk === "High" ? "EXPIRED" : "CLEARED";
+
+      return (
+        <div className="ti2-card animate-fade-in" style={{ padding: "24px" }}>
+          {/* Header section with back button */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid #e2edf8", paddingBottom: "16px", marginBottom: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div className="ti2-pm-avatar" style={{ width: 48, height: 48, fontSize: 18, background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontWeight: "700" }}>{u.name.charAt(0)}</div>
+              <div>
+                <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#0f172a", margin: 0 }}>{u.name}</h2>
+                <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#64748b", fontWeight: "700" }}>{ROLE_MAP[u.role] || u.role} Dossier · {u.station}</p>
+              </div>
+            </div>
+            <button className="ti2-link-btn" onClick={() => setSelectedReportUserId(null)} style={{ fontSize: "13px", fontWeight: "800", color: "#2563eb", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+              ← Back to Reports
+            </button>
+          </div>
+
+          {/* Quick Info Summary metrics */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Grand Total Score</span>
+              <strong style={{ display: "block", fontSize: "24px", color: CAT_C[cat], marginTop: "4px", fontWeight: "900" }}>{u.score}/100</strong>
+            </div>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Safety Grade</span>
+              <div>
+                <span className="ti2-badge" style={{ display: "inline-block", background: CAT_B[cat], color: CAT_C[cat], fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                  Category {cat}
+                </span>
+              </div>
+            </div>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>PME Clearance</span>
+              <div>
+                <span className="ti2-badge" style={{ display: "inline-block", background: pmeVal === "FIT" ? "#dcfce7" : "#fee2e2", color: pmeVal === "FIT" ? "#16a34a" : "#dc2626", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                  {pmeVal}
+                </span>
+              </div>
+            </div>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>REF Training</span>
+              <div>
+                <span className="ti2-badge" style={{ display: "inline-block", background: refVal === "CLEARED" ? "#dcfce7" : "#fee2e2", color: refVal === "CLEARED" ? "#16a34a" : "#dc2626", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                  {refVal}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: "24px" }}>
+            {/* Left side details card */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "14px", padding: "18px" }}>
+                <h3 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1.5px solid #e2edf8", paddingBottom: "8px" }}>Personnel Roster Details</h3>
+                <dl style={{ display: "flex", flexDirection: "column", gap: "12px", margin: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Employee HRMS ID</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.id}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Designation</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{ROLE_MAP[u.role] || u.role}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Jurisdiction Station</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.station}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Contact Number</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.contact || "+91 98765 11001"}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Date of Appointment</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.joiningDate || "2018-02-12"}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Alcoholic Status</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: u.alcoholicStatus === "Alcoholic" ? "#dc2626" : "#16a34a" }}>{u.alcoholicStatus || "Non-Alcoholic"}</dd></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Assigned Division Risk</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: RISK_C[risk] }}>{risk} Risk</dd></div>
+                </dl>
+              </div>
+
+              {/* Action button */}
+              <button className="ti2-primary-btn" onClick={() => alert("Exporting Dossier PDF...")} style={{ width: "100%", height: "42px", justifyContent: "center", background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", border: "none", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
+                <FileText size={16}/> Export Assessment Dossier (PDF)
+              </button>
+            </div>
+
+            {/* Right side Performance Breakdown */}
+            <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "14px", padding: "18px" }}>
+              <h3 style={{ margin: "0 0 16px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1.5px solid #e2edf8", paddingBottom: "8px" }}>Sectional Competency Breakdown</h3>
+              
+              {u.role === "pointsmen" ? (
+                /* Pointsman sections competency progress bars */
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {(() => {
+                    const secs = [
+                      { title: "Knowledge of Rules", score: Math.round(u.score * 0.23), max: 25 },
+                      { title: "Alertness & Observation", score: Math.round(u.score * 0.22), max: 25 },
+                      { title: "Safety Record", score: Math.round(u.score * 0.14), max: 15 },
+                      { title: "Leadership & Management", score: Math.round(u.score * 0.13), max: 15 },
+                      { title: "Discipline", score: Math.round(u.score * 0.09), max: 10 },
+                      { title: "Appearance & Neatness", score: Math.round(u.score * 0.09), max: 10 },
+                    ];
+                    return secs.map(s => {
+                      const pct = Math.round((s.score / s.max) * 100);
+                      return (
+                        <div key={s.title}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>
+                            <span>{s.title}</span>
+                            <strong>{s.score} / {s.max} ({pct}%)</strong>
+                          </div>
+                          <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#dc2626", borderRadius: "999px" }}/>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              ) : (
+                /* Station Master sections competency progress bars */
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {(() => {
+                    let totalYes = 12;
+                    let knowledgeMarks = Math.max(0, u.score - 60);
+
+                    const secs = [
+                      { title: "Station Management", score: Math.round(totalYes * 5 * 0.25), max: 25 },
+                      { title: "Safety & Compliance", score: Math.round(totalYes * 4 * 0.25), max: 20 },
+                      { title: "Staff Supervision", score: Math.round(totalYes * 3 * 0.20), max: 15 },
+                      { title: "Documentation & Reporting", score: Math.round(totalYes * 3 * 0.15), max: 15 },
+                      { title: "Emergency Handling", score: Math.round(totalYes * 5 * 0.25), max: 25 },
+                      { title: "Knowledge (Safety Exam)", score: knowledgeMarks, max: 25 }
+                    ];
+
+                    return secs.map(s => {
+                      const pct = Math.round((s.score / s.max) * 100);
+                      return (
+                        <div key={s.title}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>
+                            <span>{s.title}</span>
+                            <strong>{s.score} / {s.max} ({pct}%)</strong>
+                          </div>
+                          <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#dc2626", borderRadius: "999px" }}/>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const divSummary = [
       { label:"Average Division Score",  val:87    },
       { label:"Safety Compliance %",     val:"91%" },
@@ -1568,8 +1829,8 @@ export default function SuperAdminModule({ user, onLogout }) {
                 <tbody>
                   {repFiltered.length === 0 && <tr><td colSpan={8} style={{textAlign:"center",color:"#94a3b8",padding:32}}>No staff match the selected filters</td></tr>}
                   {repFiltered.map(s=>(
-                    <tr key={s.id}>
-                      <td style={{fontWeight:700}}>{s.name}</td>
+                    <tr key={s.id} style={{ cursor: "pointer" }} onClick={() => setSelectedReportUserId(s.id)}>
+                      <td style={{fontWeight:700, color: "#2563eb"}}>{s.name}</td>
                       <td>{ROLE_MAP[s.role]||s.role}</td>
                       <td>{s.station}</td>
                       <td>{s.ti}</td>
@@ -1608,6 +1869,7 @@ export default function SuperAdminModule({ user, onLogout }) {
       case "stations":   return renderStations();
       case "records":    return renderRecords();
       case "reports":    return renderReports();
+      case "profile":    return renderProfile();
       default:           return renderDashboard();
     }
   }

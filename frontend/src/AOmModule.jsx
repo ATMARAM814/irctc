@@ -1,26 +1,43 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Activity,
   AlertCircle,
   AlertTriangle,
   ArrowRightLeft,
+  ArrowLeft,
   BarChart3,
   Building2,
   BusFront,
   ClipboardCheck,
+  Eye,
   Cog,
   FileCheck,
   FileDown,
+  FileText,
+  FileBarChart2,
   LayoutDashboard,
   LogOut,
   PlusCircle,
+  Plus,
   Search,
   ShieldCheck,
   Star,
   UserCheck,
   UserPlus,
   UserRoundSearch,
-  Users
+  Users,
+  Edit,
+  Trash2,
+  TrendingUp,
+  UserRound,
+  TrainFront,
+  CheckCircle,
+  Clock,
+  XCircle,
+  MapPin,
+  Phone,
+  Calendar,
+  Award
 } from "lucide-react";
 import {
   Bar,
@@ -32,8 +49,43 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
+  LineChart,
+  Line,
+  CartesianGrid,
+  LabelList
 } from "recharts";
+import "./sdom.css";
+
+const MONTHLY_TREND = [
+  { month: "Dec'25", score: 81, safety: 80 },
+  { month: "Jan'26", score: 83, safety: 82 },
+  { month: "Feb'26", score: 85, safety: 85 },
+  { month: "Mar'26", score: 87, safety: 88 },
+  { month: "Apr'26", score: 89, safety: 91 },
+  { month: "May'26", score: 91, safety: 94 }
+];
+
+const ASSESSMENT_MONTHLY = [
+  { month: "Nov", approved: 380, pending: 60, rejected: 18, overdue: 12 },
+  { month: "Dec", approved: 410, pending: 55, rejected: 22, overdue: 15 },
+  { month: "Jan", approved: 440, pending: 70, rejected: 19, overdue: 10 },
+  { month: "Feb", approved: 460, pending: 65, rejected: 21, overdue: 9 },
+  { month: "Mar", approved: 490, pending: 58, rejected: 17, overdue: 8 },
+  { month: "Apr", approved: 520, pending: 68, rejected: 20, overdue: 11 }
+];
+
+const COMPLIANCE = [
+  { label: "Overall Safety Compliance", pct: 91, color: "#16a34a" },
+  { label: "PME Completion Rate", pct: 87, color: "#2563eb" },
+  { label: "REF Completion Rate", pct: 83, color: "#7c3aed" },
+  { label: "Incident Reporting Compliance", pct: 94, color: "#0891b2" },
+  { label: "Disciplinary Clean Record", pct: 96, color: "#16a34a" }
+];
+
+const CAT_COLORS = { A: "#1E3A5F", B: "#2B6CB0", C: "#D69E2E", D: "#C53030" };
+const RISK_COLORS = { Low: "#2F855A", Medium: "#D69E2E", High: "#C53030" };
+const STATUS_COLORS = { Approved: "#2F855A", Pending: "#D69E2E", Rejected: "#C53030", Overdue: "#9B2C2C" };
 
 const generate96Stations = () => {
   const divisionMap = {
@@ -128,15 +180,17 @@ const categoryData = [
 ];
 
 const sidebarItems = [
-  { icon: LayoutDashboard, label: "Dashboard", active: true },
-  { icon: UserPlus, label: "User Management" },
-  { icon: Users, label: "Employee Management" },
-  { icon: ClipboardCheck, label: "Traffic Inspector" },
+  { icon: LayoutDashboard, label: "Dashboard" },
+  { icon: Building2, label: "Stations" },
+  { icon: Users, label: "Pointsmen" },
   { icon: Building2, label: "Station Masters" },
+  { icon: UserCheck, label: "Station Superintendents" },
+  { icon: BusFront, label: "Train Managers" },
+  { icon: ShieldCheck, label: "Traffic Inspectors" },
   { icon: FileCheck, label: "Assessments" },
-  { icon: BarChart3, label: "Reports" },
-  { icon: UserRoundSearch, label: "Profile" },
-  { icon: Cog, label: "Settings" }
+  { icon: CheckCircle, label: "Approvals" },
+  { icon: BarChart3, label: "Reports & Analytics" },
+  { icon: UserRoundSearch, label: "Profile" }
 ];
 
 const summaryCards = [
@@ -537,7 +591,646 @@ const assessmentCriteria = [
 
 function AOmModule({ user, onLogout }) {
   const [activePage, setActivePage] = useState("Dashboard");
+  const [pmModal, setPmModal] = useState(null);
+  const [pmF, setPmF] = useState({ name: "", station: "All", cat: "All", risk: "All" });
+
+  const openPmAdd = () => {
+    setPmModal({
+      mode: "add",
+      data: {
+        hrmsId: `PM_${Date.now().toString().slice(-4)}`,
+        name: "",
+        gender: "Male",
+        age: 35,
+        doj: new Date().toISOString().split('T')[0],
+        basePay: "₹25,000",
+        lastScore: 80,
+        safetyScore: 90,
+        totalAssessments: 1,
+        pmeStatus: "Fit",
+        refStatus: "Cleared",
+        disciplinary: "None",
+        incidents: 0,
+        approvalStatus: "Approved",
+        monitoringStatus: "Active",
+        stationCode: "NGP",
+        stationName: "Nagpur Junction",
+        contact: "",
+        email: "",
+        cat: "A",
+        risk: "Low",
+        reportingSm: "",
+        workLocation: "",
+        shift: ""
+      }
+    });
+  };
+
+  const openPmEdit = (pm) => {
+    setPmModal({
+      mode: "edit",
+      data: { ...pm }
+    });
+  };
+
+  const openPmShift = (pm) => {
+    setPmModal({
+      mode: "shift",
+      data: { ...pm }
+    });
+  };
+
+  const savePmModal = () => {
+    if (!pmModal.data.name || !pmModal.data.hrmsId) {
+      alert("Name and HRMS ID are required.");
+      return;
+    }
+    if (pmModal.mode === "shift") {
+      const newRole = pmModal.role || "pointsmen";
+      if (newRole !== "pointsmen") {
+        setAomPointsmen(p => p.filter(x => x.hrmsId !== pmModal.data.hrmsId));
+        const commonObj = {
+          employeeId: pmModal.data.hrmsId,
+          hrmsId: pmModal.data.hrmsId,
+          name: pmModal.data.name,
+          station: pmModal.data.stationName || "Nagpur Junction",
+          stationName: pmModal.data.stationName || "Nagpur Junction",
+          division: pmModal.data.division || "Nagpur",
+          zone: pmModal.data.zone || "Central Railway",
+          cat: pmModal.data.cat || "A",
+          risk: pmModal.data.risk || "Low",
+          score: pmModal.data.lastScore || 80,
+          contact: pmModal.data.contact || "",
+          email: pmModal.data.email || "",
+          lastDate: pmModal.data.doj || new Date().toISOString().split('T')[0],
+          status: "Approved",
+          reportingAom: "P. K. Verma (Sr. DOM)"
+        };
+        if (newRole === "ss") {
+          setAomSuperintendents(prev => [...prev, { ...commonObj, role: "ss", designation: "Station Superintendent" }]);
+        } else if (newRole === "tm") {
+          setAomTrainManagers(prev => [...prev, { ...commonObj, role: "tm", designation: "Train Manager" }]);
+        } else if (newRole === "ti") {
+          setTrafficInspectors(prev => [...prev, { ...commonObj, role: "ti", designation: "Traffic Inspector" }]);
+        } else if (newRole === "sm") {
+          setStations(prev => prev.map(s => {
+            if (s.stationName === pmModal.data.stationName) {
+              return { ...s, stationMasterName: pmModal.data.name, contactNumber: pmModal.data.contact };
+            }
+            return s;
+          }));
+          setAomStationMasters(prev => [...prev, {
+            ...commonObj,
+            role: "sm",
+            designation: "Station Master",
+            id: pmModal.data.hrmsId,
+            hrmsId: pmModal.data.hrmsId,
+            stationName: pmModal.data.stationName || "Nagpur Junction",
+            stationCode: pmModal.data.stationCode || "NGP",
+            division: pmModal.data.division || "Nagpur",
+            zone: pmModal.data.zone || "Central Railway"
+          }]);
+        }
+        alert(`${pmModal.data.name} shifted to ${newRole.toUpperCase()} successfully.`);
+        setPmModal(null);
+        return;
+      }
+    }
+    if (pmModal.mode === "add") {
+      setAomPointsmen(p => [pmModal.data, ...p]);
+    } else {
+      setAomPointsmen(p => p.map(x => x.hrmsId === pmModal.data.hrmsId ? pmModal.data : x));
+    }
+    setPmModal(null);
+  };
+
+  const removePm = (hrmsId) => {
+    if (window.confirm("Remove this pointsman?")) {
+      setAomPointsmen(p => p.filter(x => x.hrmsId !== hrmsId));
+    }
+  };
+
+  const openSmAdd = () => {
+    setSmModal({
+      mode: "add",
+      data: {
+        hrmsId: `SM_${Date.now().toString().slice(-4)}`,
+        name: "",
+        gender: "Male",
+        age: 38,
+        doj: new Date().toISOString().split('T')[0],
+        basePay: "₹52,000",
+        lastScore: 80,
+        safetyScore: 88,
+        totalAssessments: 1,
+        pmeStatus: "Fit",
+        refStatus: "Cleared",
+        disciplinary: "None",
+        incidents: 0,
+        approvalStatus: "Approved",
+        monitoringStatus: "Active",
+        stationCode: "NGP",
+        stationName: "Nagpur Junction",
+        contact: "",
+        email: "",
+        cat: "A",
+        risk: "Low",
+        smStation: "Nagpur Junction",
+        smZone: "Central Railway",
+        smDivision: "Nagpur"
+      }
+    });
+  };
+
+  const openSmEdit = (sm) => {
+    setSmModal({
+      mode: "edit",
+      data: { ...sm, smStation: sm.stationName, smDivision: sm.division, smZone: sm.zone }
+    });
+  };
+
+  const openSmShift = (sm) => {
+    setSmModal({
+      mode: "shift",
+      data: { ...sm }
+    });
+  };
+
+  const saveSmModal = () => {
+    if (!smModal.data.name || !smModal.data.hrmsId) {
+      alert("Name and HRMS ID are required.");
+      return;
+    }
+    if (smModal.mode === "shift") {
+      const newRole = smModal.role || "sm";
+      if (newRole !== "sm") {
+        setAomStationMasters(p => p.filter(x => (x.hrmsId || x.id) !== smModal.data.hrmsId));
+        const commonObj = {
+          employeeId: smModal.data.hrmsId,
+          hrmsId: smModal.data.hrmsId,
+          name: smModal.data.name,
+          station: smModal.data.stationName || "Nagpur Junction",
+          stationName: smModal.data.stationName || "Nagpur Junction",
+          division: smModal.data.division || "Nagpur",
+          zone: smModal.data.zone || "Central Railway",
+          cat: smModal.data.cat || "A",
+          risk: smModal.data.risk || "Low",
+          score: smModal.data.lastScore || 80,
+          contact: smModal.data.contact || "",
+          email: smModal.data.email || "",
+          lastDate: smModal.data.doj || new Date().toISOString().split('T')[0],
+          status: "Approved",
+          reportingAom: "P. K. Verma (Sr. DOM)"
+        };
+        if (newRole === "ss") {
+          setAomSuperintendents(prev => [...prev, { ...commonObj, role: "ss", designation: "Station Superintendent" }]);
+        } else if (newRole === "tm") {
+          setAomTrainManagers(prev => [...prev, { ...commonObj, role: "tm", designation: "Train Manager" }]);
+        } else if (newRole === "ti") {
+          setTrafficInspectors(prev => [...prev, { ...commonObj, role: "ti", designation: "Traffic Inspector" }]);
+        } else if (newRole === "pointsmen") {
+          setAomPointsmen(prev => [...prev, {
+            ...commonObj,
+            hrmsId: smModal.data.hrmsId,
+            id: Date.now(),
+            lastScore: smModal.data.lastScore || 80,
+            safetyScore: 85,
+            totalAssessments: 2,
+            pmeStatus: "Fit",
+            refStatus: "Cleared",
+            disciplinary: "None",
+            incidents: 0,
+            approvalStatus: "Approved",
+            monitoringStatus: "Active",
+            stationCode: smModal.data.stationCode || "NGP",
+            stationName: smModal.data.stationName || "Nagpur Junction"
+          }]);
+        }
+        alert(`${smModal.data.name} shifted to ${newRole.toUpperCase()} successfully.`);
+        setSmModal(null);
+        return;
+      }
+    }
+    const processedData = {
+      ...smModal.data,
+      stationName: smModal.data.smStation || smModal.data.stationName || "Nagpur Junction",
+      stationCode: smModal.data.smStation === "Pune Junction" ? "PUNE" : smModal.data.smStation === "New Delhi" ? "NDLS" : "NGP",
+      division: smModal.data.smDivision || smModal.data.division || "Nagpur",
+      zone: smModal.data.smZone || smModal.data.zone || "Central Railway"
+    };
+    if (smModal.mode === "add") {
+      setAomStationMasters(p => [processedData, ...p]);
+    } else {
+      setAomStationMasters(p => p.map(x => (x.hrmsId || x.id) === processedData.hrmsId ? processedData : x));
+    }
+    setSmModal(null);
+  };
+
+  const removeSm = (hrmsId) => {
+    if (window.confirm("Remove this Station Master?")) {
+      setAomStationMasters(p => p.filter(x => (x.hrmsId || x.id) !== hrmsId));
+    }
+  };
+
+  const openSsAdd = () => {
+    setSsModal({
+      mode: "add",
+      data: {
+        employeeId: `SS_${Date.now().toString().slice(-4)}`,
+        name: "",
+        role: "ss",
+        designation: "Station Superintendent",
+        station: "Nagpur Junction",
+        division: "Nagpur",
+        zone: "Central Railway",
+        cat: "A",
+        risk: "Low",
+        score: 80,
+        contact: "",
+        email: "",
+        lastDate: new Date().toISOString().split('T')[0],
+        status: "Approved",
+        smStation: "Nagpur Junction",
+        smZone: "Central Railway",
+        smDivision: "Nagpur"
+      }
+    });
+  };
+
+  const openSsEdit = (ss) => {
+    setSsModal({
+      mode: "edit",
+      data: { ...ss, smStation: ss.station, smDivision: ss.division, smZone: ss.zone }
+    });
+  };
+
+  const openSsShift = (ss) => {
+    setSsModal({
+      mode: "shift",
+      data: { ...ss }
+    });
+  };
+
+  const saveSsModal = () => {
+    if (!ssModal.data.name || !ssModal.data.employeeId) {
+      alert("Name and HRMS ID are required.");
+      return;
+    }
+    if (ssModal.mode === "shift") {
+      const newRole = ssModal.role || "ss";
+      if (newRole !== "ss") {
+        setAomSuperintendents(p => p.filter(x => x.employeeId !== ssModal.data.employeeId));
+        const commonObj = {
+          employeeId: ssModal.data.employeeId,
+          hrmsId: ssModal.data.employeeId,
+          name: ssModal.data.name,
+          station: ssModal.data.station || ssModal.data.smStation || "Nagpur Junction",
+          stationName: ssModal.data.station || ssModal.data.smStation || "Nagpur Junction",
+          division: ssModal.data.division || "Nagpur",
+          zone: ssModal.data.zone || "Central Railway",
+          cat: ssModal.data.cat || "A",
+          risk: ssModal.data.risk || "Low",
+          score: ssModal.data.score || 80,
+          contact: ssModal.data.contact || "",
+          email: ssModal.data.email || "",
+          lastDate: ssModal.data.lastDate || new Date().toISOString().split('T')[0],
+          status: "Approved",
+          reportingAom: "P. K. Verma (Sr. DOM)"
+        };
+        if (newRole === "sm") {
+          setAomStationMasters(prev => [{ ...commonObj, designation: "Station Master", role: "sm" }, ...prev]);
+        } else if (newRole === "tm") {
+          setAomTrainManagers(prev => [{ ...commonObj, designation: "Train Manager", role: "tm" }, ...prev]);
+        } else if (newRole === "ti") {
+          setTrafficInspectors(prev => [{ ...commonObj, designation: "Traffic Inspector", role: "ti" }, ...prev]);
+        } else if (newRole === "pointsmen") {
+          setAomPointsmen(prev => [{
+            ...commonObj,
+            hrmsId: ssModal.data.employeeId,
+            id: Date.now(),
+            lastScore: ssModal.data.score || 80,
+            safetyScore: 85,
+            totalAssessments: 2,
+            pmeStatus: "Fit",
+            refStatus: "Cleared",
+            disciplinary: "None",
+            incidents: 0,
+            approvalStatus: "Approved",
+            monitoringStatus: "Active",
+            stationCode: ssModal.data.stationCode || "NGP",
+            stationName: ssModal.data.station || "Nagpur Junction"
+          }, ...prev]);
+        }
+        alert(`${ssModal.data.name} shifted to ${newRole.toUpperCase()} successfully.`);
+        setSsModal(null);
+        return;
+      }
+    }
+    const processedData = {
+      ...ssModal.data,
+      station: ssModal.data.smStation || ssModal.data.station || "Nagpur Junction",
+      division: ssModal.data.smDivision || ssModal.data.division || "Nagpur",
+      zone: ssModal.data.smZone || ssModal.data.zone || "Central Railway",
+      cat: ssModal.data.category || ssModal.data.cat || "A",
+      risk: ssModal.data.riskLevel || ssModal.data.risk || "Low",
+      score: ssModal.data.lastScore || ssModal.data.score || 80
+    };
+    if (ssModal.mode === "add") {
+      setAomSuperintendents(p => [processedData, ...p]);
+    } else {
+      setAomSuperintendents(p => p.map(x => x.employeeId === processedData.employeeId ? processedData : x));
+    }
+    setSsModal(null);
+  };
+
+  const removeSs = (employeeId) => {
+    if (window.confirm("Remove this Station Superintendent?")) {
+      setAomSuperintendents(p => p.filter(x => x.employeeId !== employeeId));
+    }
+  };
+
+  const openTmAdd = () => {
+    setTmModal({
+      mode: "add",
+      data: {
+        employeeId: `TM_${Date.now().toString().slice(-4)}`,
+        name: "",
+        role: "tm",
+        designation: "Train Manager",
+        station: "Nagpur Junction",
+        division: "Nagpur",
+        zone: "Central Railway",
+        cat: "A",
+        risk: "Low",
+        score: 80,
+        contact: "",
+        email: "",
+        lastDate: new Date().toISOString().split('T')[0],
+        status: "Approved",
+        workLocation: "Nagpur Depot",
+        reportingSm: "NGP-BSL Section",
+        shift: "Goods Train Beat",
+        smStation: "Nagpur Junction",
+        smZone: "Central Railway",
+        smDivision: "Nagpur"
+      }
+    });
+  };
+
+  const openTmEdit = (tm) => {
+    setTmModal({
+      mode: "edit",
+      data: { ...tm, smStation: tm.station, smDivision: tm.division, smZone: tm.zone }
+    });
+  };
+
+  const openTmShift = (tm) => {
+    setTmModal({
+      mode: "shift",
+      data: { ...tm }
+    });
+  };
+
+  const saveTmModal = () => {
+    if (!tmModal.data.name || !tmModal.data.employeeId) {
+      alert("Name and HRMS ID are required.");
+      return;
+    }
+    if (tmModal.mode === "shift") {
+      const newRole = tmModal.role || "tm";
+      if (newRole !== "tm") {
+        setAomTrainManagers(p => p.filter(x => x.employeeId !== tmModal.data.employeeId));
+        const commonObj = {
+          employeeId: tmModal.data.employeeId,
+          hrmsId: tmModal.data.employeeId,
+          name: tmModal.data.name,
+          station: tmModal.data.station || tmModal.data.smStation || "Nagpur Junction",
+          stationName: tmModal.data.station || tmModal.data.smStation || "Nagpur Junction",
+          division: tmModal.data.division || "Nagpur",
+          zone: tmModal.data.zone || "Central Railway",
+          cat: tmModal.data.cat || "A",
+          risk: tmModal.data.risk || "Low",
+          score: tmModal.data.score || 80,
+          contact: tmModal.data.contact || "",
+          email: tmModal.data.email || "",
+          lastDate: tmModal.data.lastDate || new Date().toISOString().split('T')[0],
+          status: "Approved",
+          reportingAom: "P. K. Verma (Sr. DOM)"
+        };
+        if (newRole === "sm") {
+          setAomStationMasters(prev => [{ ...commonObj, designation: "Station Master", role: "sm" }, ...prev]);
+        } else if (newRole === "ss") {
+          setAomSuperintendents(prev => [{ ...commonObj, designation: "Station Superintendent", role: "ss" }, ...prev]);
+        } else if (newRole === "ti") {
+          setTrafficInspectors(prev => [{ ...commonObj, designation: "Traffic Inspector", role: "ti" }, ...prev]);
+        } else if (newRole === "pointsmen") {
+          setAomPointsmen(prev => [{
+            ...commonObj,
+            hrmsId: tmModal.data.employeeId,
+            id: Date.now(),
+            lastScore: tmModal.data.score || 80,
+            safetyScore: 85,
+            totalAssessments: 2,
+            pmeStatus: "Fit",
+            refStatus: "Cleared",
+            disciplinary: "None",
+            incidents: 0,
+            approvalStatus: "Approved",
+            monitoringStatus: "Active",
+            stationCode: tmModal.data.stationCode || "NGP",
+            stationName: tmModal.data.station || "Nagpur Junction"
+          }, ...prev]);
+        }
+        alert(`${tmModal.data.name} shifted to ${newRole.toUpperCase()} successfully.`);
+        setTmModal(null);
+        return;
+      }
+    }
+    const processedData = {
+      ...tmModal.data,
+      station: tmModal.data.smStation || tmModal.data.station || "Nagpur Junction",
+      division: tmModal.data.smDivision || tmModal.data.division || "Nagpur",
+      zone: tmModal.data.smZone || tmModal.data.zone || "Central Railway",
+      cat: tmModal.data.category || tmModal.data.cat || "A",
+      risk: tmModal.data.riskLevel || tmModal.data.risk || "Low",
+      score: tmModal.data.lastScore || tmModal.data.score || 80
+    };
+    if (tmModal.mode === "add") {
+      setAomTrainManagers(p => [processedData, ...p]);
+    } else {
+      setAomTrainManagers(p => p.map(x => x.employeeId === processedData.employeeId ? processedData : x));
+    }
+    setTmModal(null);
+  };
+
+  const removeTm = (employeeId) => {
+    if (window.confirm("Remove this Train Manager?")) {
+      setAomTrainManagers(p => p.filter(x => x.employeeId !== employeeId));
+    }
+  };
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("FY 2025-26 - Q3");
+
+  // ── AOM Approvals Page State (mirrors TI's PM Review exactly) ──
+  const [aomApprovalTab, setAomApprovalTab]           = useState("SM"); // "SM" | "TM"
+  const [aomReviewTab, setAomReviewTab]               = useState("Pending"); // Pending/Approved/Rejected
+  const [aomReviewSearch, setAomReviewSearch]         = useState("");
+  const [aomReviewStation, setAomReviewStation]       = useState("All");
+  const [aomSelectedId, setAomSelectedId]             = useState(null);
+  const [aomEditSections, setAomEditSections]         = useState({});
+  const [aomAomRemarks, setAomAomRemarks]             = useState({});
+  const [aomShowAudit, setAomShowAudit]               = useState({});
+  const [aomRejectMode, setAomRejectMode]             = useState({});
+  const [aomApprovalNotice, setAomApprovalNotice]     = useState("");
+  const [aomSMList, setAomSMList]                     = useState(() => {
+    try { const s = localStorage.getItem("ti_sm_list"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+  const [aomTMList, setAomTMList]                     = useState(() => {
+    try { const s = localStorage.getItem("ti_tm_list"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
+
+  // Refresh SM/TM lists from localStorage whenever Approvals page is active
+  useEffect(() => {
+    if (activePage === "Approvals") {
+      try { const s = localStorage.getItem("ti_sm_list"); if (s) setAomSMList(JSON.parse(s)); } catch {}
+      try { const s = localStorage.getItem("ti_tm_list"); if (s) setAomTMList(JSON.parse(s)); } catch {}
+    }
+  }, [activePage]);
+
+  const aomCatColor = { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" };
+  const aomCatBg    = { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" };
+  const aomGetCat   = s => s >= 80 ? "A" : s >= 50 ? "B" : s >= 26 ? "C" : "D";
+
+  const aomCurrentList = aomApprovalTab === "SM" ? aomSMList : aomTMList;
+  const aomSelectedItem = aomSelectedId ? aomCurrentList.find(x => x.id === aomSelectedId) || null : null;
+
+  const aomFilteredList = aomCurrentList.filter(item => {
+    const st = aomReviewTab === "Pending" ? item.status === "Submitted" : item.status === aomReviewTab;
+    const s  = !aomReviewSearch || item.name.toLowerCase().includes(aomReviewSearch.toLowerCase()) || item.hrmsId.toLowerCase().includes(aomReviewSearch.toLowerCase());
+    const r  = aomReviewStation === "All" || item.station === aomReviewStation;
+    return st && s && r;
+  });
+
+  const aomOpenReview = (id) => {
+    const rec = aomCurrentList.find(x => x.id === id);
+    if (!rec) return;
+    setAomSelectedId(id);
+    // Build editable sections from the TI form data if available
+    const savedForms = aomApprovalTab === "SM"
+      ? (localStorage.getItem("ti_sm_forms") ? JSON.parse(localStorage.getItem("ti_sm_forms")) : {})
+      : (localStorage.getItem("ti_tm_forms") ? JSON.parse(localStorage.getItem("ti_tm_forms")) : {});
+    const form = savedForms[id];
+
+    let builtSecs = [];
+    if (rec.sections && rec.sections.length > 0) {
+      builtSecs = rec.sections.map(s => ({ ...s }));
+    } else if (aomApprovalTab === "SM") {
+      // Station Master criteria
+      const stationMgmtScore = (form?.stationMgmt || []).filter(v => v === "Yes").length * 5;
+      const safetyScore = (form?.safety || []).filter(v => v === "Yes").length * 4;
+      const staffSupervisionScore = (form?.staffSupervision || []).filter(v => v === "Yes").length * 3;
+      const documentationScore = (form?.documentation || []).filter(v => v === "Yes").length * 3;
+      const emergencyScore = (form?.emergency || []).filter(v => v === "Yes").length * 5;
+      const knowledgeScore = parseInt(form?.knowledgeMarks) || 0;
+
+      // If form doesn't exist (mock record), distribute total score proportionally
+      if (!form) {
+        const total = rec.score || 80;
+        builtSecs = [
+          { title: "Station Management", score: Math.round(total * 0.25), max: 25 },
+          { title: "Safety & Compliance", score: Math.round(total * 0.20), max: 20 },
+          { title: "Staff Supervision", score: Math.round(total * 0.15), max: 15 },
+          { title: "Documentation & Reporting", score: Math.round(total * 0.15), max: 15 },
+          { title: "Emergency Handling", score: Math.round(total * 0.25), max: 25 },
+          { title: "Written Exam (Knowledge)", score: Math.round(total * 0.20), max: 25 }
+        ];
+      } else {
+        builtSecs = [
+          { title: "Station Management", score: stationMgmtScore, max: 25 },
+          { title: "Safety & Compliance", score: safetyScore, max: 20 },
+          { title: "Staff Supervision", score: staffSupervisionScore, max: 15 },
+          { title: "Documentation & Reporting", score: documentationScore, max: 15 },
+          { title: "Emergency Handling", score: emergencyScore, max: 25 },
+          { title: "Written Exam (Knowledge)", score: knowledgeScore, max: 25 }
+        ];
+      }
+    } else {
+      // Train Manager criteria
+      const trainSafetyScore = (form?.trainSafety || []).filter(v => v === "Yes").length * 5;
+      const signalingScore = (form?.signaling || []).filter(v => v === "Yes").length * 4;
+      const shuntingScore = (form?.shunting || []).filter(v => v === "Yes").length * 3;
+      const documentationScore = (form?.documentation || []).filter(v => v === "Yes").length * 3;
+      const emergencyScore = (form?.emergency || []).filter(v => v === "Yes").length * 5;
+      const knowledgeScore = parseInt(form?.knowledgeMarks) || 0;
+
+      if (!form) {
+        const total = rec.score || 80;
+        builtSecs = [
+          { title: "Train Safety & Brake Inspection", score: Math.round(total * 0.25), max: 25 },
+          { title: "Signaling & Whistle Compliance", score: Math.round(total * 0.20), max: 20 },
+          { title: "Shunting & Coupling Ops", score: Math.round(total * 0.15), max: 15 },
+          { title: "Train Log & Guard Certificates", score: Math.round(total * 0.15), max: 15 },
+          { title: "Emergency Train Protection", score: Math.round(total * 0.25), max: 25 },
+          { title: "Written Exam (Knowledge)", score: Math.round(total * 0.20), max: 25 }
+        ];
+      } else {
+        builtSecs = [
+          { title: "Train Safety & Brake Inspection", score: trainSafetyScore, max: 25 },
+          { title: "Signaling & Whistle Compliance", score: signalingScore, max: 20 },
+          { title: "Shunting & Coupling Ops", score: shuntingScore, max: 15 },
+          { title: "Train Log & Guard Certificates", score: documentationScore, max: 15 },
+          { title: "Emergency Train Protection", score: emergencyScore, max: 25 },
+          { title: "Written Exam (Knowledge)", score: knowledgeScore, max: 25 }
+        ];
+      }
+    }
+
+    setAomEditSections(prev => ({ ...prev, [id]: builtSecs }));
+    setAomAomRemarks(prev => ({ ...prev, [id]: rec.aomRemarks || "" }));
+    setAomRejectMode(prev => ({ ...prev, [id]: false }));
+  };
+
+  const aomUpdateSec = (id, idx, val) => {
+    setAomEditSections(prev => {
+      const arr = [...prev[id]]; arr[idx] = { ...arr[idx], score: Math.max(0, Math.min(arr[idx].max, Number(val) || 0)) };
+      return { ...prev, [id]: arr };
+    });
+  };
+
+  const aomFinalize = (id, mode, rejectNote = "") => {
+    const setter = aomApprovalTab === "SM" ? setAomSMList : setAomTMList;
+    const listKey = aomApprovalTab === "SM" ? "ti_sm_list" : "ti_tm_list";
+    setter(prev => {
+      const updated = prev.map(item => {
+        if (item.id !== id) return item;
+        const secs  = aomEditSections[id] || [];
+        const total = secs.reduce((s, x) => s + x.score, 0);
+        const audit = [...(item.auditTrail || []), {
+          action: mode === "reject" ? "Rejected" : (mode === "modify" ? "Modified & Approved" : "Approved without modification"),
+          by: `AOM ${user?.name || ""}`,
+          date: new Date().toISOString().slice(0, 10),
+          remark: mode === "reject" ? rejectNote : (aomAomRemarks[id] || "")
+        }];
+        return {
+          ...item,
+          status: mode === "reject" ? "Rejected" : "Approved",
+          score: mode === "reject" ? item.score : total,
+          category: mode === "reject" ? item.category : aomGetCat(total),
+          aomRemarks: aomAomRemarks[id] || rejectNote,
+          auditTrail: audit,
+          sections: secs
+        };
+      });
+      localStorage.setItem(listKey, JSON.stringify(updated));
+      return updated;
+    });
+    setAomSelectedId(null);
+    setAomApprovalNotice(mode === "reject" ? "Assessment rejected." : "Assessment approved successfully.");
+    setTimeout(() => setAomApprovalNotice(""), 4000);
+    setAomReviewTab(mode === "reject" ? "Rejected" : "Approved");
+  };
+
+  const aomAllStations = [...new Set(aomCurrentList.map(x => x.station))];
   const [searchStations, setSearchStations] = useState("");
   // Chart Zoom Modal states
   const [isChartZoomModalOpen, setIsChartZoomModalOpen] = useState(false);
@@ -631,6 +1324,14 @@ function AOmModule({ user, onLogout }) {
   const [selectedSMProfile, setSelectedSMProfile] = useState(null);
   const [userShiftDrafts, setUserShiftDrafts] = useState({});
 
+  // Super Admin Replicated Stations View States
+  const [view, setView] = useState(null); // { type, data, returnTo, stationData } for station/staff drill-down pages
+  const [stF, setStF] = useState({ name: "" }); // search filter
+  const [newStName, setNewStName] = useState("");
+  const [newStCode, setNewStCode] = useState("");
+  const [newStTi, setNewStTi] = useState("TI NGP");
+  const [showAddStation, setShowAddStation] = useState(false);
+
   // States for Pointsman Under Station Master Page
   const [selectedSMForPointsmen, setSelectedSMForPointsmen] = useState(null);
   const [selectedPointsmanForMonitoring, setSelectedPointsmanForMonitoring] = useState(null);
@@ -679,6 +1380,24 @@ function AOmModule({ user, onLogout }) {
 
   const [aomPointsmen, setAomPointsmen] = useState(aomPointsmenSeed);
 
+  const [aomStationMasters, setAomStationMasters] = useState(() => {
+    const saved = localStorage.getItem("aom_station_masters");
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: "SM_1001", hrmsId: "SM_1001", name: "A. Patil", gender: "Male", age: 42, doj: "2010-05-15", basePay: "₹56,000", designation: "Station Master", role: "sm", stationName: "Nagpur Junction", stationCode: "NGP", division: "Nagpur", zone: "Central Railway", category: "A", contactNumber: "9890011122", emailId: "ngp.station@rail.in", lastAssessDate: "2026-03-20", score: 85, pmeStatus: "Fit", refStatus: "Cleared" },
+      { id: "SM_1002", hrmsId: "SM_1002", name: "R. Jadhav", gender: "Male", age: 39, doj: "2012-08-22", basePay: "₹54,000", designation: "Station Master", role: "sm", stationName: "Pune Junction", stationCode: "PUNE", division: "Pune", zone: "Central Railway", category: "A", contactNumber: "9880012233", emailId: "pune.station@rail.in", lastAssessDate: "2026-02-14", score: 72, pmeStatus: "Fit", refStatus: "Cleared" },
+      { id: "SM_1003", hrmsId: "SM_1003", name: "M. Sharma", gender: "Male", age: 45, doj: "2008-03-10", basePay: "₹62,000", designation: "Station Master", role: "sm", stationName: "New Delhi", stationCode: "NDLS", division: "Delhi", zone: "Northern Railway", category: "A", contactNumber: "9876543210", emailId: "ndls.station@rail.in", lastAssessDate: "2026-03-12", score: 84, pmeStatus: "Fit", refStatus: "Cleared" }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("aom_station_masters", JSON.stringify(aomStationMasters));
+  }, [aomStationMasters]);
+
+  const [smModal, setSmModal] = useState(null);
+  const [ssModal, setSsModal] = useState(null);
+  const [tmModal, setTmModal] = useState(null);
+
   const getPmCat = (score) => {
     if (score >= 80) return "A";
     if (score >= 50) return "B";
@@ -706,19 +1425,7 @@ function AOmModule({ user, onLogout }) {
     setActivePage("Pointsman Under Station Master");
   };
   
-    const stationMastersDirectory = stations
-      .filter((station) => Boolean(station.stationMasterName && station.stationMasterName.trim()))
-      .map((station) => ({
-        id: `${station.stationCode}-${station.stationMasterName}`,
-        name: station.stationMasterName,
-        stationName: station.stationName,
-        stationCode: station.stationCode,
-        division: station.division,
-        zone: station.zone,
-        category: station.category,
-        contactNumber: station.contactNumber || "-",
-        emailId: station.emailId || "-"
-      }));
+    const stationMastersDirectory = aomStationMasters;
   
     const filteredStationMasters = stationMastersDirectory.filter((row) => {
       const q = stationMasterSearch.trim().toLowerCase();
@@ -809,6 +1516,9 @@ function AOmModule({ user, onLogout }) {
   const [reportRows, setReportRows] = useState(initialReportRows);
   const [reportSearchQuery, setReportSearchQuery] = useState("");
   const [reportDesignation, setReportDesignation] = useState("All Designations");
+  const [repF, setRepF] = useState({ search: "", role: "All", station: "All", cat: "All", risk: "All", ti: "All" });
+  const [repApplied, setRepApplied] = useState(false);
+  const [selectedReportUserId, setSelectedReportUserId] = useState(null);
   const [assessmentActionNotice, setAssessmentActionNotice] = useState("");
   const [assessmentRoleTab, setAssessmentRoleTab] = useState("SM");
   const [openAssessmentId, setOpenAssessmentId] = useState(null);
@@ -839,6 +1549,175 @@ function AOmModule({ user, onLogout }) {
   const [empCurrentPage, setEmpCurrentPage] = useState(1);
   const [deactivatedUserIds, setDeactivatedUserIds] = useState(new Set());
   const [empShiftDrafts, setEmpShiftDrafts] = useState({});
+
+  // Role-directory filter state (shared for all 5 roles)
+  const [roleFilterName, setRoleFilterName] = useState("");
+  const [roleFilterStation, setRoleFilterStation] = useState("All");
+  const [roleFilterDivision, setRoleFilterDivision] = useState("All");
+  const [roleFilterCat, setRoleFilterCat] = useState("All");
+  const [roleFilterRisk, setRoleFilterRisk] = useState("All");
+  const [selectedRoleEmployee, setSelectedRoleEmployee] = useState(null);
+  const [roleShiftDrafts, setRoleShiftDrafts] = useState({});
+  const [tiActivatedAssessments, setTiActivatedAssessments] = useState({});
+  const [tiAssessmentFormOpen, setTiAssessmentFormOpen] = useState(null); // hrmsId of TI being assessed
+  const [tiAssessmentAnswers, setTiAssessmentAnswers] = useState({});
+
+  const [aomSuperintendents, setAomSuperintendents] = useState(() => {
+    const saved = localStorage.getItem("aom_superintendents");
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: 1, employeeId: "SS_001", name: "R. Desai", role: "ss", designation: "Station Superintendent", station: "Nagpur Junction", division: "Nagpur", zone: "Central Railway", cat: "A", risk: "Low", score: 92, contact: "9999911111", email: "rdesai@rail.in", lastDate: "2026-04-18", status: "Approved" },
+      { id: 2, employeeId: "SS_002", name: "M. Kulkarni", role: "ss", designation: "Station Superintendent", station: "Parbhani Junction", division: "Nagpur", zone: "Central Railway", cat: "A", risk: "Low", score: 87, contact: "9999922222", email: "mkulkarni@rail.in", lastDate: "2026-04-10", status: "Approved" }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("aom_superintendents", JSON.stringify(aomSuperintendents));
+  }, [aomSuperintendents]);
+
+  const [aomTrainManagers, setAomTrainManagers] = useState(() => {
+    const saved = localStorage.getItem("aom_train_managers");
+    if (saved) return JSON.parse(saved);
+    return [
+      { id: 1, employeeId: "TM_3001", name: "V. Sharma", role: "tm", designation: "Train Manager", station: "Nagpur Junction", division: "Nagpur", zone: "Central Railway", cat: "A", risk: "Low", score: 89, contact: "9999988888", email: "vsharma@rail.in", lastDate: "2026-04-14", status: "Approved", workLocation: "Nagpur Depot", reportingSm: "NGP-BSL Section", shift: "Goods Train Beat" },
+      { id: 2, employeeId: "TM_3002", name: "P. Jadhav", role: "tm", designation: "Train Manager", station: "Amla Junction", division: "Nagpur", zone: "Central Railway", cat: "C", risk: "High", score: 52, contact: "9999999999", email: "pjadhav@rail.in", lastDate: "2026-03-10", status: "Rejected", workLocation: "Nagpur Depot", reportingSm: "NGP-BSL Section", shift: "Goods Train Beat" }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("aom_train_managers", JSON.stringify(aomTrainManagers));
+  }, [aomTrainManagers]);
+
+  const allEmployees = useMemo(() => {
+    return [
+      ...aomPointsmen.map((p) => ({
+        hrmsId: p.hrmsId,
+        name: p.name,
+        gender: p.gender || "Male",
+        age: p.age || 35,
+        doj: p.doj || "2018-06-15",
+        basePay: p.basePay || "₹28,500",
+        designation: "Pointsman",
+        role: "pointsmen",
+        stationName: p.stationName,
+        stationCode: p.stationCode,
+        division: p.stationCode === "NGP" ? "Nagpur" : p.stationCode === "PUNE" ? "Pune" : "Mumbai",
+        zone: p.zone || "CR",
+        category: getPmCat(p.lastScore),
+        riskLevel: getPmRisk(p),
+        assessmentStatus: p.approvalStatus,
+        lastScore: p.lastScore,
+        safetyScore: p.safetyScore,
+        totalAssessments: p.totalAssessments,
+        lastAssessedDate: p.lastAssessDate || "2026-03-28",
+        monitoringStatus: deactivatedUserIds.has(p.hrmsId) ? "Deactivated" : (p.monitoringStatus || "Active"),
+        contactNumber: p.contact || "—",
+        emailId: p.email || `${p.hrmsId.toLowerCase()}@rail.in`
+      })),
+      ...aomStationMasters.map((sm, idx) => {
+        const smHrmsId = sm.hrmsId || sm.id || `SM_${1001 + idx}`;
+        return {
+          hrmsId: smHrmsId,
+          name: sm.name,
+          gender: sm.gender || "Male",
+          age: sm.age || 42,
+          doj: sm.doj || "2010-05-15",
+          basePay: sm.basePay || "₹56,000",
+          designation: "Station Master",
+          role: "sm",
+          stationName: sm.stationName,
+          stationCode: sm.stationCode,
+          division: sm.division,
+          zone: sm.zone || "CR",
+          category: sm.category || "A",
+          riskLevel: sm.riskLevel || (idx % 3 === 0 ? "Medium" : "Low"),
+          assessmentStatus: sm.assessmentStatus || (idx % 2 === 0 ? "Approved" : "Pending"),
+          lastScore: sm.lastScore || sm.score || 85,
+          safetyScore: sm.safetyScore || 90,
+          totalAssessments: sm.totalAssessments || 10,
+          lastAssessedDate: sm.lastAssessedDate || sm.lastAssessDate || "2026-04-12",
+          monitoringStatus: deactivatedUserIds.has(smHrmsId) ? "Deactivated" : (sm.monitoringStatus || "Active"),
+          contactNumber: sm.contactNumber || sm.contact || "—",
+          emailId: sm.emailId || sm.email || `${smHrmsId.toLowerCase()}@rail.in`
+        };
+      }),
+      ...aomSuperintendents.map((ss) => ({
+        hrmsId: ss.employeeId,
+        name: ss.name,
+        gender: "Male",
+        age: 46,
+        doj: "2008-03-12",
+        basePay: "₹62,000",
+        designation: "Station Superintendent",
+        role: "ss",
+        stationName: ss.station,
+        stationCode: ss.station === "Nagpur Junction" ? "NGP" : "PBN",
+        division: ss.division,
+        zone: ss.zone || "CR",
+        category: ss.cat || "A",
+        riskLevel: ss.risk || "Low",
+        assessmentStatus: ss.status || "Approved",
+        lastScore: ss.score,
+        safetyScore: ss.score + 4,
+        totalAssessments: 11,
+        lastAssessedDate: ss.lastDate || "2026-04-18",
+        monitoringStatus: deactivatedUserIds.has(ss.employeeId) ? "Deactivated" : "Active",
+        contactNumber: ss.contact || "—",
+        emailId: ss.email || `${ss.employeeId.toLowerCase()}@rail.in`
+      })),
+      ...aomTrainManagers.map((tm) => ({
+        hrmsId: tm.employeeId,
+        name: tm.name,
+        gender: "Male",
+        age: 39,
+        doj: "2014-09-05",
+        basePay: "₹48,000",
+        designation: "Train Manager",
+        role: "tm",
+        stationName: tm.station,
+        stationCode: tm.station === "Nagpur Junction" ? "NGP" : "AMLA",
+        division: tm.division,
+        zone: tm.zone || "CR",
+        category: tm.cat || "A",
+        riskLevel: tm.risk || "Low",
+        assessmentStatus: tm.status || "Approved",
+        lastScore: tm.score,
+        safetyScore: tm.score + 3,
+        totalAssessments: 8,
+        lastAssessedDate: tm.lastDate || "2026-04-14",
+        monitoringStatus: deactivatedUserIds.has(tm.employeeId) ? "Deactivated" : "Active",
+        contactNumber: tm.contact || "—",
+        emailId: tm.email || `${tm.employeeId.toLowerCase()}@rail.in`,
+        workLocation: tm.workLocation || "Nagpur Depot",
+        reportingSm: tm.reportingSm || "NGP-BSL Section",
+        shift: tm.shift || "Goods Train Beat"
+      })),
+      ...trafficInspectors.map((ti, idx) => ({
+        hrmsId: ti.employeeId,
+        name: ti.name,
+        gender: "Male",
+        age: 48,
+        doj: "2006-11-20",
+        basePay: "₹68,000",
+        designation: "Traffic Inspector",
+        role: "ti",
+        stationName: "Division HQ",
+        stationCode: "HQ",
+        division: ti.division || "Nagpur",
+        zone: "CR",
+        category: ti.category || "Senior TI",
+        riskLevel: "Low",
+        assessmentStatus: ti.assessmentStatus === "Completed" ? "Approved" : "Pending",
+        lastScore: ti.lastScore || 88,
+        safetyScore: 95,
+        totalAssessments: 8,
+        lastAssessedDate: "2026-03-15",
+        monitoringStatus: deactivatedUserIds.has(ti.employeeId) ? "Deactivated" : "Active",
+        contactNumber: ti.phone || "—",
+        emailId: ti.email || `${ti.employeeId.toLowerCase()}@rail.in`
+      }))
+    ];
+  }, [aomPointsmen, aomStationMasters, stations, aomSuperintendents, aomTrainManagers, trafficInspectors, deactivatedUserIds]);
 
   const pageSize = 8;
   const stationPageSize = 8;
@@ -1176,6 +2055,9 @@ function AOmModule({ user, onLogout }) {
   });
 
   const handleSidebarClick = (label) => {
+    setView(null);
+    setSelectedReportUserId(null);
+    setRepApplied(false);
     setActivePage(label);
 
     if (label !== "Add Station") {
@@ -1188,7 +2070,19 @@ function AOmModule({ user, onLogout }) {
       setStationDetailId(null);
       setIsStationEditMode(false);
     }
+
+    // Reset role-directory filters when switching between role pages
+    if (["Pointsmen", "Station Masters", "Station Superintendents", "Train Managers", "Traffic Inspectors"].includes(label)) {
+      setRoleFilterName("");
+      setRoleFilterStation("All");
+      setRoleFilterDivision("All");
+      setRoleFilterCat("All");
+      setRoleFilterRisk("All");
+      setSelectedRoleEmployee(null);
+      setTiAssessmentFormOpen(null);
+    }
   };
+
 
   const handleStationSubPage = (label) => {
     setActivePage(label);
@@ -2410,6 +3304,861 @@ function AOmModule({ user, onLogout }) {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPmModal = () => {
+    if (!pmModal) return null;
+    const isShift = pmModal.mode === "shift";
+    return (
+      <div className="sdom-modal-overlay" style={{ zIndex: 99999 }} onClick={e=>e.target===e.currentTarget&&setPmModal(null)}>
+        <div className="sdom-modal" style={!isShift ? { width: "900px", maxWidth: "95vw" } : undefined}>
+          
+          {!isShift ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Header inside modal */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+                  color: "#ffffff"
+                }}>
+                  <UserPlus size={28} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                    {pmModal.mode === "edit" ? "EDIT OPERATIONAL POINTSMAN" : "ADD NEW OPERATIONAL POINTSMAN"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                    Role-Based Operational Staff Provisioning & Management Console
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 1: General & Contact Information */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  1. General & Contact Information
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Full Name *</label>
+                    <input 
+                      value={pmModal.data.name || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))} 
+                      placeholder="Enter full name (e.g. A. K. Sharma)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Mobile Number *</label>
+                    <input 
+                      value={pmModal.data.contact || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, contact: e.target.value } }))} 
+                      placeholder="Enter 10-digit mobile number" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>HRMS ID / Employee ID *</label>
+                    <input 
+                      value={pmModal.data.hrmsId || ""} 
+                      disabled={pmModal.mode === "edit"}
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, hrmsId: e.target.value } }))} 
+                      placeholder="Enter unique ID (e.g. PM_8820)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Email ID *</label>
+                    <input 
+                      value={pmModal.data.email || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, email: e.target.value } }))} 
+                      placeholder="Enter email address (e.g. user@rail.in)" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Designation & Station Placement Setup */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  2. Designation & Station Placement Setup
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Role / Designation *</label>
+                    <select value="pointsmen" disabled>
+                      <option value="pointsmen">Pointsman</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Division *</label>
+                    <select 
+                      value={pmModal.data.division || "Nagpur"} 
+                      onChange={e => {
+                        const div = e.target.value;
+                        setPmModal(p => ({ ...p, data: { ...p.data, division: div } }));
+                      }}
+                    >
+                      {["Nagpur", "Pune", "Mumbai", "Solapur", "Bhusawal"].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Railway Zone *</label>
+                    <select 
+                      value={pmModal.data.zone || "Central Railway"} 
+                      onChange={e => {
+                        const zone = e.target.value;
+                        setPmModal(p => ({ ...p, data: { ...p.data, zone: zone } }));
+                      }}
+                    >
+                      {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Station Name *</label>
+                    <select 
+                      value={pmModal.data.stationName || ""} 
+                      onChange={e => {
+                        const stName = e.target.value;
+                        const matchedSt = stations.find(s => s.stationName === stName);
+                        setPmModal(p => ({ 
+                          ...p, 
+                          data: { 
+                            ...p.data, 
+                            stationName: stName, 
+                            stationCode: matchedSt ? matchedSt.stationCode : p.data.stationCode 
+                          } 
+                        }));
+                      }}
+                    >
+                      <option value="">Select Station</option>
+                      {stations.map(s => <option key={s.id || s.stationCode} value={s.stationName}>{s.stationName}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Category *</label>
+                    <select 
+                      value={pmModal.data.cat || "A"} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, cat: e.target.value } }))}
+                    >
+                      <option>A</option><option>B</option><option>C</option><option>D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Pointsman Operational Setup */}
+              <div style={{ padding: 18, background: "#f0f7ff", border: "1px solid #c2e0ff", borderRadius: 10 }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                  Pointsman Operational Setup
+                </h4>
+                <div style={{ height: '1px', backgroundColor: '#c2e0ff', marginBottom: '16px' }}></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Reporting Station Master *</label>
+                    <input 
+                      value={pmModal.data.reportingSm || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, reportingSm: e.target.value } }))} 
+                      placeholder="Station Master Name"
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Work Location Setup *</label>
+                    <select 
+                      value={pmModal.data.workLocation || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, workLocation: e.target.value } }))}
+                    >
+                      <option value="">Select Location</option>
+                      <option value="Yard">Yard Area</option>
+                      <option value="Cabin A">Cabin A</option>
+                      <option value="Cabin B">Cabin B</option>
+                      <option value="Platform Area">Platform Area</option>
+                      <option value="Level Crossing Gate">Level Crossing Gate</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Assigned Shift *</label>
+                    <select 
+                      value={pmModal.data.shift || ""} 
+                      onChange={e => setPmModal(p => ({ ...p, data: { ...p.data, shift: e.target.value } }))}
+                    >
+                      <option value="">Select Shift</option>
+                      <option value="Morning Shift (06:00 - 14:00)">Morning Shift (06:00 - 14:00)</option>
+                      <option value="Evening Shift (14:00 - 22:00)">Evening Shift (14:00 - 22:00)</option>
+                      <option value="Night Shift (22:00 - 06:00)">Night Shift (22:00 - 06:00)</option>
+                      <option value="General Shift (09:00 - 18:00)">General Shift (09:00 - 18:00)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="sdom-modal-title" style={{ marginBottom: 20 }}>Shift Staff Role</div>
+              <div className="sdom-modal-field">
+                <label>Role (Shift to)</label>
+                <select 
+                  value={pmModal.role || "pointsmen"} 
+                  onChange={e=>setPmModal(p=>({...p, role: e.target.value}))}
+                >
+                  <option value="pointsmen">Pointsman</option>
+                  <option value="sm">Station Master</option>
+                  <option value="ss">Station Superintendent</option>
+                  <option value="tm">Train Manager</option>
+                  <option value="ti">Traffic Inspector</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" style={{ flex: 1 }} onClick={savePmModal}>
+              {pmModal.mode === "edit" ? "🔒 UPDATE POINTSMAN" : isShift ? "🔄 SHIFT POINTSMAN ROLE" : "👤 ADD POINTSMAN"}
+            </button>
+            <button className="sdom-btn-ghost" style={{ flex: 1 }} onClick={()=>setPmModal(null)}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSmModal = () => {
+    if (!smModal) return null;
+    const isShift = smModal.mode === "shift";
+    const ROLE_MAP = { pointsmen: "Pointsman", sm: "Station Master", ss: "Station Superintendent", tm: "Train Manager", ti: "Traffic Inspector" };
+    return (
+      <div className="sdom-modal-overlay" style={{ zIndex: 99999 }} onClick={e=>e.target===e.currentTarget&&setSmModal(null)}>
+        <div className="sdom-modal" style={!isShift ? { width: "900px", maxWidth: "95vw" } : undefined}>
+          
+          {!isShift ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Header inside modal */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+                  color: "#ffffff"
+                }}>
+                  <UserPlus size={28} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                    {smModal.mode === "edit" ? "EDIT STATION MASTER" : "ADD NEW STATION MASTER"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                    Role-Based Operational Staff Provisioning & Management Console
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 1: General & Contact Information */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  1. General & Contact Information
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Full Name *</label>
+                    <input 
+                      value={smModal.data.name || ""} 
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))} 
+                      placeholder="Enter full name (e.g. A. K. Sharma)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Mobile Number *</label>
+                    <input 
+                      value={smModal.data.contact || smModal.data.contactNumber || ""} 
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, contact: e.target.value, contactNumber: e.target.value } }))} 
+                      placeholder="Enter 10-digit mobile number" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>HRMS ID / Employee ID *</label>
+                    <input 
+                      value={smModal.data.hrmsId || smModal.data.id || ""} 
+                      disabled={smModal.mode === "edit"}
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, hrmsId: e.target.value, id: e.target.value } }))} 
+                      placeholder="Enter unique ID (e.g. SM_8820)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Email ID *</label>
+                    <input 
+                      value={smModal.data.email || smModal.data.emailId || ""} 
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, email: e.target.value, emailId: e.target.value } }))} 
+                      placeholder="Enter email address (e.g. user@rail.in)" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Designation & Station Placement Setup */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  2. Designation & Station Placement Setup
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Role / Designation *</label>
+                    <select value="sm" disabled>
+                      <option value="sm">Station Master</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Division *</label>
+                    <select 
+                      value={smModal.data.smDivision || "Nagpur"} 
+                      onChange={e => {
+                        const div = e.target.value;
+                        setSmModal(p => ({ ...p, data: { ...p.data, smDivision: div, division: div } }));
+                      }}
+                    >
+                      {["Nagpur", "Pune", "Mumbai", "Delhi", "Chennai"].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Railway Zone *</label>
+                    <select 
+                      value={smModal.data.smZone || "Central Railway"} 
+                      onChange={e => {
+                        const zone = e.target.value;
+                        setSmModal(p => ({ ...p, data: { ...p.data, smZone: zone, zone } }));
+                      }}
+                    >
+                      {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Station Name *</label>
+                    <select 
+                      value={smModal.data.smStation || ""} 
+                      onChange={e => {
+                        const stName = e.target.value;
+                        setSmModal(p => ({ ...p, data: { ...p.data, smStation: stName, stationName: stName } }));
+                      }}
+                    >
+                      {stations.map(st => <option key={st.id} value={st.stationName}>{st.stationName}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Category *</label>
+                    <select 
+                      value={smModal.data.cat || smModal.data.category || "A"} 
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, cat: e.target.value, category: e.target.value } }))}
+                    >
+                      <option>A</option><option>B</option><option>C</option><option>D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Station Master Operational Setup */}
+              <div style={{ padding: 18, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10 }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                  Station Master Operational Setup
+                </h4>
+                <div style={{ height: '1px', backgroundColor: '#a7f3d0', marginBottom: '16px' }}></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Operational Station *</label>
+                    <select 
+                      value={smModal.data.smStation || ""} 
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, smStation: e.target.value, stationName: e.target.value } }))}
+                    >
+                      <option value="">Select Operational Station</option>
+                      {stations.map(st => <option key={st.id} value={st.stationName}>{st.stationName}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Operational Zone *</label>
+                    <select 
+                      value={smModal.data.smZone || ""} 
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, smZone: e.target.value, zone: e.target.value } }))}
+                    >
+                      <option value="">Select Zone</option>
+                      {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Operational Division *</label>
+                    <select 
+                      value={smModal.data.smDivision || ""} 
+                      onChange={e => setSmModal(p => ({ ...p, data: { ...p.data, smDivision: e.target.value, division: e.target.value } }))}
+                    >
+                      <option value="">Select Division</option>
+                      {["Nagpur", "Pune", "Mumbai", "Delhi", "Chennai"].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="sdom-modal-title" style={{ marginBottom: 20 }}>Shift Station Master Role</div>
+              <div className="sdom-modal-field">
+                <label>Role (Shift to)</label>
+                <select 
+                  value={smModal.role || "sm"} 
+                  onChange={e => setSmModal(p => ({ ...p, role: e.target.value }))}
+                >
+                  {Object.entries(ROLE_MAP).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" style={{ flex: 1 }} onClick={saveSmModal}>
+              {smModal.mode === "edit" ? "🔒 UPDATE STATION MASTER" : isShift ? "🔄 SHIFT STATION MASTER ROLE" : "👤 ADD STATION MASTER"}
+            </button>
+            <button className="sdom-btn-ghost" style={{ flex: 1 }} onClick={()=>setSmModal(null)}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSsModal = () => {
+    if (!ssModal) return null;
+    const isShift = ssModal.mode === "shift";
+    const ROLE_MAP = { pointsmen: "Pointsman", sm: "Station Master", ss: "Station Superintendent", tm: "Train Manager", ti: "Traffic Inspector" };
+    return (
+      <div className="sdom-modal-overlay" style={{ zIndex: 99999 }} onClick={e=>e.target===e.currentTarget&&setSsModal(null)}>
+        <div className="sdom-modal" style={!isShift ? { width: "900px", maxWidth: "95vw" } : undefined}>
+          
+          {!isShift ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Header inside modal */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+                  color: "#ffffff"
+                }}>
+                  <UserPlus size={28} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                    {ssModal.mode === "edit" ? "EDIT STATION SUPERINTENDENT" : "ADD NEW STATION SUPERINTENDENT"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                    Role-Based Operational Staff Provisioning & Management Console
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 1: General & Contact Information */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  1. General & Contact Information
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Full Name *</label>
+                    <input 
+                      value={ssModal.data.name || ""} 
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))} 
+                      placeholder="Enter full name (e.g. A. K. Sharma)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Mobile Number *</label>
+                    <input 
+                      value={ssModal.data.contact || ssModal.data.contactNumber || ""} 
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, contact: e.target.value, contactNumber: e.target.value } }))} 
+                      placeholder="Enter 10-digit mobile number" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>HRMS ID / Employee ID *</label>
+                    <input 
+                      value={ssModal.data.employeeId || ssModal.data.id || ""} 
+                      disabled={ssModal.mode === "edit"}
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, employeeId: e.target.value, id: e.target.value } }))} 
+                      placeholder="Enter unique ID (e.g. SS_8820)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Email ID *</label>
+                    <input 
+                      value={ssModal.data.email || ssModal.data.emailId || ""} 
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, email: e.target.value, emailId: e.target.value } }))} 
+                      placeholder="Enter email address (e.g. user@rail.in)" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Designation & Station Placement Setup */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  2. Designation & Station Placement Setup
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Role / Designation *</label>
+                    <select value="ss" disabled>
+                      <option value="ss">Station Superintendent</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Division *</label>
+                    <select 
+                      value={ssModal.data.smDivision || "Nagpur"} 
+                      onChange={e => {
+                        const div = e.target.value;
+                        setSsModal(p => ({ ...p, data: { ...p.data, smDivision: div, division: div } }));
+                      }}
+                    >
+                      {["Nagpur", "Pune", "Mumbai", "Delhi", "Chennai"].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Railway Zone *</label>
+                    <select 
+                      value={ssModal.data.smZone || "Central Railway"} 
+                      onChange={e => {
+                        const zone = e.target.value;
+                        setSsModal(p => ({ ...p, data: { ...p.data, smZone: zone, zone } }));
+                      }}
+                    >
+                      {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Station Name *</label>
+                    <select 
+                      value={ssModal.data.smStation || ""} 
+                      onChange={e => {
+                        const stName = e.target.value;
+                        setSsModal(p => ({ ...p, data: { ...p.data, smStation: stName, station: stName } }));
+                      }}
+                    >
+                      {stations.map(st => <option key={st.id} value={st.stationName}>{st.stationName}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Category *</label>
+                    <select 
+                      value={ssModal.data.cat || ssModal.data.category || "A"} 
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, cat: e.target.value, category: e.target.value } }))}
+                    >
+                      <option>A</option><option>B</option><option>C</option><option>D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Station Superintendent Operational Setup */}
+              <div style={{ padding: 18, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10 }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                  Station Superintendent Operational Setup
+                </h4>
+                <div style={{ height: '1px', backgroundColor: '#a7f3d0', marginBottom: '16px' }}></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Operational Station *</label>
+                    <select 
+                      value={ssModal.data.smStation || ""} 
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, smStation: e.target.value, station: e.target.value } }))}
+                    >
+                      <option value="">Select Operational Station</option>
+                      {stations.map(st => <option key={st.id} value={st.stationName}>{st.stationName}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Operational Zone *</label>
+                    <select 
+                      value={ssModal.data.smZone || ""} 
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, smZone: e.target.value, zone: e.target.value } }))}
+                    >
+                      <option value="">Select Zone</option>
+                      {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Operational Division *</label>
+                    <select 
+                      value={ssModal.data.smDivision || ""} 
+                      onChange={e => setSsModal(p => ({ ...p, data: { ...p.data, smDivision: e.target.value, division: e.target.value } }))}
+                    >
+                      <option value="">Select Division</option>
+                      {["Nagpur", "Pune", "Mumbai", "Delhi", "Chennai"].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="sdom-modal-title" style={{ marginBottom: 20 }}>Shift Station Superintendent Role</div>
+              <div className="sdom-modal-field">
+                <label>Role (Shift to)</label>
+                <select 
+                  value={ssModal.role || "ss"} 
+                  onChange={e => setSsModal(p => ({ ...p, role: e.target.value }))}
+                >
+                  {Object.entries(ROLE_MAP).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" style={{ flex: 1 }} onClick={saveSsModal}>
+              {ssModal.mode === "edit" ? "🔒 UPDATE STATION SUPERINTENDENT" : isShift ? "🔄 SHIFT STATION SUPERINTENDENT ROLE" : "👤 ADD STATION SUPERINTENDENT"}
+            </button>
+            <button className="sdom-btn-ghost" style={{ flex: 1 }} onClick={()=>setSsModal(null)}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTmModal = () => {
+    if (!tmModal) return null;
+    const isShift = tmModal.mode === "shift";
+    const ROLE_MAP = { pointsmen: "Pointsman", sm: "Station Master", ss: "Station Superintendent", tm: "Train Manager", ti: "Traffic Inspector" };
+    return (
+      <div className="sdom-modal-overlay" style={{ zIndex: 99999 }} onClick={e=>e.target===e.currentTarget&&setTmModal(null)}>
+        <div className="sdom-modal" style={!isShift ? { width: "900px", maxWidth: "95vw" } : undefined}>
+          
+          {!isShift ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Header inside modal */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+                  color: "#ffffff"
+                }}>
+                  <UserPlus size={28} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                    {tmModal.mode === "edit" ? "EDIT TRAIN MANAGER" : "ADD NEW TRAIN MANAGER"}
+                  </h2>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                    Role-Based Operational Staff Provisioning & Management Console
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 1: General & Contact Information */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  1. General & Contact Information
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Full Name *</label>
+                    <input 
+                      value={tmModal.data.name || ""} 
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, name: e.target.value } }))} 
+                      placeholder="Enter full name (e.g. A. K. Sharma)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Mobile Number *</label>
+                    <input 
+                      value={tmModal.data.contact || ""} 
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, contact: e.target.value } }))} 
+                      placeholder="Enter 10-digit mobile number" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>HRMS ID / Employee ID *</label>
+                    <input 
+                      value={tmModal.data.employeeId || ""} 
+                      disabled={tmModal.mode === "edit"}
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, employeeId: e.target.value } }))} 
+                      placeholder="Enter unique ID (e.g. TM_3001)" 
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Email ID *</label>
+                    <input 
+                      value={tmModal.data.email || ""} 
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, email: e.target.value } }))} 
+                      placeholder="Enter email address (e.g. user@rail.in)" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Designation & Station Placement Setup */}
+              <div>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+                  2. Designation & Station Placement Setup
+                </h4>
+                <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Role / Designation *</label>
+                    <select value="tm" disabled>
+                      <option value="tm">Train Manager</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Division *</label>
+                    <select 
+                      value={tmModal.data.division || "Nagpur"} 
+                      onChange={e => {
+                        const div = e.target.value;
+                        setTmModal(p => ({ ...p, data: { ...p.data, division: div } }));
+                      }}
+                    >
+                      {["Nagpur", "Pune", "Mumbai", "Delhi", "Chennai"].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Railway Zone *</label>
+                    <select 
+                      value={tmModal.data.zone || "Central Railway"} 
+                      onChange={e => {
+                        const zone = e.target.value;
+                        setTmModal(p => ({ ...p, data: { ...p.data, zone: zone } }));
+                      }}
+                    >
+                      {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Station Name *</label>
+                    <select 
+                      value={tmModal.data.station || ""} 
+                      onChange={e => {
+                        const stName = e.target.value;
+                        setTmModal(p => ({ ...p, data: { ...p.data, station: stName } }));
+                      }}
+                    >
+                      {stations.map(st => <option key={st.id} value={st.stationName}>{st.stationName}</option>)}
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Category *</label>
+                    <select 
+                      value={tmModal.data.cat || "A"} 
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, cat: e.target.value } }))}
+                    >
+                      <option>A</option><option>B</option><option>C</option><option>D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Train Manager Operational Setup */}
+              <div style={{ padding: 18, background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: 10 }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b21a8', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                  Train Manager Operational Setup
+                </h4>
+                <div style={{ height: '1px', backgroundColor: '#e9d5ff', marginBottom: '16px' }}></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="sdom-modal-field">
+                    <label>Crew Depot *</label>
+                    <select 
+                      value={tmModal.data.workLocation || "Nagpur Depot"} 
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, workLocation: e.target.value } }))}
+                    >
+                      <option value="Nagpur Depot">Nagpur Depot</option>
+                      <option value="Pune Depot">Pune Depot</option>
+                      <option value="Mumbai Depot">Mumbai Depot</option>
+                      <option value="Solapur Depot">Solapur Depot</option>
+                      <option value="Bhusawal Depot">Bhusawal Depot</option>
+                    </select>
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Assigned Section Beats *</label>
+                    <input 
+                      value={tmModal.data.reportingSm || "NGP-BSL Section"} 
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, reportingSm: e.target.value } }))} 
+                      placeholder="E.g. NGP-BSL, NGP-DURG"
+                    />
+                  </div>
+                  <div className="sdom-modal-field">
+                    <label>Assigned Shift *</label>
+                    <select 
+                      value={tmModal.data.shift || "Goods Train Beat"} 
+                      onChange={e => setTmModal(p => ({ ...p, data: { ...p.data, shift: e.target.value } }))}
+                    >
+                      <option value="Mail/Express Beat">Mail/Express Beat</option>
+                      <option value="Passenger Beat">Passenger Beat</option>
+                      <option value="Goods Train Beat">Goods Train Beat</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="sdom-modal-title" style={{ marginBottom: 20 }}>Shift Train Manager Role</div>
+              <div className="sdom-modal-field">
+                <label>Role (Shift to)</label>
+                <select 
+                  value={tmModal.role || "tm"} 
+                  onChange={e => setTmModal(p => ({ ...p, role: e.target.value }))}
+                >
+                  {Object.entries(ROLE_MAP).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" style={{ flex: 1 }} onClick={saveTmModal}>
+              {tmModal.mode === "edit" ? "🔒 UPDATE TRAIN MANAGER" : isShift ? "🔄 SHIFT TRAIN MANAGER ROLE" : "👤 ADD TRAIN MANAGER"}
+            </button>
+            <button className="sdom-btn-ghost" style={{ flex: 1 }} onClick={()=>setTmModal(null)}>Cancel</button>
           </div>
         </div>
       </div>
@@ -3734,6 +5483,867 @@ function AOmModule({ user, onLogout }) {
     document.body.removeChild(link);
   };
 
+  // ── Helper: reset role filters when switching roles
+  const resetRoleFilters = () => {
+    setRoleFilterName("");
+    setRoleFilterStation("All");
+    setRoleFilterDivision("All");
+    setRoleFilterCat("All");
+    setRoleFilterRisk("All");
+    setSelectedRoleEmployee(null);
+    setTiAssessmentFormOpen(null);
+  };
+
+  // ── Reusable role directory renderer (SA-style)
+  const renderAomRole = (roleKey, title) => {
+    // If a profile detail is being viewed
+    if (selectedRoleEmployee && selectedRoleEmployee._roleKey === roleKey) {
+      const s = selectedRoleEmployee;
+      const scoreData = MONTHLY_TREND.map((m, i) => ({ month: m.month, score: Math.max(50, (s.lastScore || 80) - 10 + i * 2) }));
+      const roleLabel = { pointsmen: "Pointsman", sm: "Station Master", ss: "Station Superintendent", tm: "Train Manager", ti: "Traffic Inspector" }[roleKey] || title;
+      return (
+        <div className="sdom-fade">
+          <div style={{ marginBottom: 24 }}>
+            <button className="sdom-back-btn" onClick={() => setSelectedRoleEmployee(null)}>
+              <ArrowLeft size={16} /> Back to List
+            </button>
+          </div>
+          <div className="sdom-station-header" style={{ marginBottom: 24 }}>
+            <div className="sdom-station-header-meta">
+              <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Staff Profile</div>
+              <div style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 4 }}>{s.name}</div>
+              <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>{roleLabel} &bull; {s.stationName} &bull; {s.zone || "Central Railway"}</div>
+              <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+                <span className={`sdom-badge ${{ A: "sdom-badge-success", B: "sdom-badge-info", C: "sdom-badge-warning", D: "sdom-badge-danger" }[s.category] || "sdom-badge-neutral"}`}>{s.category}</span>
+                <span className={`sdom-badge ${{ Low: "sdom-badge-success", Medium: "sdom-badge-warning", High: "sdom-badge-danger" }[s.riskLevel] || "sdom-badge-neutral"}`}>{s.riskLevel}</span>
+                <span className={`sdom-badge ${{ Approved: "sdom-badge-success", Pending: "sdom-badge-warning", Rejected: "sdom-badge-danger" }[s.assessmentStatus] || "sdom-badge-neutral"}`}>{s.assessmentStatus}</span>
+              </div>
+            </div>
+            <div className="sdom-station-header-stats">
+              <div className="sdom-station-header-stat"><span className="val">{s.lastScore || "–"}</span><span className="lbl">Latest Score</span></div>
+              <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+              <div className="sdom-station-header-stat"><span className="val">{s.contactNumber || "—"}</span><span className="lbl">Contact</span></div>
+              <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+              <div className="sdom-station-header-stat"><span className="val">{s.lastAssessedDate || "—"}</span><span className="lbl">Last Assessment</span></div>
+            </div>
+          </div>
+          <div className="sdom-row-2">
+            <div className="sdom-chart-card">
+              <div className="sdom-chart-title" style={{ marginBottom: 16 }}>Personal &amp; Professional Details</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 15, paddingBottom: 20 }}>
+                {[
+                  ["HRMS ID", s.hrmsId],
+                  ["Designation", roleLabel],
+                  ["Mobile Number", s.contactNumber || "N/A"],
+                  ["Email ID", s.emailId || `${s.hrmsId?.toLowerCase()}@rail.in`],
+                  ["Account Status", s.monitoringStatus || "Active"],
+                  ["Zone", s.zone || "Central Railway"],
+                  ["Division", s.division || "Nagpur"],
+                  ["Station", s.stationName],
+                ].map(([lbl, val]) => (
+                  <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "12px 16px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                    <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.9rem" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Operational Specifications */}
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '14px', color: '#0f172a', fontWeight: '800', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px' }}>
+                  Operational Profile Specifications
+                </h4>
+                
+                {s.role === "pointsmen" && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '13px' }}>
+                    <div><strong>Reporting Station Master:</strong><div style={{fontWeight: 700, color: "#1e3a5f", marginTop: 4}}>{s.reportingSm || "S. Deshmukh (SM)"}</div></div>
+                    <div><strong>Assigned Shift:</strong><div style={{fontWeight: 700, color: "#1e3a5f", marginTop: 4}}>{s.shift || "Morning Shift (06:00 - 14:00)"}</div></div>
+                    <div><strong>Work Location Setup:</strong><div style={{fontWeight: 700, color: "#1e3a5f", marginTop: 4}}>{s.workLocation || "Yard Area"}</div></div>
+                  </div>
+                )}
+
+                {(s.role === "sm" || s.role === "ss") && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '13px' }}>
+                    <div><strong>Operational Station:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>{s.smStation || s.stationName || "N/A"}</div></div>
+                    <div><strong>Operational Division:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>{s.smDivision || s.division || "Nagpur"}</div></div>
+                    <div><strong>Operational Zone:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>{s.smZone || s.zone || "Central Railway"}</div></div>
+                  </div>
+                )}
+
+                {s.role === "tm" && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '13px' }}>
+                    <div><strong>Crew Depot:</strong><div style={{fontWeight: 700, color: "#6b21a8", marginTop: 4}}>{s.workLocation || "Nagpur Depot"}</div></div>
+                    <div><strong>Assigned Shift:</strong><div style={{fontWeight: 700, color: "#6b21a8", marginTop: 4}}>{s.shift || "Goods Train Beat"}</div></div>
+                    <div><strong>Assigned Section Beats:</strong><div style={{fontWeight: 700, color: "#6b21a8", marginTop: 4}}>{s.reportingSm || "NGP-BSL Section"}</div></div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="sdom-chart-card">
+              <div className="sdom-chart-title">Score Trend</div>
+              <div className="sdom-chart-subtitle">Assessment score progression</div>
+              <div style={{ height: 300 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={scoreData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" fontSize={11} />
+                    <YAxis domain={[40, 100]} fontSize={11} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // TI Assessment fill form
+    if (roleKey === "ti" && tiAssessmentFormOpen) {
+      const tiEmployee = allEmployees.find(e => e.hrmsId === tiAssessmentFormOpen && e.role === "ti");
+      const answers = tiAssessmentAnswers[tiAssessmentFormOpen] || {};
+      const totalMarks = assessmentCriteria.reduce((t, c) => t + c.marks, 0);
+      const scored = assessmentCriteria.reduce((t, c) => t + (answers[c.key] === "yes" ? c.marks : 0), 0);
+      return (
+        <div className="sdom-fade">
+          <div style={{ marginBottom: 24 }}>
+            <button className="sdom-back-btn" onClick={() => setTiAssessmentFormOpen(null)}>
+              <ArrowLeft size={16} /> Back to Traffic Inspectors
+            </button>
+          </div>
+          <div className="sdom-station-header" style={{ marginBottom: 24 }}>
+            <div className="sdom-station-header-meta">
+              <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase" }}>Traffic Inspector Assessment</div>
+              <div style={{ fontSize: "1.6rem", fontWeight: 800, marginBottom: 4 }}>{tiEmployee?.name || tiAssessmentFormOpen}</div>
+              <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>HRMS: {tiAssessmentFormOpen} &bull; Division: {tiEmployee?.division || "–"}</div>
+            </div>
+            <div className="sdom-station-header-stats">
+              <div className="sdom-station-header-stat"><span className="val">{scored}/{totalMarks}</span><span className="lbl">Current Score</span></div>
+            </div>
+          </div>
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: 20 }}>Safety & Competency Assessment — Yes / No Checklist</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {assessmentCriteria.map((c) => (
+                <div key={c.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8fafc", padding: "14px 18px", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.95rem" }}>{c.label}</div>
+                    <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: 2 }}>Max Marks: {c.marks}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setTiAssessmentAnswers(prev => ({ ...prev, [tiAssessmentFormOpen]: { ...prev[tiAssessmentFormOpen], [c.key]: "yes" } }))}
+                      style={{ padding: "8px 20px", borderRadius: 6, border: "2px solid", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem",
+                        borderColor: answers[c.key] === "yes" ? "#16a34a" : "#d1d5db",
+                        background: answers[c.key] === "yes" ? "#dcfce7" : "#ffffff",
+                        color: answers[c.key] === "yes" ? "#15803d" : "#6b7280" }}
+                    >✓ Yes</button>
+                    <button
+                      type="button"
+                      onClick={() => setTiAssessmentAnswers(prev => ({ ...prev, [tiAssessmentFormOpen]: { ...prev[tiAssessmentFormOpen], [c.key]: "no" } }))}
+                      style={{ padding: "8px 20px", borderRadius: 6, border: "2px solid", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem",
+                        borderColor: answers[c.key] === "no" ? "#dc2626" : "#d1d5db",
+                        background: answers[c.key] === "no" ? "#fee2e2" : "#ffffff",
+                        color: answers[c.key] === "no" ? "#b91c1c" : "#6b7280" }}
+                    >✗ No</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#0f172a" }}>Score: {scored} / {totalMarks} — Grade: {scored >= 90 ? "A" : scored >= 70 ? "B" : "C"}</div>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button className="sdom-btn-outline" onClick={() => setTiAssessmentFormOpen(null)}>Cancel</button>
+                <button className="sdom-btn-primary" onClick={() => {
+                  const grade = scored >= 90 ? "A" : scored >= 70 ? "B" : "C";
+                  alert(`Assessment submitted for ${tiEmployee?.name || tiAssessmentFormOpen}.\nScore: ${scored}/${totalMarks} — Grade: ${grade}`);
+                  setTiActivatedAssessments(prev => ({ ...prev, [tiAssessmentFormOpen]: "submitted" }));
+                  setTiAssessmentFormOpen(null);
+                }}>Submit Assessment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const filtered = allEmployees.filter(e =>
+      e.role === roleKey &&
+      (roleFilterStation === "All" || e.stationName === roleFilterStation) &&
+      (roleFilterDivision === "All" || e.division === roleFilterDivision) &&
+      (roleFilterCat === "All" || e.category === roleFilterCat) &&
+      (roleFilterRisk === "All" || e.riskLevel === roleFilterRisk) &&
+      (!roleFilterName || e.name.toLowerCase().includes(roleFilterName.toLowerCase()) || e.hrmsId.toLowerCase().includes(roleFilterName.toLowerCase()))
+    );
+
+    const stationOpts = ["All", ...Array.from(new Set(allEmployees.filter(e => e.role === roleKey).map(e => e.stationName)))];
+    const divisionOpts = ["All", ...Array.from(new Set(allEmployees.filter(e => e.role === roleKey).map(e => e.division)))];
+
+    return (
+      <div className="sdom-fade">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <div>
+            <h1 className="sdom-page-title">{title} Management</h1>
+            <p className="sdom-page-subtitle">Search, filter and manage all {title.toLowerCase()}s in the division.</p>
+          </div>
+          {(roleKey === "pointsmen" || roleKey === "sm" || roleKey === "ss" || roleKey === "tm") && (
+            <button className="sdom-btn-primary" onClick={
+              roleKey === "pointsmen" ? openPmAdd :
+              roleKey === "sm" ? openSmAdd :
+              roleKey === "ss" ? openSsAdd : openTmAdd
+            }>
+              <Plus size={16} /> Add New {title}
+            </button>
+          )}
+        </div>
+
+        {/* Filters - matching SuperAdmin style */}
+        <div className="sdom-filter-bar">
+          <div className="sdom-filter-field" style={{ minWidth: 200 }}>
+            <label>Name / ID</label>
+            <input value={roleFilterName} onChange={e => setRoleFilterName(e.target.value)} placeholder="Search..." />
+          </div>
+          <div className="sdom-filter-field">
+            <label>Station</label>
+            <select value={roleFilterStation} onChange={e => setRoleFilterStation(e.target.value)}>
+              {stationOpts.map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="sdom-filter-field">
+            <label>Division</label>
+            <select value={roleFilterDivision} onChange={e => setRoleFilterDivision(e.target.value)}>
+              {divisionOpts.map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="sdom-filter-field">
+            <label>Category</label>
+            <select value={roleFilterCat} onChange={e => setRoleFilterCat(e.target.value)}>
+              <option>All</option><option>A</option><option>B</option><option>C</option><option>D</option>
+            </select>
+          </div>
+          <div className="sdom-filter-field">
+            <label>Risk Level</label>
+            <select value={roleFilterRisk} onChange={e => setRoleFilterRisk(e.target.value)}>
+              <option>All</option><option>Low</option><option>Medium</option><option>High</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="sdom-chart-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <span style={{ fontWeight: 700, color: "#1e293b" }}>{filtered.length} staff found</span>
+          </div>
+          <div className="sdom-table-wrap">
+            <table className="sdom-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>HRMS ID</th>
+                  <th>Station</th>
+                  <th>Division</th>
+                  <th>Category</th>
+                  <th>Risk</th>
+                  <th>Last Score</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr><td colSpan={9} style={{ textAlign: "center", padding: 32, color: "#94a3b8" }}>No records found</td></tr>
+                )}
+                {filtered.map(s => {
+                  const isPending = s.assessmentStatus === "Pending";
+                  const catMap = { A: "sdom-badge-success", B: "sdom-badge-info", C: "sdom-badge-warning", D: "sdom-badge-danger" };
+                  const riskMap = { Low: "sdom-badge-success", Medium: "sdom-badge-warning", High: "sdom-badge-danger" };
+                  const statusMap = { Approved: "sdom-badge-success", Pending: "sdom-badge-warning", Rejected: "sdom-badge-danger" };
+                  const tiActivated = tiActivatedAssessments[s.hrmsId];
+                  return (
+                    <tr key={s.hrmsId}>
+                      <td style={{ fontWeight: 700 }}>{s.name}</td>
+                      <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{s.hrmsId}</td>
+                      <td>{s.stationName}</td>
+                      <td>{s.division}</td>
+                      <td><span className={`sdom-badge ${catMap[s.category] || "sdom-badge-neutral"}`}>{s.category}</span></td>
+                      <td><span className={`sdom-badge ${riskMap[s.riskLevel] || "sdom-badge-neutral"}`}>{s.riskLevel}</span></td>
+                      <td style={{ fontWeight: 700 }}>{s.lastScore || "–"}</td>
+                      <td><span className={`sdom-badge ${statusMap[s.assessmentStatus] || "sdom-badge-neutral"}`}>{s.assessmentStatus}</span></td>
+                      <td>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                          {/* View Profile */}
+                          <button className="sdom-btn-outline" style={{ padding: "5px 10px", fontSize: "0.8rem" }}
+                            onClick={() => setSelectedRoleEmployee({ ...s, _roleKey: roleKey })}>
+                            View
+                          </button>
+                          {/* Edit */}
+                          {roleKey === "pointsmen" || roleKey === "sm" || roleKey === "ss" || roleKey === "tm" ? (
+                            <button className="sdom-icon-btn" title="Edit" onClick={() => {
+                              if (roleKey === "pointsmen") {
+                                const pmObj = aomPointsmen.find(pm => pm.hrmsId === s.hrmsId);
+                                if (pmObj) openPmEdit(pmObj);
+                              } else if (roleKey === "sm") {
+                                const smObj = aomStationMasters.find(sm => (sm.hrmsId || sm.id) === s.hrmsId);
+                                if (smObj) openSmEdit(smObj);
+                              } else if (roleKey === "ss") {
+                                const ssObj = aomSuperintendents.find(ss => ss.employeeId === s.hrmsId);
+                                if (ssObj) openSsEdit(ssObj);
+                              } else {
+                                const tmObj = aomTrainManagers.find(tm => tm.employeeId === s.hrmsId);
+                                if (tmObj) openTmEdit(tmObj);
+                              }
+                            }}>
+                              <Edit size={15} color="#2563eb" />
+                            </button>
+                          ) : (
+                            <button className="sdom-icon-btn" title="Edit" onClick={() => alert(`Edit form for ${s.name} (${s.hrmsId})\n[Future: Open edit modal]`)}>
+                              <Edit size={15} color="#2563eb" />
+                            </button>
+                          )}
+                          {/* Shift */}
+                          {roleKey === "pointsmen" || roleKey === "sm" || roleKey === "ss" || roleKey === "tm" ? (
+                            <button className="sdom-icon-btn" title="Shift" onClick={() => {
+                              if (roleKey === "pointsmen") {
+                                const pmObj = aomPointsmen.find(pm => pm.hrmsId === s.hrmsId);
+                                if (pmObj) openPmShift(pmObj);
+                              } else if (roleKey === "sm") {
+                                const smObj = aomStationMasters.find(sm => (sm.hrmsId || sm.id) === s.hrmsId);
+                                if (smObj) openSmShift(smObj);
+                              } else if (roleKey === "ss") {
+                                const ssObj = aomSuperintendents.find(ss => ss.employeeId === s.hrmsId);
+                                if (ssObj) openSsShift(ssObj);
+                              } else {
+                                const tmObj = aomTrainManagers.find(tm => tm.employeeId === s.hrmsId);
+                                if (tmObj) openTmShift(tmObj);
+                              }
+                            }}>
+                              <ArrowRightLeft size={15} color="#d97706" />
+                            </button>
+                          ) : (
+                            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                              <select
+                                value={roleShiftDrafts[s.hrmsId] || ""}
+                                onChange={e => setRoleShiftDrafts(prev => ({ ...prev, [s.hrmsId]: e.target.value }))}
+                                style={{ fontSize: "0.75rem", padding: "4px 6px", borderRadius: 5, border: "1px solid #cbd5e1", color: "#374a63" }}
+                              >
+                                <option value="">Shift to...</option>
+                                {["Nagpur", "Pune", "Mumbai", "Delhi", "Chennai"].filter(d => d !== s.division).map(d => (
+                                  <option key={d} value={d}>{d}</option>
+                                ))}
+                              </select>
+                              <button className="sdom-icon-btn" title="Shift" onClick={() => {
+                                const dest = roleShiftDrafts[s.hrmsId];
+                                if (!dest) return;
+                                if (window.confirm(`Shift ${s.name} to ${dest} Division?`)) {
+                                  alert(`${s.name} shifted to ${dest} Division successfully.`);
+                                  setRoleShiftDrafts(prev => { const n = {...prev}; delete n[s.hrmsId]; return n; });
+                                }
+                              }}>
+                                <ArrowRightLeft size={15} color="#d97706" />
+                              </button>
+                            </div>
+                          )}
+                          {/* Remove */}
+                          {(roleKey === "pointsmen" || roleKey === "sm" || roleKey === "ss" || roleKey === "tm") && (
+                             <button className="sdom-icon-btn" title="Remove" onClick={() => {
+                               if (roleKey === "pointsmen") {
+                                 removePm(s.hrmsId);
+                               } else if (roleKey === "sm") {
+                                 removeSm(s.hrmsId);
+                               } else if (roleKey === "ss") {
+                                 removeSs(s.hrmsId);
+                               } else {
+                                 removeTm(s.hrmsId);
+                               }
+                             }}>
+                               <Trash2 size={15} color="#dc2626" />
+                             </button>
+                           )}
+                          {/* TI-specific: Activate Assessment */}
+                          {roleKey === "ti" && (
+                            <button
+                              style={{ padding: "5px 10px", fontSize: "0.78rem",
+                                background: tiActivated ? "#16a34a" : "#1d4ed8",
+                                color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", fontWeight: 700 }}
+                              onClick={() => {
+                                if (!tiActivated) {
+                                  if (window.confirm(`Activate assessment for ${s.name}?`)) {
+                                    setTiActivatedAssessments(prev => ({ ...prev, [s.hrmsId]: "active" }));
+                                    alert(`Assessment activated for ${s.name}.`);
+                                  }
+                                } else {
+                                  alert(`Assessment is already active for ${s.name}.`);
+                                }
+                              }}
+                            >{tiActivated ? "Active ✓" : "Activate"}</button>
+                          )}
+                          {/* TI-specific: Fill Assessment */}
+                          {roleKey === "ti" && tiActivated && (
+                            <button
+                              style={{ padding: "5px 10px", fontSize: "0.78rem", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer", fontWeight: 700 }}
+                              onClick={() => setTiAssessmentFormOpen(s.hrmsId)}
+                            >Fill Assessment</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Super Admin Stations Replication Mappers & Helpers
+  const isStationMatch = (stationA, stationB) => {
+    if (!stationA || !stationB) return false;
+    const a = stationA.toLowerCase().trim();
+    const b = stationB.toLowerCase().trim();
+    if (a === b) return true;
+    const clean = s => s.replace(/\s+/g, '').replace(/junction|central|main|town|jn|station/gi, '');
+    return clean(a) === clean(b) || clean(a).includes(clean(b)) || clean(b).includes(clean(a));
+  };
+
+  const unifiedStaff = useMemo(() => {
+    return allEmployees.map(u => ({
+      id: u.hrmsId,
+      name: u.name,
+      station: u.stationName,
+      role: u.role,
+      cat: u.category || "A",
+      risk: u.riskLevel || "Low",
+      score: u.lastScore || 80,
+      status: u.assessmentStatus || "Approved",
+      contact: u.contactNumber || "+91 99000 11000",
+      email: u.emailId || `${u.hrmsId?.toLowerCase()}@rail.in`,
+      lastDate: u.lastAssessedDate || "2026-03-10",
+      reportingAom: "P. K. Verma (Sr. DOM)"
+    }));
+  }, [allEmployees]);
+
+  const unifiedStations = useMemo(() => {
+    return DASHBOARD_96_STATIONS.map(st => {
+      const stStaff = unifiedStaff.filter(s => isStationMatch(s.station, st.stationName || st.name));
+      const pmCount = stStaff.filter(s => s.role === "pointsmen").length;
+      const smCount = stStaff.filter(s => s.role === "sm").length;
+      const safety = Math.min(100, Math.max(60, 95 - st.pending));
+      const highRisk = stStaff.filter(s => s.risk === "High").length;
+      return {
+        id: st.id,
+        name: st.stationName,
+        code: st.stationCode,
+        ti: st.division === "Nagpur" ? "TI NGP" : st.division === "Pune" ? "TI PAR" : "TI AMLA",
+        smCount: smCount || 5,
+        pmCount: pmCount || 20,
+        score: st.avgScore,
+        safety,
+        highRisk: highRisk || (st.riskLevel === "High" ? 4 : st.riskLevel === "Medium" ? 2 : 0),
+        pending: st.pending,
+        stationName: st.stationName,
+        stationCode: st.stationCode,
+        division: st.division,
+        zone: st.zone,
+        category: st.category,
+        riskLevel: st.riskLevel,
+        assessmentStatus: st.assessmentStatus,
+        lastUpdatedDate: st.lastUpdatedDate
+      };
+    });
+  }, [DASHBOARD_96_STATIONS, unifiedStaff]);
+
+  const ROLE_MAP = {
+    pointsmen: "Pointsman",
+    sm: "Station Master",
+    ss: "Station Superintendent",
+    tm: "Train Manager",
+    ti: "Traffic Inspector"
+  };
+
+
+  function riskBadge(r) {
+    const map = { Low: "sdom-badge-success", Medium: "sdom-badge-warning", High: "sdom-badge-danger" };
+    return <span className={`sdom-badge ${map[r] || "sdom-badge-neutral"}`}>{r}</span>;
+  }
+  function catBadge(c) {
+    const map = { A: "sdom-badge-success", B: "sdom-badge-info", C: "sdom-badge-warning", D: "sdom-badge-danger" };
+    return <span className={`sdom-badge ${map[c] || "sdom-badge-neutral"}`}>{c}</span>;
+  }
+  function statusBadge(s) {
+    const map = { Approved: "sdom-badge-success", Pending: "sdom-badge-warning", Rejected: "sdom-badge-danger", Overdue: "sdom-badge-danger" };
+    return <span className={`sdom-badge ${map[s] || "sdom-badge-neutral"}`}>{s}</span>;
+  }
+
+  const handleAddStation = () => {
+    if (!newStName || !newStCode) return;
+    const newSt = {
+      id: "ST_" + Date.now(),
+      stationName: newStName,
+      stationCode: newStCode.toUpperCase(),
+      completed: 250,
+      pending: 10,
+      avgScore: 82,
+      category: "A",
+      riskLevel: "Low",
+      assessmentStatus: "Approved",
+      lastUpdatedDate: "2026-04-20"
+    };
+    DASHBOARD_96_STATIONS.push(newSt);
+    setShowAddStation(false);
+  };
+
+  function renderStaffDetail(s) {
+    const scoreData = MONTHLY_TREND.map((m, i) => ({ month: m.month, score: Math.max(50, s.score - 10 + i * 2) }));
+    return (
+      <div className="sdom-fade">
+        <div style={{ marginBottom: 24 }}>
+          <button className="sdom-back-btn" onClick={() => {
+            if (view?.returnTo === "stationDetail") {
+              setView({ type: "stationDetail", data: view.stationData });
+            } else {
+              setView(null);
+            }
+          }}><ArrowLeft size={16} /> Back to List</button>
+        </div>
+
+        <div className="sdom-station-header" style={{ marginBottom: 24 }}>
+          <div className="sdom-station-header-meta">
+            <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Staff Profile</div>
+            <div style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 4 }}>{s.name}</div>
+            <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>{ROLE_MAP[s.role] || s.role} &bull; {s.station} &bull; {s.zone || "Central Railway"}</div>
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              {catBadge(s.cat)}
+              {riskBadge(s.risk)}
+              {statusBadge(s.status)}
+            </div>
+          </div>
+          <div className="sdom-station-header-stats">
+            <div className="sdom-station-header-stat">
+              <span className="val">{s.score}</span>
+              <span className="lbl">Latest Score</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+            <div className="sdom-station-header-stat">
+              <span className="val">{s.contact || "—"}</span>
+              <span className="lbl">Contact</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+            <div className="sdom-station-header-stat">
+              <span className="val">{s.lastDate || "—"}</span>
+              <span className="lbl">Last Assessment</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="sdom-row-2">
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: "16px" }}>Personal & Professional Details</div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', paddingBottom: '20px' }}>
+              {[
+                ["Employee ID / HRMS ID", s.id],
+                ["Designation", ROLE_MAP[s.role] || s.role],
+                ["Mobile Number", s.contact || "N/A"],
+                ["Email ID", s.email || `${s.id?.toLowerCase()}@rail.in`],
+                ["Account Status", s.status || "Active"],
+                ["Current Zone", s.zone || "Central Railway"],
+                ["Current Division", s.division || "Nagpur"],
+                ["Current Station Placement", s.station],
+                ["Reporting Officer", s.reportingAom || "P. K. Verma (Sr. DOM)"]
+              ].map(([lbl, val]) => (
+                <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "12px 16px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                  <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.9rem" }}>{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Score Trend</div>
+            <div className="sdom-chart-subtitle">Monthly performance tracking for this employee</div>
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={scoreData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" fontSize={11} />
+                  <YAxis domain={[40, 100]} fontSize={11} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderStationDetail(st) {
+    const stStaff = unifiedStaff.filter(s => isStationMatch(s.station, st.name));
+    const pmList = stStaff.filter(s => s.role === "pointsmen");
+    const smList = stStaff.filter(s => s.role === "sm");
+    const tiPerson = stStaff.find(s => s.role === "ti") || { name: st.ti, id: "—", contact: "—", cat: "—" };
+
+    const catCount = ["A", "B", "C", "D"].map(c => ({ cat: `Cat ${c}`, count: stStaff.filter(s => s.cat === c).length, fill: CAT_COLORS[c] }));
+    const riskCount = [
+      { name: "Low", value: stStaff.filter(s => s.risk === "Low").length, fill: "#16a34a" },
+      { name: "Medium", value: stStaff.filter(s => s.risk === "Medium").length, fill: "#f59e0b" },
+      { name: "High", value: stStaff.filter(s => s.risk === "High").length, fill: "#ef4444" },
+    ].filter(r => r.value > 0);
+
+    const trend = MONTHLY_TREND.map(m => ({ ...m, score: Math.max(60, st.score - 8 + MONTHLY_TREND.indexOf(m) * 2) }));
+
+    return (
+      <div className="sdom-fade">
+        <div style={{ marginBottom: 20 }}>
+          <button className="sdom-back-btn" onClick={() => setView(null)}><ArrowLeft size={16} /> Back to Stations</button>
+        </div>
+
+        <div className="sdom-station-header">
+          <div className="sdom-station-header-meta">
+            <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Station Analytics Dashboard</div>
+            <div style={{ fontSize: "1.9rem", fontWeight: 800, marginBottom: 4 }}>{st.name}</div>
+            <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>Code: <b>{st.code}</b> &bull; Assigned TI: <b>{st.ti}</b></div>
+            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+              <span className="sdom-badge" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{st.smCount} Station Masters</span>
+              <span className="sdom-badge" style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}>{st.pmCount} Pointsmen</span>
+              <span className={`sdom-badge ${st.highRisk > 4 ? "sdom-badge-red" : "sdom-badge-green"}`}>{st.highRisk} High-Risk</span>
+            </div>
+          </div>
+          <div className="sdom-station-header-stats">
+            <div className="sdom-station-header-stat">
+              <span className="val">{st.score}</span>
+              <span className="lbl">Avg Score</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+            <div className="sdom-station-header-stat">
+              <span className="val">{st.safety}%</span>
+              <span className="lbl">Safety</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+            <div className="sdom-station-header-stat">
+              <span className="val">{st.pending}</span>
+              <span className="lbl">Pending</span>
+            </div>
+            <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }} />
+            <div className="sdom-station-header-stat">
+              <span className="val">{stStaff.length}</span>
+              <span className="lbl">Total Staff</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 16, marginBottom: 24 }}>
+          {[
+            { label: "Total Staff", val: stStaff.length },
+            { label: "Pending Assessments", val: st.pending },
+            { label: "Completed", val: stStaff.filter(s => s.status === "Approved").length },
+            { label: "High-Risk Pointsmen", val: pmList.filter(s => s.risk === "High").length },
+            { label: "Safety Compliance", val: `${st.safety}%` },
+          ].map(c => (
+            <div key={c.label} className="sdom-stat-card">
+              <div className="sdom-stat-value">{c.val}</div>
+              <div className="sdom-stat-label">{c.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="sdom-row-2">
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Category Distribution</div>
+            <div className="sdom-chart-subtitle">A/B/C/D breakdown of staff at this station</div>
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={catCount} barSize={46} margin={{ top: 16, right: 24, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
+                  <XAxis dataKey="cat" fontSize={12} tick={{ fill: "#102A43", fontWeight: 600 }} axisLine={false} tickLine={false} />
+                  <YAxis fontSize={11} tick={{ fill: "#627D98" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+                  <Bar dataKey="count" radius={[5, 5, 0, 0]}>
+                    {catCount.map((d, i) => <Cell key={i} fill={CAT_COLORS[Object.keys(CAT_COLORS)[i]]} />)}
+                    <LabelList dataKey="count" position="top" style={{ fontSize: 12, fontWeight: 700, fill: "#102A43" }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title">Risk Distribution</div>
+            <div className="sdom-chart-subtitle">Staff risk level breakdown at this station</div>
+            <div style={{ height: 260 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={riskCount} cx="50%" cy="50%" innerRadius={70} outerRadius={105}
+                       dataKey="value" paddingAngle={4}
+                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                       labelLine={false}>
+                    {riskCount.map((d, i) => <Cell key={i} fill={RISK_COLORS[d.name]} />)}
+                  </Pie>
+                  <Legend wrapperStyle={{ fontSize: "0.82rem" }} />
+                  <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        <div className="sdom-row-1">
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: 16 }}>Station Masters</div>
+            <div className="sdom-table-wrap">
+              <table className="sdom-table">
+                <thead><tr><th>Name</th><th>HRMS ID</th><th>Category</th><th>Last Score</th><th>Last Assessment</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  {smList.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", color: "#94a3b8", padding: 24 }}>No Station Masters assigned</td></tr>}
+                  {smList.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ fontWeight: 700 }}>{s.name}</td>
+                      <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{s.id}</td>
+                      <td>{catBadge(s.cat)}</td>
+                      <td style={{ fontWeight: 700 }}>{s.score}</td>
+                      <td>{s.lastDate}</td>
+                      <td>{statusBadge(s.status)}</td>
+                      <td><button className="sdom-btn-ghost" onClick={() => setView({ type: "staffDetail", data: s, returnTo: "stationDetail", stationData: st })}>View Details</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="sdom-row-1">
+          <div className="sdom-chart-card">
+            <div className="sdom-chart-title" style={{ marginBottom: 16 }}>Pointsmen</div>
+            <div className="sdom-table-wrap">
+              <table className="sdom-table">
+                <thead><tr><th>Name</th><th>HRMS ID</th><th>Category</th><th>Risk Level</th><th>Latest Score</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                  {pmList.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", color: "#94a3b8", padding: 24 }}>No Pointsmen assigned</td></tr>}
+                  {pmList.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ fontWeight: 700 }}>{s.name}</td>
+                      <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{s.id}</td>
+                      <td>{catBadge(s.cat)}</td>
+                      <td>{riskBadge(s.risk)}</td>
+                      <td style={{ fontWeight: 700 }}>{s.score}</td>
+                      <td>{statusBadge(s.status)}</td>
+                      <td><button className="sdom-btn-ghost" onClick={() => setView({ type: "staffDetail", data: s, returnTo: "stationDetail", stationData: st })}>View Details</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const renderStations = () => {
+    if (view?.type === "staffDetail") return renderStaffDetail(view.data);
+    if (view?.type === "stationDetail") return renderStationDetail(view.data);
+    const filtered = unifiedStations.filter(st =>
+      !stF.name || st.name.toLowerCase().includes(stF.name.toLowerCase()) || st.code.toLowerCase().includes(stF.name.toLowerCase())
+    );
+
+    return (
+      <div className="sdom-fade">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+          <div>
+            <h1 className="sdom-page-title">Stations</h1>
+            <p className="sdom-page-subtitle">Full list of stations in Nagpur Division. Click a station to open its complete analytics dashboard.</p>
+          </div>
+          <button className="sdom-btn-primary" onClick={() => {
+            setNewStName("");
+            setNewStCode("");
+            setNewStTi("TI NGP");
+            setShowAddStation(true);
+          }}>
+            <Plus size={16} /> Add New Station
+          </button>
+        </div>
+
+        <div className="sdom-filter-bar" style={{ flexWrap: "nowrap" }}>
+          <div className="sdom-filter-field" style={{ flex: 1 }}>
+            <label>Search Station</label>
+            <input value={stF.name} onChange={e => setStF({ name: e.target.value })} placeholder="Station name or code..." />
+          </div>
+        </div>
+
+        <div className="sdom-chart-card">
+          <div className="sdom-table-wrap">
+            <table className="sdom-table">
+              <thead>
+                <tr><th>Station Name</th><th>Code</th><th>Assigned TI</th><th>SMs</th><th>Pointsmen</th><th>Avg Score</th><th>Safety %</th><th>High Risk</th><th>Pending</th><th>Dashboard</th></tr>
+              </thead>
+              <tbody>
+                {filtered.map(st => (
+                  <tr key={st.id}>
+                    <td style={{ fontWeight: 700 }}>{st.name}</td>
+                    <td><span className="sdom-badge sdom-badge-blue">{st.code}</span></td>
+                    <td>{st.ti}</td>
+                    <td>{st.smCount}</td>
+                    <td>{st.pmCount}</td>
+                    <td style={{ fontWeight: 700, color: st.score >= 85 ? "#16a34a" : st.score >= 75 ? "#d97706" : "#dc2626" }}>{st.score}</td>
+                    <td>{st.safety}%</td>
+                    <td>{st.highRisk > 3 ? <span style={{ color: "#dc2626", fontWeight: 700 }}>{st.highRisk}</span> : st.highRisk}</td>
+                    <td>{st.pending}</td>
+                    <td>
+                      <button className="sdom-btn-primary" style={{ padding: "7px 14px", fontSize: "0.82rem" }} onClick={() => setView({ type: "stationDetail", data: st })}>
+                        Open Station Dashboard
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showAddStation && (
+          <div className="sdom-modal-overlay" style={{ zIndex: 9999 }}>
+            <div className="sdom-modal" style={{ width: "450px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#0B1F3A" }}>Add New Station</h3>
+                <button type="button" onClick={() => setShowAddStation(false)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#64748b" }}>&times;</button>
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div className="sdom-filter-field">
+                  <label style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>Station Name</label>
+                  <input type="text" value={newStName} onChange={e => setNewStName(e.target.value)} placeholder="e.g. Wardha Junction" />
+                </div>
+                <div className="sdom-filter-field">
+                  <label style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>Station Code</label>
+                  <input type="text" value={newStCode} onChange={e => setNewStCode(e.target.value)} placeholder="e.g. WR" />
+                </div>
+                <div className="sdom-filter-field">
+                  <label style={{ fontWeight: 600, fontSize: "0.8rem", color: "#334155" }}>Assigned TI Area</label>
+                  <select value={newStTi} onChange={e => setNewStTi(e.target.value)}>
+                    <option>TI NGP</option>
+                    <option>TI PAR</option>
+                    <option>TI AMLA</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+                <button className="sdom-btn-outline" onClick={() => setShowAddStation(false)}>Cancel</button>
+                <button className="sdom-btn-primary" onClick={handleAddStation}>Create Station</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderPageContent = () => {
     switch (activePage) {
       case "Station Master Profile":
@@ -3884,96 +6494,95 @@ function AOmModule({ user, onLogout }) {
       case "Employee Management":
         return renderEmployeeManagement();
 
-      case "Dashboard":
+      case "Dashboard": {
+        const counts = {
+          stations: stations.length,
+          pointsmen: aomPointsmen.length,
+          sm: stationMastersDirectory.length,
+          ss: aomSuperintendents.length,
+          tm: aomTrainManagers.length,
+          ti: trafficInspectors.length
+        };
+
+        const summaryCards = [
+          { key: "stations", label: "Stations", count: 96, sub: "Total in Nagpur Division", icon: <Building2 size={18} />, color: "#1E3A5F" },
+          { key: "pointsmen", label: "Pointsmen", count: counts.pointsmen, sub: "Operational pointsmen", icon: <Users size={18} />, color: "#1E3A5F" },
+          { key: "sm", label: "Station Masters", count: counts.sm, sub: "Across all stations", icon: <UserRound size={18} />, color: "#1E3A5F" },
+          { key: "ss", label: "Station Superintendents", count: counts.ss, sub: "Division supervisors", icon: <UserCheck size={18} />, color: "#1E3A5F" },
+          { key: "tm", label: "Train Managers", count: counts.tm, sub: "Active train managers", icon: <TrainFront size={18} />, color: "#1E3A5F" },
+          { key: "ti", label: "Traffic Inspectors", count: counts.ti, sub: "Jurisdiction coverage", icon: <ShieldCheck size={18} />, color: "#1E3A5F" },
+        ];
+
+        const roleBar = [
+          { role: "Pointsmen", count: counts.pointsmen },
+          { role: "Station Masters", count: counts.sm },
+          { role: "Station Superintendents", count: counts.ss },
+          { role: "Train Managers", count: counts.tm },
+          { role: "Traffic Inspectors", count: counts.ti },
+        ];
+
+        const catData = [
+          { name: "Grade A", value: 14.6, fill: "#1E3A5F" },
+          { name: "Grade B", value: 37.5, fill: "#2B6CB0" },
+          { name: "Grade C", value: 36.5, fill: "#D69E2E" },
+          { name: "Grade D", value: 11.5, fill: "#C53030" }
+        ];
+
+        const top10 = [...DASHBOARD_96_STATIONS].sort((a, b) => b.avgScore - a.avgScore).slice(0, 10);
+        const bottom10 = [...DASHBOARD_96_STATIONS].sort((a, b) => a.avgScore - b.avgScore).slice(0, 10);
+
+        const pipeline = [
+          { label: "Approved", count: 4520, dot: "#1E3A5F" },
+          { label: "Pending", count: 246, dot: "#4A90D9" },
+          { label: "Rejected", count: 87, dot: "#B83A3A" },
+          { label: "Overdue", count: 33, dot: "#5A6B7C" }
+        ];
+
         return (
-          <>
-            <div className="page-header">
-              <h2>Performance Overview</h2>
-              <select 
-                className="period-select" 
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-              >
-                <option>FY 2025-26 - Q3</option>
-                <option>FY 2025-26 - Q2</option>
-                <option>FY 2025-26 - Q1</option>
-              </select>
+          <div className="sdom-fade">
+            {/* Page header */}
+            <h1 className="sdom-page-title">Nagpur Division Command Center</h1>
+            <p className="sdom-page-subtitle">Complete strategic overview of the division — staff, performance, safety and assessment pipeline.</p>
+
+            {/* ── Summary Cards ── */}
+            <div className="sdom-summary-cards">
+              {summaryCards.map((c) => (
+                <div 
+                  className="sdom-stat-card" 
+                  key={c.key}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    if (c.key === "pointsmen") setActivePage("Pointsmen");
+                    else if (c.key === "sm") setActivePage("Station Masters");
+                    else if (c.key === "ss") setActivePage("Station Superintendents");
+                    else if (c.key === "tm") setActivePage("Train Managers");
+                    else if (c.key === "ti") setActivePage("Traffic Inspectors");
+                  }}
+                >
+                  <div className="sdom-stat-icon">
+                    <span style={{ color: "#1E3A5F" }}>{c.icon}</span>
+                  </div>
+                  <div className="sdom-stat-label">{c.label}</div>
+                  <div className="sdom-stat-value">{c.count}</div>
+                  <div className="sdom-stat-sub">{c.sub}</div>
+                </div>
+              ))}
             </div>
 
-            <div className="notice-row">
-              <div className="notice-card alert">
-                <span>!</span>
-                <p>
-                  <strong>Nagpur station</strong> has the highest pending evaluations (120)
-                </p>
-              </div>
-              <div className="notice-card success">
-                <span>+</span>
-                <p>
-                  <strong>Jalna station</strong> is top performing this quarter
-                </p>
-              </div>
-            </div>
-
-            <section className="metrics-grid">
-              {summaryCards.map((card) => {
-                const Icon = card.icon;
-                const isClickable = [
-                  "TOTAL EMPLOYEES",
-                  "EVALUATIONS COMPLETED",
-                  "PENDING APPROVALS"
-                ].includes(card.title);
-
-                const handleCardClick = () => {
-                  if (!isClickable) return;
-                  if (card.title === "TOTAL EMPLOYEES") {
-                    setActivePage("Employee Management");
-                  } else if (card.title === "EVALUATIONS COMPLETED") {
-                    setActivePage("Reports");
-                  } else if (card.title === "PENDING APPROVALS") {
-                    setActivePage("Pending Approvals");
-                  }
-                };
-
-                return (
-                  <article 
-                    key={card.title} 
-                    className={`metric-card ${isClickable ? "clickable-card" : ""}`}
-                    onClick={isClickable ? handleCardClick : undefined}
-                    style={isClickable ? { cursor: "pointer" } : undefined}
-                    title={isClickable ? `Click to open ${card.title.toLowerCase()}` : undefined}
-                  >
-                    <div className="metric-top">
-                      <div className={`metric-icon ${card.iconClass}`}>
-                        <Icon size={20} />
-                      </div>
-                      {card.trend && (
-                        <span className={card.trendAlert ? "trend alert" : "trend"}>
-                          {card.trend}
-                        </span>
-                      )}
-                      {card.status && <span className="status-label">{card.status}</span>}
-                    </div>
-                    <div className="metric-value">{card.value}</div>
-                    <h3>{card.title}</h3>
-                    <p>{card.subtitle}</p>
-                  </article>
-                );
-              })}
-            </section>
-
-            <section className="charts-grid">
-              <article className="chart-card bar-chart-card">
+            {/* ── Station-wise Evaluation Progress & Average Score at the Top ── */}
+            <div className="sdom-row-2">
+              {/* Station-wise Evaluation Progress */}
+              <div className="sdom-chart-card">
                 <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "12px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <h3>Station-wise Evaluation Progress</h3>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>Click anywhere on chart to zoom & filter 96 stations</span>
+                    <div className="sdom-chart-title">Station-wise Evaluation Progress</div>
+                    <div className="sdom-chart-subtitle">Click anywhere on chart to zoom & filter 96 stations</div>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleChartClick(null, "progress")}
                     style={{
-                      background: "#0d2948",
+                      background: "var(--brand-primary, #0B1F3A)",
                       color: "#ffffff",
                       border: "none",
                       padding: "6px 14px",
@@ -3981,54 +6590,56 @@ function AOmModule({ user, onLogout }) {
                       fontSize: "12px",
                       fontWeight: "700",
                       cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      boxShadow: "0 2px 4px rgba(13, 41, 72, 0.15)"
+                      transition: "all 0.2s ease"
                     }}
                   >
                     View Full Screen
                   </button>
                 </div>
-                <div className="chart-box">
+                <div style={{ height: 260 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={stationProgressData}
-                      margin={{ top: 8, right: 12, left: -10, bottom: 25 }}
-                      barGap={7}
+                      margin={{ top: 8, right: 12, left: -20, bottom: 5 }}
+                      barGap={6}
                       onClick={(state) => handleChartClick(state, "progress")}
                       style={{ cursor: "pointer" }}
                     >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
                       <XAxis
                         dataKey="station"
-                        tick={{ fontSize: 11, fill: "#6a7385" }}
-                        angle={-20}
-                        textAnchor="end"
-                        height={52}
+                        tick={{ fontSize: 10, fill: "#627D98" }}
+                        axisLine={false}
+                        tickLine={false}
                       />
-                      <YAxis tick={{ fontSize: 11, fill: "#6a7385" }} />
-                      <Tooltip />
-                      <Legend iconType="circle" />
+                      <YAxis tick={{ fontSize: 10, fill: "#627D98" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
                       <Bar
                         dataKey="completed"
-                        fill="#0d2948"
-                        radius={[6, 6, 0, 0]}
+                        fill="var(--brand-secondary, #1E3A5F)"
+                        radius={[4, 4, 0, 0]}
                         name="Completed"
+                        barSize={12}
                       />
                       <Bar
                         dataKey="pending"
-                        fill="#f5ae3f"
-                        radius={[6, 6, 0, 0]}
+                        fill="#D69E2E"
+                        radius={[4, 4, 0, 0]}
                         name="Pending"
+                        barSize={12}
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </article>
+              </div>
 
-              <article className="chart-card avg-score-card">
+              {/* Station-wise Average Score */}
+              <div className="sdom-chart-card">
                 <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "12px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <h3>Station-wise Average Score</h3>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>Click anywhere on chart to zoom & filter 96 stations</span>
+                    <div className="sdom-chart-title">Station-wise Average Score</div>
+                    <div className="sdom-chart-subtitle">Click anywhere on chart to zoom & filter 96 stations</div>
                   </div>
                   <button
                     type="button"
@@ -4042,83 +6653,240 @@ function AOmModule({ user, onLogout }) {
                       fontSize: "12px",
                       fontWeight: "700",
                       cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      boxShadow: "0 2px 4px rgba(31, 122, 92, 0.15)"
+                      transition: "all 0.2s ease"
                     }}
                   >
                     View Full Screen
                   </button>
                 </div>
-                <div className="chart-box">
+                <div style={{ height: 260 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={stationAverageScoreData}
-                      margin={{ top: 8, right: 12, left: -10, bottom: 25 }}
-                      barGap={10}
+                      margin={{ top: 8, right: 12, left: -20, bottom: 5 }}
                       onClick={(state) => handleChartClick(state, "score")}
                       style={{ cursor: "pointer" }}
+                      barSize={18}
                     >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
                       <XAxis
                         dataKey="station"
-                        tick={{ fontSize: 11, fill: "#6a7385" }}
-                        angle={-20}
-                        textAnchor="end"
-                        height={52}
+                        tick={{ fontSize: 10, fill: "#627D98" }}
+                        axisLine={false}
+                        tickLine={false}
                       />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#6a7385" }} />
-                      <Tooltip formatter={(value) => [`${value}/100`, "Average Score"]} />
-                      <Legend iconType="circle" />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#627D98" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} formatter={(value) => [`${value}/100`, "Average Score"]} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
                       <Bar
                         dataKey="avgScore"
                         fill="#1f7a5c"
-                        radius={[6, 6, 0, 0]}
+                        radius={[4, 4, 0, 0]}
                         name="Average Score"
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </article>
+              </div>
+            </div>
 
-              <article className="chart-card donut-card">
+            {/* ── Role-wise Distribution ── */}
+            <div className="sdom-row-1" style={{ marginBottom: "24px" }}>
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title">Role-wise Staff Distribution</div>
+                <div className="sdom-chart-subtitle">Staff count per role across the division</div>
+                <div style={{ height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={roleBar} margin={{ top: 16, right: 40, left: 0, bottom: 8 }} barSize={52}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
+                      <XAxis dataKey="role" fontSize={12} tick={{ fill: "#102A43", fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis fontSize={11} tick={{ fill: "#627D98" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} />
+                      <Bar dataKey="count" fill="#1E3A5F" radius={[5, 5, 0, 0]}>
+                        <LabelList dataKey="count" position="top" style={{ fontSize: 12, fontWeight: 700, fill: "#102A43" }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Category + Safety ── */}
+            <div className="sdom-row-2">
+              <div className="sdom-chart-card">
                 <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "12px" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                    <h3>Category Distribution</h3>
-                    <span style={{ fontSize: "12px", color: "#64748b" }}>Zoom & filter 96 stations</span>
+                    <div className="sdom-chart-title">Category Distribution (Division-wide)</div>
+                    <div className="sdom-chart-subtitle">Click anywhere on chart to zoom & filter 96 stations</div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handlePieClick(null)}
+                    style={{
+                      background: "var(--brand-primary, #0B1F3A)",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "6px 14px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    View Full Screen
+                  </button>
                 </div>
-                <div className="donut-box">
+                <div style={{ height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart style={{ cursor: "pointer" }}>
                       <Pie
-                        data={categoryData}
+                        data={catData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={55}
-                        outerRadius={88}
+                        innerRadius={70}
+                        outerRadius={110}
                         dataKey="value"
-                        label={({ value }) => `${value}%`}
+                        paddingAngle={3}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         onClick={(data) => handlePieClick(data)}
                       >
-                        {categoryData.map((entry) => (
-                          <Cell key={entry.name} fill={entry.color} />
+                        {catData.map((d, i) => (
+                          <Cell key={i} fill={d.fill} style={{ cursor: "pointer" }} />
                         ))}
                       </Pie>
+                      <Legend onClick={(data) => handlePieClick({ name: data.value })} wrapperStyle={{ cursor: "pointer" }} />
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="legend-row">
-                  {categoryData.map((item) => (
-                    <div key={item.name} className="legend-item" style={{ cursor: "pointer" }} onClick={() => handlePieClick({ name: item.name })}>
-                      <span style={{ backgroundColor: item.color }} />
-                      {item.name}
+              </div>
+
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title">Safety Compliance Analytics</div>
+                <div className="sdom-chart-subtitle">Division-wide compliance across all categories</div>
+                <div style={{ marginTop: 16 }}>
+                  {COMPLIANCE.map((c) => (
+                    <div className="sdom-compliance-item" key={c.label}>
+                      <div className="sdom-compliance-header">
+                        <span>{c.label}</span>
+                        <span className="sdom-compliance-pct">{c.pct}%</span>
+                      </div>
+                      <div className="sdom-compliance-track">
+                        <div className="sdom-compliance-fill" style={{ width: `${c.pct}%` }} />
+                      </div>
                     </div>
                   ))}
                 </div>
-              </article>
-            </section>
-          </>
+              </div>
+            </div>
+
+            {/* ── Score Trend ── */}
+            <div className="sdom-row-1" style={{ marginBottom: "24px" }}>
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title">Division-wide Performance & Safety Trend (Last 6 Months)</div>
+                <div className="sdom-chart-subtitle">Average assessment scores and safety compliance percentage over time</div>
+                <div style={{ height: 280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={MONTHLY_TREND} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="month" fontSize={12} />
+                      <YAxis domain={[60, 100]} fontSize={12} />
+                      <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} />
+                      <Legend wrapperStyle={{ fontSize: "0.82rem" }} />
+                      <Line type="monotone" dataKey="score" name="Avg Score" stroke="#1E3A5F" strokeWidth={2.5} dot={{ r: 4, fill: "#1E3A5F" }} />
+                      <Line type="monotone" dataKey="safety" name="Safety Compliance%" stroke="#2F855A" strokeWidth={2.5} dot={{ r: 4, fill: "#2F855A" }} strokeDasharray="5 3" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Station Performance Top/Bottom ── */}
+            <div className="sdom-row-2">
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title" style={{ marginBottom: 4 }}>Top 10 Performing Stations</div>
+                <div className="sdom-chart-subtitle">Sorted by average assessment score</div>
+                <div className="sdom-table-wrap">
+                  <table className="sdom-table">
+                    <thead>
+                      <tr><th>#</th><th>Station</th><th>Avg Score</th><th>Safety %</th><th>Pending</th></tr>
+                    </thead>
+                    <tbody>
+                      {top10.map((st, i) => (
+                        <tr key={st.id}>
+                          <td style={{ color: "#9FB3C8", fontWeight: 700 }}>{i + 1}</td>
+                          <td style={{ fontWeight: 600 }}>{st.stationName}</td>
+                          <td><span style={{ color: "#2F855A", fontWeight: 700 }}>{st.avgScore}</span></td>
+                          <td>{st.avgScore + 5}%</td>
+                          <td>{st.pending}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title" style={{ marginBottom: 4 }}>Bottom 10 — Stations Needing Attention</div>
+                <div className="sdom-chart-subtitle">Sorted by average assessment score (ascending)</div>
+                <div className="sdom-table-wrap">
+                  <table className="sdom-table">
+                    <thead>
+                      <tr><th>#</th><th>Station</th><th>Avg Score</th><th>High Risk</th><th>Pending</th></tr>
+                    </thead>
+                    <tbody>
+                      {bottom10.map((st, i) => (
+                        <tr key={st.id}>
+                          <td style={{ color: "#9FB3C8", fontWeight: 700 }}>{i + 1}</td>
+                          <td style={{ fontWeight: 600 }}>{st.stationName}</td>
+                          <td><span style={{ color: st.avgScore < 75 ? "#C53030" : "#D69E2E", fontWeight: 700 }}>{st.avgScore}</span></td>
+                          <td>{st.riskLevel === "High" ? <span style={{ color: "#C53030", fontWeight: 700 }}>1</span> : 0}</td>
+                          <td>{st.pending}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Assessment Pipeline ── */}
+            <div className="sdom-row-1">
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title">Assessment Pipeline</div>
+                <div className="sdom-chart-subtitle">Current assessment status and monthly trend</div>
+                <div className="sdom-pipeline-row">
+                  {pipeline.map((p) => (
+                    <div className="sdom-pipeline-card" key={p.label}>
+                      <div className="sdom-pipeline-dot" style={{ background: p.dot }} />
+                      <div>
+                        <div className="sdom-pipeline-lbl">{p.label}</div>
+                        <div className="sdom-pipeline-val">{p.count.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ height: 280, marginTop: 8 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={ASSESSMENT_MONTHLY} barCategoryGap="30%" barGap={4}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#D9E2EC" />
+                      <XAxis dataKey="month" fontSize={12} tick={{ fill: "#627D98" }} axisLine={false} tickLine={false} />
+                      <YAxis fontSize={11} tick={{ fill: "#627D98" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ fontSize: "0.85rem", borderRadius: 6, border: "1px solid #D9E2EC" }} />
+                      <Legend wrapperStyle={{ fontSize: "0.82rem" }} />
+                      <Bar dataKey="approved" name="Approved" fill="#1E3A5F" barSize={12} radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="pending" name="Pending" fill="#4A90D9" barSize={12} radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="rejected" name="Rejected" fill="#B83A3A" barSize={12} radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="overdue" name="Overdue" fill="#5A6B7C" barSize={12} radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
         );
+      }
 
       case "Station Management":
       case "All Stations":
@@ -4287,214 +7055,23 @@ function AOmModule({ user, onLogout }) {
           </div>
         );
 
+      case "Stations":
+        return renderStations();
+
+      case "Pointsmen":
+        return renderAomRole("pointsmen", "Pointsman");
+
       case "Station Masters":
-        return (
-          <div className="user-management-page">
-            <div className="page-header">
-              <h2>STATION MASTERS DIRECTORY</h2>
-              <p>View all Station Masters and their mapped stations</p>
-            </div>
+        return renderAomRole("sm", "Station Master");
 
-            <div className="station-action-bar chart-card">
-              <div className="station-list-kpi">Total Station Masters: {filteredStationMasters.length}</div>
-              <input
-                type="text"
-                className="users-table-search"
-                placeholder="Search by Name / Station / Code / Division"
-                value={stationMasterSearch}
-                onChange={(e) => setStationMasterSearch(e.target.value)}
-              />
-            </div>
+      case "Station Superintendents":
+        return renderAomRole("ss", "Station Superintendent");
 
-            <div className="users-list-container">
-              <div className="users-table-wrapper">
-                <div className="users-table station-master-table-wide">
-                  <div className="table-header station-master-table-cols">
-                    <div>Sr No</div>
-                    <div>Station Master Name</div>
-                    <div>Station Name</div>
-                    <div>Station Code</div>
-                    <div>Division</div>
-                    <div>Zone</div>
-                    <div>Category</div>
-                    <div>Contact</div>
-                    <div>Email</div>
-                    <div>Action</div>
-                  </div>
+      case "Train Managers":
+        return renderAomRole("tm", "Train Manager");
 
-                  {filteredStationMasters.length === 0 ? (
-                    <div className="table-empty-state">No Station Masters found.</div>
-                  ) : (
-                    filteredStationMasters.map((row, index) => (
-                      <div 
-                        key={row.id} 
-                        className="table-row station-master-table-cols"
-                      >
-                        <div>{index + 1}</div>
-                        <div>
-                          <button
-                            type="button"
-                            className="ti-name-link"
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: "#2563eb",
-                              textDecoration: "underline",
-                              cursor: "pointer",
-                              fontWeight: "bold",
-                              padding: 0,
-                              fontFamily: "inherit",
-                              fontSize: "inherit",
-                              textAlign: "left"
-                            }}
-                            onClick={() => {
-                              setSelectedSMProfile(row);
-                              setActivePage("Station Master Profile");
-                            }}
-                          >
-                            {row.name}
-                          </button>
-                        </div>
-                        <div>{row.stationName}</div>
-                        <div>
-                          <span className="station-code-chip">{row.stationCode}</span>
-                        </div>
-                        <div>{row.division}</div>
-                        <div>{row.zone}</div>
-                        <div>{renderCategoryBadge(row.category)}</div>
-                        <div>{row.contactNumber}</div>
-                        <div>{row.emailId}</div>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              className="sm-btn sm-btn-view"
-                              onClick={() => {
-                                handleStationMasterClick(row);
-                              }}
-                            >
-                              View
-                            </button>
-                            
-                            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                              <select
-                                className="sm-select"
-                                value={smShiftDrafts[row.name] || ""}
-                                onChange={(e) =>
-                                  setSmShiftDrafts((prev) => ({
-                                    ...prev,
-                                    [row.name]: e.target.value
-                                  }))
-                                }
-                              >
-                                <option value="">Shift to...</option>
-                                {stations
-                                  .filter(s => s.stationCode !== row.stationCode)
-                                  .map((s) => (
-                                    <option key={s.stationCode} value={s.stationCode}>
-                                      {s.stationName}
-                                    </option>
-                                  ))}
-                              </select>
-                              <button
-                                type="button"
-                                className="sm-btn sm-btn-shift"
-                                onClick={() => handleShiftStationMaster(row.name, smShiftDrafts[row.name])}
-                              >
-                                <ArrowRightLeft size={12} />
-                                Shift
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              className="sm-btn sm-btn-delete"
-                              onClick={() => handleDeleteStationMaster(row.name)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <style>{`
-              .station-master-table-wide {
-                min-width: 1350px;
-              }
-
-              .station-master-table-cols {
-                display: grid;
-                grid-template-columns: 60px 1fr 1.1fr 80px 0.7fr 0.7fr 80px 100px 1.1fr 320px;
-                align-items: center;
-                gap: 10px;
-              }
-
-              .sm-btn {
-                border: none;
-                padding: 6px 12px;
-                font-size: 12px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: 700;
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                transition: all 0.2s ease;
-              }
-
-              .sm-btn-view {
-                background-color: #1d4ed8;
-                color: #ffffff;
-                box-shadow: 0 2px 4px rgba(29, 78, 216, 0.15);
-              }
-
-              .sm-btn-view:hover {
-                background-color: #1e40af;
-                transform: translateY(-1px);
-              }
-
-              .sm-btn-shift {
-                background-color: #0d9488;
-                color: #ffffff;
-              }
-
-              .sm-btn-shift:hover {
-                background-color: #0f766e;
-                transform: translateY(-1px);
-              }
-
-              .sm-btn-delete {
-                background-color: #ef4444;
-                color: #ffffff;
-              }
-
-              .sm-btn-delete:hover {
-                background-color: #dc2626;
-                transform: translateY(-1px);
-              }
-
-              .sm-select {
-                padding: 5px;
-                font-size: 11px;
-                border-radius: 6px;
-                border: 1px solid #d5dfeb;
-                background-color: #ffffff;
-                color: #374a63;
-                outline: none;
-                transition: all 0.2s ease;
-              }
-
-              .sm-select:focus {
-                border-color: #0d9488;
-              }
-            `}</style>
-          </div>
-        );
+      case "Traffic Inspectors":
+        return renderAomRole("ti", "Traffic Inspector");
 
       case "Station Masters Under TI": {
         if (!selectedTIForStationMasters) return null;
@@ -6647,178 +9224,298 @@ function AOmModule({ user, onLogout }) {
         );
       }
       
-      case "Reports":
-        return (
-          <div className="reports-page">
-            <div className="page-header">
-              <h2>Employee Reports</h2>
-              <p>View assessments of employees in your jurisdiction</p>
-            </div>
+      case "Reports & Analytics": {
+        const ROLE_MAP = { pointsmen: "Pointsman", sm: "Station Master", ss: "Station Superintendent", tm: "Train Manager", ti: "Traffic Inspector" };
+        
+        if (selectedReportUserId) {
+          const u = allEmployees.find(x => x.hrmsId === selectedReportUserId);
+          if (!u) return null;
 
-            <div className="reports-container">
-              <div className="reports-filter" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", flexWrap: "wrap", gap: "10px" }}>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <input 
-                    type="text" 
-                    placeholder="Search by HRMS ID or Employee Name"
-                    value={reportSearchQuery}
-                    onChange={(e) => setReportSearchQuery(e.target.value)}
-                    style={{ padding: "10px", borderRadius: "4px", border: "1px solid #ddd", width: "300px" }}
-                  />
-                  <select
-                    value={reportDesignation}
-                    onChange={(e) => setReportDesignation(e.target.value)}
-                    style={{ padding: "10px", borderRadius: "4px", border: "1px solid #ddd" }}
-                  >
-                    <option>All Designations</option>
-                    <option>Pointsman</option>
-                    <option>Station Master</option>
-                    <option>Train Manager</option>
-                    <option>Traffic Inspector</option>
-                    <option>Station Supervisor</option>
-                  </select>
+          const getCat = s => s >= 80 ? "A" : s >= 50 ? "B" : s >= 26 ? "C" : "D";
+          const cat = u.category || getCat(u.lastScore || 0);
+          
+          const CAT_C  = { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" };
+          const CAT_B  = { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" };
+          const RISK_C = { High: "#dc2626", Medium: "#d97706", Low: "#16a34a" };
+          
+          const isHighRisk = u.riskLevel === "High" || (u.lastScore || 0) < 50;
+          const risk = isHighRisk ? "High" : (u.lastScore || 0) >= 80 ? "Low" : "Medium";
+          const pmeVal = u.riskLevel === "High" ? "PENDING" : "FIT";
+          const refVal = u.riskLevel === "High" ? "EXPIRED" : "CLEARED";
+
+          return (
+            <div className="ti2-card animate-fade-in" style={{ padding: "24px", background: "white", borderRadius: "12px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", border: "1px solid #e2e8f0" }}>
+              {/* Header section with back button */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid #e2edf8", paddingBottom: "16px", marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div className="ti2-pm-avatar" style={{ width: 48, height: 48, fontSize: 18, background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontWeight: "700" }}>{u.name.charAt(0)}</div>
+                  <div>
+                    <h2 style={{ fontSize: "20px", fontWeight: "900", color: "#0f172a", margin: 0 }}>{u.name}</h2>
+                    <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#64748b", fontWeight: "700" }}>{ROLE_MAP[u.role] || u.designation || u.role} Dossier · {u.stationName}</p>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleExportCSV}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "10px 18px",
-                    borderRadius: "6px",
-                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                    color: "white",
-                    border: "none",
-                    fontWeight: "700",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    boxShadow: "0 2px 4px rgba(16, 185, 129, 0.2)",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 6px rgba(16, 185, 129, 0.3)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 4px rgba(16, 185, 129, 0.2)"; }}
-                >
-                  <FileDown size={16} />
-                  Export to CSV
+                <button className="ti2-link-btn" onClick={() => setSelectedReportUserId(null)} style={{ fontSize: "13px", fontWeight: "800", color: "#2563eb", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
+                  ← Back to Reports
                 </button>
               </div>
 
-              <div className="reports-table-section">
-                <h3>Subordinate Assessments</h3>
-                <div style={{ overflowX: "auto" }}>
-                  <table className="reports-table">
-                    <thead>
-                      <tr>
-                        <th>HRMS ID</th>
-                        <th>Employee Name</th>
-                        <th>Designation</th>
-                        <th>Score</th>
-                        <th>Grade</th>
-                        <th>Last Assessed</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredReportRows.map((row) => {
-                        return (
-                          <tr key={row.id}>
-                            <td>{row.hrmsId}</td>
-                            <td>{row.name}</td>
-                            <td>{row.designation}</td>
-                            <td>{row.score}</td>
-                            <td>
-                              <strong style={{ color: row.grade === "A" ? "#4caf50" : row.grade === "B" ? "#2196f3" : "#666" }}>
-                                {row.grade}
-                              </strong>
-                            </td>
-                            <td>{row.lastAssessed}</td>
-                            <td>
-                              {row.assessmentStatus === "Pending" ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleAssessReport(row.id)}
-                                  style={{ padding: "6px 12px", background: "#ff9800", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
-                                >
-                                  Assess
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => handleViewReport(row)}
-                                  style={{ padding: "6px 12px", background: "#2196f3", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
-                                >
-                                  View
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              {/* Quick Info Summary metrics */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Grand Total Score</span>
+                  <strong style={{ display: "block", fontSize: "24px", color: CAT_C[cat] || "#2563eb", marginTop: "4px", fontWeight: "900" }}>{u.lastScore}/100</strong>
+                </div>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Safety Grade</span>
+                  <div>
+                    <span className="ti2-badge" style={{ display: "inline-block", background: CAT_B[cat] || "#dbeafe", color: CAT_C[cat] || "#2563eb", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                      Category {cat}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>PME Clearance</span>
+                  <div>
+                    <span className="ti2-badge" style={{ display: "inline-block", background: pmeVal === "FIT" ? "#dcfce7" : "#fee2e2", color: pmeVal === "FIT" ? "#16a34a" : "#dc2626", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                      {pmeVal}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2edf8", padding: "14px", borderRadius: "12px", textAlign: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>REF Training</span>
+                  <div>
+                    <span className="ti2-badge" style={{ display: "inline-block", background: refVal === "CLEARED" ? "#dcfce7" : "#fee2e2", color: refVal === "CLEARED" ? "#16a34a" : "#dc2626", fontSize: "13px", fontWeight: "800", padding: "4px 14px", borderRadius: "8px", marginTop: "8px" }}>
+                      {refVal}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: "24px" }}>
+                {/* Left side details card */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "14px", padding: "18px" }}>
+                    <h3 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1.5px solid #e2edf8", paddingBottom: "8px" }}>Personnel Roster Details</h3>
+                    <dl style={{ display: "flex", flexDirection: "column", gap: "12px", margin: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Employee HRMS ID</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.hrmsId}</dd></div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Designation</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{ROLE_MAP[u.role] || u.designation}</dd></div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Jurisdiction Station</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.stationName}</dd></div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Contact Number</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.mobileNo || "+91 98765 11001"}</dd></div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Date of Appointment</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#1e293b" }}>{u.doj || "2018-02-12"}</dd></div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Alcoholic Status</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: "#16a34a" }}>Non-Alcoholic</dd></div>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}><dt style={{ color: "#64748b", fontSize: "12px", fontWeight: "700" }}>Assigned Division Risk</dt><dd style={{ margin: 0, fontSize: "13px", fontWeight: "800", color: RISK_C[risk] }}>{risk} Risk</dd></div>
+                    </dl>
+                  </div>
+
+                  {/* Action button */}
+                  <button className="ti2-primary-btn" onClick={() => alert("Exporting Dossier PDF...")} style={{ width: "100%", height: "42px", justifyContent: "center", background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", border: "none", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <FileText size={16}/> Export Assessment Dossier (PDF)
+                  </button>
+                </div>
+
+                {/* Right side Performance Breakdown */}
+                <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "14px", padding: "18px" }}>
+                  <h3 style={{ margin: "0 0 16px 0", fontSize: "13px", fontWeight: "800", color: "#0f172a", textTransform: "uppercase", letterSpacing: "0.5px", borderBottom: "1.5px solid #e2edf8", paddingBottom: "8px" }}>Sectional Competency Breakdown</h3>
+                  
+                  {u.role === "pointsmen" ? (
+                    /* Pointsman sections competency progress bars */
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      {(() => {
+                        const secs = [
+                          { title: "Knowledge of Rules", score: Math.round(u.lastScore * 0.23), max: 25 },
+                          { title: "Alertness & Observation", score: Math.round(u.lastScore * 0.22), max: 25 },
+                          { title: "Safety Record", score: Math.round(u.lastScore * 0.14), max: 15 },
+                          { title: "Leadership & Management", score: Math.round(u.lastScore * 0.13), max: 15 },
+                          { title: "Discipline", score: Math.round(u.lastScore * 0.09), max: 10 },
+                          { title: "Appearance & Neatness", score: Math.round(u.lastScore * 0.09), max: 10 },
+                        ];
+                        return secs.map(s => {
+                          const pct = Math.round((s.score / s.max) * 100);
+                          return (
+                            <div key={s.title}>
+                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>
+                                <span>{s.title}</span>
+                                <strong>{s.score} / {s.max} ({pct}%)</strong>
+                              </div>
+                              <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#dc2626", borderRadius: "999px" }}/>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  ) : (
+                    /* Station Master sections competency progress bars */
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      {(() => {
+                        let totalYes = 12;
+                        let knowledgeMarks = Math.max(0, u.lastScore - 60);
+
+                        const secs = [
+                          { title: "Station Management", score: Math.round(totalYes * 5 * 0.25), max: 25 },
+                          { title: "Safety & Compliance", score: Math.round(totalYes * 4 * 0.25), max: 20 },
+                          { title: "Staff Supervision", score: Math.round(totalYes * 3 * 0.20), max: 15 },
+                          { title: "Documentation & Reporting", score: Math.round(totalYes * 3 * 0.15), max: 15 },
+                          { title: "Emergency Handling", score: Math.round(totalYes * 5 * 0.25), max: 25 },
+                          { title: "Knowledge (Safety Exam)", score: knowledgeMarks, max: 25 }
+                        ];
+
+                        return secs.map(s => {
+                          const pct = Math.round((s.score / s.max) * 100);
+                          return (
+                            <div key={s.title}>
+                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: "700", color: "#475569", marginBottom: "4px" }}>
+                                <span>{s.title}</span>
+                                <strong>{s.score} / {s.max} ({pct}%)</strong>
+                              </div>
+                              <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "999px", overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${pct}%`, background: pct >= 80 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#dc2626", borderRadius: "999px" }}/>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
+          );
+        }
 
-            <style>{`
-              .reports-page {
-                padding: 20px 0;
-              }
+        const divSummary = [
+          { label: "Average Division Score",  val: 87    },
+          { label: "Safety Compliance %",     val: "91%" },
+          { label: "High-Risk Staff",         val: 18    },
+          { label: "Pending Approvals",       val: 246   },
+          { label: "Total Reports Generated", val: 6245  },
+        ];
 
-              .reports-container {
-                background: white;
-                border-radius: 8px;
-                padding: 20px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              }
+        const STATION_OPTS = ["All", ...stations.map(s => s.stationName)];
+        const TI_OPTS      = ["All","TI PAR","TI AMLA","TI NGP"];
+        const ROLE_OPTS    = ["All","Pointsman","Station Master","Station Superintendent","Train Manager","Traffic Inspector"];
 
-              .reports-filter {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 25px;
-                padding-bottom: 15px;
-                border-bottom: 1px solid #e0e0e0;
-              }
+        const repFiltered = allEmployees.filter(s => {
+          const matchesSearch = !repF.search || 
+            (s.name || "").toLowerCase().includes(repF.search.toLowerCase()) || 
+            (s.hrmsId || "").toLowerCase().includes(repF.search.toLowerCase());
+          const matchesRole = repF.role === "All" || (s.designation || "").toLowerCase().includes(repF.role.toLowerCase()) || (ROLE_MAP[s.role] || "").toLowerCase().includes(repF.role.toLowerCase());
+          const matchesTi = repF.ti === "All" || (s.division || "").toLowerCase().includes(repF.ti.replace("TI ", "").toLowerCase());
+          const matchesStation = repF.station === "All" || s.stationName === repF.station;
+          const matchesCat = repF.cat === "All" || s.category === repF.cat;
+          const matchesRisk = repF.riskLevel === repF.risk || repF.risk === "All";
+          return matchesSearch && matchesRole && matchesTi && matchesStation && matchesCat && matchesRisk;
+        });
 
-              .reports-table-section {
-                margin-top: 20px;
-              }
+        const catBadge = c => <span className="sdom-badge" style={{ background: { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" }[c] || "#f3f4f6", color: { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" }[c] || "#6b7280" }}>{c ? `Cat. ${c}` : "—"}</span>;
+        const riskBadge = r => <span className="sdom-badge" style={{ background: { Low: "#dcfce7", Medium: "#fef3c7", High: "#fee2e2" }[r] || "#f3f4f6", color: { Low: "#16a34a", Medium: "#d97706", High: "#dc2626" }[r] || "#6b7280" }}>{r}</span>;
+        const statusBadge = s => <span className="sdom-badge" style={{ background: { Approved: "#dcfce7", Pending: "#fef3c7", Rejected: "#fee2e2", Completed: "#dcfce7" }[s] || "#f3f4f6", color: { Approved: "#16a34a", Pending: "#d97706", Rejected: "#dc2626", Completed: "#16a34a" }[s] || "#6b7280" }}>{s}</span>;
 
-              .reports-table-section h3 {
-                color: #333;
-                margin-bottom: 15px;
-              }
+        return (
+          <div className="sdom-fade" style={{ background: "#f8fafc", padding: "24px", borderRadius: "16px" }}>
+            <h1 className="sdom-page-title" style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "0 0 4px" }}>Reports &amp; Analytics</h1>
+            <p className="sdom-page-subtitle" style={{ fontSize: "14px", color: "#64748b", margin: "0 0 24px" }}>Division-level reporting hub. Use filters below to generate specific staff reports.</p>
 
-              .reports-table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 13px;
-              }
+            {/* Summary */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "16px", marginBottom: "24px" }}>
+              {divSummary.map(c => (
+                <div key={c.label} className="sdom-stat-card" style={{ background: "white", border: "1px solid #e2e8f0", padding: "20px", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                  <div className="sdom-stat-value" style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a" }}>{c.val}</div>
+                  <div className="sdom-stat-label" style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", fontWeight: "600", textTransform: "uppercase" }}>{c.label}</div>
+                </div>
+              ))}
+            </div>
 
-              .reports-table th {
-                background: #0066cc;
-                color: white;
-                padding: 12px 8px;
-                text-align: left;
-                font-weight: 600;
-              }
+            {/* Filters */}
+            <div className="sdom-filter-bar" style={{ display: "flex", gap: "16px", background: "white", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "24px", flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 2, minWidth: "200px" }}>
+                <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Search by Name/HRMS ID</label>
+                <div style={{ position: "relative" }}>
+                  <Search size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }}/>
+                  <input 
+                    type="text" 
+                    placeholder="Type name or HRMS ID..." 
+                    value={repF.search || ""} 
+                    onChange={e => setRepF(p => ({ ...p, search: e.target.value }))} 
+                    style={{ width: "100%", height: "42px", padding: "0 12px 0 36px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600", outline: "none" }}
+                  />
+                </div>
+              </div>
+              <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "120px" }}>
+                <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Role</label>
+                <select value={repF.role} onChange={e => setRepF(p => ({ ...p, role: e.target.value }))} style={{ height: "42px", padding: "0 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600" }}>
+                  {ROLE_OPTS.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+              <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "120px" }}>
+                <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>TI Area</label>
+                <select value={repF.ti} onChange={e => setRepF(p => ({ ...p, ti: e.target.value }))} style={{ height: "42px", padding: "0 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600" }}>
+                  {TI_OPTS.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+              <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "140px" }}>
+                <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Station</label>
+                <select value={repF.station} onChange={e => setRepF(p => ({ ...p, station: e.target.value }))} style={{ height: "42px", padding: "0 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600" }}>
+                  {STATION_OPTS.map(o => <option key={o}>{o}</option>)}
+                </select>
+              </div>
+              <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "100px" }}>
+                <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Category</label>
+                <select value={repF.cat} onChange={e => setRepF(p => ({ ...p, cat: e.target.value }))} style={{ height: "42px", padding: "0 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600" }}>
+                  <option>All</option><option>A</option><option>B</option><option>C</option><option>D</option>
+                </select>
+              </div>
+              <div className="sdom-filter-field" style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: "110px" }}>
+                <label style={{ fontSize: "11px", fontWeight: "800", color: "#475569", textTransform: "uppercase" }}>Risk Level</label>
+                <select value={repF.risk} onChange={e => setRepF(p => ({ ...p, risk: e.target.value }))} style={{ height: "42px", padding: "0 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontWeight: "600" }}>
+                  <option>All</option><option>Low</option><option>Medium</option><option>High</option>
+                </select>
+              </div>
+              <div>
+                <button className="sdom-btn-primary" style={{ height: "42px", display: "flex", alignItems: "center", gap: "8px", background: "#2563eb", color: "white", padding: "0 20px", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}>
+                  <Search size={16}/> Search
+                </button>
+              </div>
+            </div>
 
-              .reports-table td {
-                padding: 12px 8px;
-                border-bottom: 1px solid #e0e0e0;
-              }
-
-              .reports-table tr:hover {
-                background: #f5f5f5;
-              }
-
-              .reports-table tbody tr:nth-child(even) {
-                background: #fafafa;
-              }
-            `}</style>
+            <div className="sdom-chart-card" style={{ background: "white", border: "1px solid #e2e8f0", padding: "20px", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+              <div style={{ marginBottom: 14, fontWeight: 700, color: "#1e293b" }}>{repFiltered.length} staff in report</div>
+              <div className="sdom-table-wrap" style={{ overflowX: "auto" }}>
+                <table className="sdom-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1.5px solid #e2e8f0", background: "#f8fafc", textAlign: "left" }}>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Name</th>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Role</th>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Station</th>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>TI Area</th>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Score</th>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Category</th>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Risk</th>
+                      <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {repFiltered.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", color: "#94a3b8", padding: 32 }}>No staff match the selected filters</td></tr>}
+                    {repFiltered.map(s => (
+                      <tr key={s.hrmsId} style={{ cursor: "pointer", borderBottom: "1px solid #f1f5f9" }} onClick={() => setSelectedReportUserId(s.hrmsId)}>
+                        <td style={{ padding: "12px 16px", fontWeight: 700, color: "#2563eb" }}>{s.name}</td>
+                        <td style={{ padding: "12px 16px", color: "#334155", fontWeight: "500" }}>{ROLE_MAP[s.role] || s.designation}</td>
+                        <td style={{ padding: "12px 16px", color: "#334155", fontWeight: "500" }}>{s.stationName}</td>
+                        <td style={{ padding: "12px 16px", color: "#334155", fontWeight: "500" }}>{s.division}</td>
+                        <td style={{ padding: "12px 16px", fontWeight: 700, color: "#0f172a" }}>{s.lastScore}</td>
+                        <td style={{ padding: "12px 16px" }}>{catBadge(s.category)}</td>
+                        <td style={{ padding: "12px 16px" }}>{riskBadge(s.riskLevel)}</td>
+                        <td style={{ padding: "12px 16px" }}>{statusBadge(s.assessmentStatus)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         );
+      }
 
       case "Settings":
         return (
@@ -6940,205 +9637,342 @@ function AOmModule({ user, onLogout }) {
           </div>
         );
 
-      case "Profile":
+      case "Profile": {
+        const divisionPerformanceData = [
+          { month: "Dec'25", score: 72 },
+          { month: "Jan'26", score: 74 },
+          { month: "Feb'26", score: 76 },
+          { month: "Mar'26", score: 78 },
+          { month: "Apr'26", score: 80 },
+          { month: "May'26", score: 82 }
+        ];
+
         return (
-          <div className="reports-page">
-            <div className="page-header">
-              <h2>AOM Profile</h2>
-              <p>Executive identity and access overview (read-only)</p>
+          <div className="sdom-fade">
+            {/* Hero header */}
+            <div className="sdom-station-header" style={{ marginBottom: 24 }}>
+              <div className="sdom-station-header-meta">
+                <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Staff Profile</div>
+                <div style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 4 }}>{user?.name || "General Manager User"}</div>
+                <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>{aomReadOnlyProfile.designation} &bull; Nagpur Division &bull; Central Railway</div>
+                <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+                  <span className="sdom-badge sdom-badge-success">Category A</span>
+                  <span className="sdom-badge sdom-badge-success">Executive</span>
+                  <span className="sdom-badge sdom-badge-success">Active</span>
+                </div>
+              </div>
+              <div className="sdom-station-header-stats">
+                <div className="sdom-station-header-stat">
+                  <span className="val">82%</span>
+                  <span className="lbl">Division Avg</span>
+                </div>
+                <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+                <div className="sdom-station-header-stat">
+                  <span className="val">{aomReadOnlyProfile.contact}</span>
+                  <span className="lbl">Contact</span>
+                </div>
+                <div style={{ width: 1, height: 60, background: "rgba(255,255,255,0.15)" }}/>
+                <div className="sdom-station-header-stat">
+                  <span className="val">2026-05-27</span>
+                  <span className="lbl">Last Audit</span>
+                </div>
+              </div>
             </div>
 
-            <div className="reports-container premium-profile-shell">
-              <section className="premium-profile-hero">
-                <div className="premium-profile-identity">
-                  <div className="premium-avatar">{(user?.hrmsId || "GM").substring(0, 2).toUpperCase()}</div>
-                  <div>
-                    <p className="premium-eyebrow">Authorized Console Holder</p>
-                    <h3>{user?.name || "AOM/General User"}</h3>
-                    <span>{aomReadOnlyProfile.designation}</span>
+            {/* Info grid */}
+            <div className="sdom-row-2" style={{ marginBottom: "24px" }}>
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title" style={{ marginBottom: "16px" }}>Personal & Professional Details</div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', paddingBottom: '20px' }}>
+                  {[
+                    ["Employee ID / HRMS ID", user?.hrmsId || "GM_1001"],
+                    ["Designation", aomReadOnlyProfile.designation],
+                    ["Mobile Number", aomReadOnlyProfile.contact],
+                    ["Email ID", aomReadOnlyProfile.email],
+                    ["Account Status", "Active"],
+                    ["Current Zone", "Central Railway"],
+                    ["Current Division", aomReadOnlyProfile.division],
+                    ["Current Placement", aomReadOnlyProfile.zoneHq],
+                    ["Reporting Officer", aomReadOnlyProfile.reportingOfficer]
+                  ].map(([lbl, val]) => (
+                    <div key={lbl} style={{ background: "#f8fafc", borderRadius: 8, padding: "12px 16px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 700, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>{lbl}</div>
+                      <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.9rem" }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Operational Specifications */}
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+                  <h4 style={{ margin: '0 0 12px', fontSize: '14px', color: '#0f172a', fontWeight: '800', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px' }}>
+                    Operational & Safety Dates
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', fontSize: '13px' }}>
+                    <div><strong>Last Division Audit Done:</strong><div style={{fontWeight: 700, color: "#065f46", marginTop: 4}}>2026-05-20</div></div>
+                    <div><strong>Next Audit Due:</strong><div style={{fontWeight: 700, color: "#991b1b", marginTop: 4}}>2026-06-20</div></div>
+                    <div><strong>Executive Safety Training:</strong><div style={{fontWeight: 700, color: "#0d2c4d", marginTop: 4}}>2025-10-12</div></div>
+                    <div><strong>Safety Summit Attended:</strong><div style={{fontWeight: 700, color: "#0d2c4d", marginTop: 4}}>2026-03-15</div></div>
+                    <div style={{ gridColumn: "span 2" }}><strong>Zonal Operations Review:</strong><div style={{fontWeight: 700, color: "#d97706", marginTop: 4}}>2026-04-18</div></div>
                   </div>
                 </div>
+              </div>
 
-                <div className="premium-profile-tags">
-                  <span>Read-Only</span>
-                  <span>{aomReadOnlyProfile.zoneHq}</span>
-                  <span>{aomReadOnlyProfile.division}</span>
+              <div className="sdom-chart-card">
+                <div className="sdom-chart-title">Division Performance Trend</div>
+                <div className="sdom-chart-subtitle">Nagpur Division Average Score progression</div>
+                <div style={{ height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={divisionPerformanceData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                      <XAxis dataKey="month" fontSize={11}/>
+                      <YAxis domain={[40, 100]} fontSize={11}/>
+                      <Tooltip/>
+                      <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 5 }}/>
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-              </section>
-
-              <section className="premium-profile-grid">
-                <article>
-                  <label>HRMS ID</label>
-                  <strong>{user?.hrmsId || "GM_1001"}</strong>
-                </article>
-                <article>
-                  <label>Designation</label>
-                  <strong>{aomReadOnlyProfile.designation}</strong>
-                </article>
-                <article>
-                  <label>Zone / Headquarters</label>
-                  <strong>{aomReadOnlyProfile.zoneHq}</strong>
-                </article>
-                <article>
-                  <label>Division</label>
-                  <strong>{aomReadOnlyProfile.division}</strong>
-                </article>
-                <article>
-                  <label>Reporting Officer</label>
-                  <strong>{aomReadOnlyProfile.reportingOfficer}</strong>
-                </article>
-                <article>
-                  <label>Contact Number</label>
-                  <strong>{aomReadOnlyProfile.contact}</strong>
-                </article>
-                <article className="wide-card">
-                  <label>Email</label>
-                  <strong>{aomReadOnlyProfile.email}</strong>
-                </article>
-              </section>
-
-              <section className="premium-profile-grid compact-grid">
-                <article>
-                  <label>Access Scope</label>
-                  <strong>TI, SM, SS, TM, PM</strong>
-                </article>
-                <article>
-                  <label>Approval Authority</label>
-                  <strong>Division Operational Approvals</strong>
-                </article>
-                <article>
-                  <label>Profile Mode</label>
-                  <strong>View Only (No Edit Rights)</strong>
-                </article>
-              </section>
+              </div>
             </div>
-
-            <style>{`
-              .premium-profile-shell {
-                background: linear-gradient(170deg, #fbfdff 0%, #f3f8ff 100%);
-                border: 1px solid #dbe7f4;
-              }
-
-              .premium-profile-hero {
-                border: 1px solid #d8e3f1;
-                border-radius: 14px;
-                padding: 16px;
-                margin-bottom: 14px;
-                background: linear-gradient(120deg, #0f3155 0%, #1e4d7a 55%, #2a6aa3 100%);
-                color: #f4f8ff;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 14px;
-                flex-wrap: wrap;
-              }
-
-              .premium-profile-identity {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-              }
-
-              .premium-avatar {
-                width: 54px;
-                height: 54px;
-                border-radius: 999px;
-                background: rgba(255, 255, 255, 0.92);
-                color: #153556;
-                font-size: 20px;
-                font-weight: 900;
-                display: grid;
-                place-items: center;
-                border: 2px solid rgba(255, 255, 255, 0.5);
-              }
-
-              .premium-eyebrow {
-                margin: 0;
-                font-size: 11px;
-                text-transform: uppercase;
-                letter-spacing: 0.7px;
-                opacity: 0.8;
-                font-weight: 700;
-              }
-
-              .premium-profile-identity h3 {
-                margin: 2px 0 3px;
-                font-size: 24px;
-                line-height: 1.1;
-              }
-
-              .premium-profile-identity span {
-                font-size: 13px;
-                opacity: 0.9;
-              }
-
-              .premium-profile-tags {
-                display: flex;
-                gap: 8px;
-                flex-wrap: wrap;
-              }
-
-              .premium-profile-tags span {
-                display: inline-flex;
-                align-items: center;
-                border: 1px solid rgba(255, 255, 255, 0.55);
-                background: rgba(255, 255, 255, 0.14);
-                color: #f2f8ff;
-                border-radius: 999px;
-                padding: 6px 10px;
-                font-size: 11px;
-                font-weight: 800;
-                letter-spacing: 0.25px;
-              }
-
-              .premium-profile-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                gap: 10px;
-                margin-bottom: 10px;
-              }
-
-              .compact-grid {
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                margin-bottom: 0;
-              }
-
-              .premium-profile-grid article {
-                border: 1px solid #dfe7f1;
-                border-radius: 10px;
-                padding: 12px;
-                background: #f8fbff;
-                box-shadow: 0 4px 14px rgba(20, 48, 78, 0.06);
-              }
-
-              .premium-profile-grid article.wide-card {
-                grid-column: span 2;
-              }
-
-              .premium-profile-grid label {
-                display: block;
-                font-size: 11px;
-                color: #6b7a8f;
-                text-transform: uppercase;
-                letter-spacing: 0.4px;
-                margin-bottom: 5px;
-                font-weight: 800;
-              }
-
-              .premium-profile-grid strong {
-                color: #142841;
-                font-size: 14px;
-              }
-
-              @media (max-width: 900px) {
-                .premium-profile-grid article.wide-card {
-                  grid-column: auto;
-                }
-              }
-            `}</style>
           </div>
         );
-      
+      }
+
+      case "Approvals": {
+        const aomCAT_C = { A: "#16a34a", B: "#2563eb", C: "#d97706", D: "#dc2626" };
+        const aomCAT_B = { A: "#dcfce7", B: "#dbeafe", C: "#fef3c7", D: "#fee2e2" };
+        const tabs = ["Pending", "Approved", "Rejected"];
+
+        /* ─── DETAIL VIEW ─── */
+        if (aomSelectedItem) {
+          const secs      = aomEditSections[aomSelectedItem.id] || [];
+          const liveTotal = secs.reduce((s, x) => s + x.score, 0);
+          const liveCat   = aomGetCat(liveTotal);
+          const locked    = aomSelectedItem.status !== "Submitted" && aomSelectedItem.status !== "Pending";
+          const reject    = aomRejectMode[aomSelectedItem.id] || false;
+
+          const savedForms = aomApprovalTab === "SM"
+            ? (localStorage.getItem("ti_sm_forms") ? JSON.parse(localStorage.getItem("ti_sm_forms")) : {})
+            : (localStorage.getItem("ti_tm_forms") ? JSON.parse(localStorage.getItem("ti_tm_forms")) : {});
+          const form = savedForms[aomSelectedItem.id] || {};
+          const pme  = form.pmeStatus || aomSelectedItem.pmeStatus || (aomSelectedItem.meta?.pmeStatus) || "Fit";
+          const ref  = form.refStatus || aomSelectedItem.refStatus || (aomSelectedItem.meta?.refStatus) || "Cleared";
+          const alc  = form.alcoholicStatus || aomSelectedItem.alcoholicStatus || (aomSelectedItem.meta?.alcoholicStatus) || "Non-Alcoholic";
+
+          return (
+            <div className="ti2-card animate-fade-in">
+              <div className="ti2-card-hdr">
+                <div>
+                  <h2>Review — {aomSelectedItem.name} ({aomSelectedItem.hrmsId})</h2>
+                  <p style={{margin:"2px 0 0",fontSize:12,color:"#64748b"}}>
+                    {aomSelectedItem.station} · {aomApprovalTab === "SM" ? "Station Master" : "Train Manager"} · Assessed on {aomSelectedItem.lastDate}
+                  </p>
+                </div>
+                <button className="ti2-link-btn" onClick={() => setAomSelectedId(null)}>← Back</button>
+              </div>
+
+              {/* Info meta — same ti2-review-meta grid as TI */}
+              <div className="ti2-review-meta">
+                <div><label>{aomApprovalTab === "SM" ? "Station Master" : "Train Manager"}</label><strong>{aomSelectedItem.name}</strong></div>
+                <div><label>HRMS ID</label><strong>{aomSelectedItem.hrmsId}</strong></div>
+                <div><label>Station</label><strong>{aomSelectedItem.station}</strong></div>
+                <div><label>PME Status</label><strong className={pme==="Fit"?"ti2-green":"ti2-red"}>{pme}</strong></div>
+                <div><label>REF Status</label><strong className={ref==="Cleared"?"ti2-green":"ti2-amber"}>{ref}</strong></div>
+                <div><label>Alcoholic Status</label><strong>{alc}</strong></div>
+              </div>
+
+              {/* Section-wise marks — same ti2-review-sections as TI */}
+              <h4 className="ti2-sec-title">Section-wise Assessment Marks</h4>
+              <div className="ti2-review-sections">
+                {secs.map((sec, idx) => {
+                  const pct = sec.max > 0 ? Math.round((sec.score / sec.max) * 100) : 0;
+                  return (
+                    <div key={sec.title} className="ti2-review-sec-row">
+                      <span className="ti2-review-sec-name">{sec.title}</span>
+                      <div className="ti2-review-bar-wrap">
+                        <div className="ti2-review-bar" style={{width:`${pct}%`,background:pct>=80?"#16a34a":pct>=50?"#2563eb":"#dc2626"}}/>
+                      </div>
+                      {locked ? (
+                        <span className="ti2-review-score-static">{sec.score}/{sec.max}</span>
+                      ) : (
+                        <div className="ti2-review-score-input">
+                          <input type="number" min={0} max={sec.max} value={sec.score}
+                            onChange={e => aomUpdateSec(aomSelectedItem.id, idx, e.target.value)}/>
+                          <span className="ti2-sec-max">/ {sec.max}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Live score — same ti2-live-score as TI */}
+              <div className="ti2-live-score">
+                <div><label>Grand Total</label><strong style={{color:aomCAT_C[liveCat],fontSize:22}}>{liveTotal}/100</strong></div>
+                <div><label>Category</label><span className="ti2-badge" style={{background:aomCAT_B[liveCat],color:aomCAT_C[liveCat],fontSize:13,padding:"4px 14px"}}>Category {liveCat}</span></div>
+              </div>
+
+              {/* AOM remarks — mirrors TI Remarks */}
+              {!locked && (
+                <div className="ti2-form-field">
+                  <label>AOM Remarks</label>
+                  <textarea rows={3}
+                    value={aomAomRemarks[aomSelectedItem.id] || ""}
+                    onChange={e => setAomAomRemarks(p => ({...p,[aomSelectedItem.id]:e.target.value}))}
+                    placeholder="Add remarks…"/>
+                </div>
+              )}
+
+              {/* Reject reason input */}
+              {reject && !locked && (
+                <div className="ti2-form-field" style={{marginTop:10}}>
+                  <label style={{color:"#dc2626"}}>Rejection Reason (mandatory)</label>
+                  <textarea rows={2} placeholder="Enter rejection reason…" id={`aom-reject-${aomSelectedItem.id}`}/>
+                </div>
+              )}
+
+              {/* Audit trail */}
+              {aomSelectedItem.auditTrail?.length > 0 && (
+                <div>
+                  <button className="ti2-link-btn-sm" style={{marginTop:12}}
+                    onClick={() => setAomShowAudit(p => ({...p,[aomSelectedItem.id]:!p[aomSelectedItem.id]}))}>
+                    {aomShowAudit[aomSelectedItem.id] ? "Hide" : "View"} Audit Trail
+                  </button>
+                  {aomShowAudit[aomSelectedItem.id] && (
+                    <div className="ti2-audit-trail">
+                      {aomSelectedItem.auditTrail.map((a, i) => (
+                        <div key={i} className="ti2-audit-row">
+                          <strong>{a.action}</strong> · {a.by} · {a.date}
+                          {a.remark && <div style={{fontSize:11,color:"#64748b",marginTop:2}}>"{a.remark}"</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Locked banner */}
+              {locked && (
+                <div className="ti2-locked-banner">
+                  {aomSelectedItem.status === "Approved" ? "✓ Assessment Approved and Locked" : "✗ Assessment Rejected"}
+                  {aomSelectedItem.aomRemarks && <div style={{marginTop:4,fontSize:12}}>Remarks: {aomSelectedItem.aomRemarks}</div>}
+                </div>
+              )}
+
+              {/* Action buttons — exact same as TI: Reject / Approve as Submitted / Modify & Approve */}
+              {!locked && !reject && (
+                <div className="ti2-review-actions">
+                  <button className="ti2-danger-btn" onClick={() => setAomRejectMode(p => ({...p,[aomSelectedItem.id]:true}))}>
+                    <XCircle size={14}/> Reject
+                  </button>
+                  <button className="ti2-ghost-btn" onClick={() => aomFinalize(aomSelectedItem.id, "approve")}>
+                    <CheckCircle size={14}/> Approve as Submitted
+                  </button>
+                  <button className="ti2-primary-btn" onClick={() => aomFinalize(aomSelectedItem.id, "modify")}>
+                    <CheckCircle size={14}/> Modify &amp; Approve
+                  </button>
+                </div>
+              )}
+              {reject && !locked && (
+                <div className="ti2-review-actions">
+                  <button className="ti2-ghost-btn" onClick={() => setAomRejectMode(p => ({...p,[aomSelectedItem.id]:false}))}>Cancel</button>
+                  <button className="ti2-danger-btn" onClick={() => {
+                    const note = document.getElementById(`aom-reject-${aomSelectedItem.id}`)?.value || "No reason provided";
+                    aomFinalize(aomSelectedItem.id, "reject", note);
+                  }}>Confirm Rejection</button>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        /* ─── LIST VIEW ─── */
+        return (
+          <div className="ti2-card animate-fade-in">
+            <div className="ti2-card-hdr">
+              <h2>Approvals — {aomApprovalTab === "SM" ? "Station Masters" : "Train Managers"}</h2>
+            </div>
+            <p className="ti2-subtitle">Review and approve {aomApprovalTab === "SM" ? "Station Master" : "Train Manager"} assessments submitted by Traffic Inspectors.</p>
+
+            {/* Role switch — mirrors TI's ti2-tabs style */}
+            <div className="ti2-tabs" style={{marginBottom:4}}>
+              {["SM","TM"].map(role => (
+                <button key={role}
+                  className={`ti2-tab ${aomApprovalTab === role ? "active" : ""}`}
+                  onClick={() => { setAomApprovalTab(role); setAomSelectedId(null); setAomReviewTab("Pending"); setAomReviewSearch(""); setAomReviewStation("All"); }}>
+                  {role === "SM" ? "Station Masters" : "Train Managers"}
+                  <span className="ti2-tab-count">
+                    {(role === "SM" ? aomSMList : aomTMList).filter(p => p.status === "Submitted").length}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Status tabs — same ti2-tabs as TI */}
+            <div className="ti2-tabs">
+              {tabs.map(t => (
+                <button key={t} className={`ti2-tab ${aomReviewTab === t ? "active" : ""}`} onClick={() => setAomReviewTab(t)}>
+                  {t} <span className="ti2-tab-count">
+                    {aomCurrentList.filter(p => t === "Pending" ? p.status === "Submitted" : p.status === t).length}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Filters — exact same as TI */}
+            <div className="ti2-filter-row">
+              <div className="ti2-search-box">
+                <Search size={13}/>
+                <input placeholder={`Search ${aomApprovalTab === "SM" ? "station master" : "train manager"}…`}
+                  value={aomReviewSearch} onChange={e => setAomReviewSearch(e.target.value)}/>
+              </div>
+              <select className="ti2-select" value={aomReviewStation} onChange={e => setAomReviewStation(e.target.value)}>
+                <option value="All">All Stations</option>
+                {aomAllStations.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            {aomApprovalNotice && (
+              <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",color:"#15803d",padding:"10px 14px",borderRadius:"8px",marginBottom:"12px",fontWeight:700,fontSize:"13px"}}>
+                {aomApprovalNotice}
+              </div>
+            )}
+
+            {/* Table — exact same structure as TI */}
+            <div className="ti2-table-wrap">
+              <div className="ti2-pm-head ti2-pm-row">
+                {["Name","HRMS ID","Station","Submitted By","Date","Score","Status","Action"].map(h => <span key={h}>{h}</span>)}
+              </div>
+              {aomFilteredList.length === 0 && <p className="ti2-empty">No records in this category.</p>}
+              {aomFilteredList.map(item => {
+                const score = item.score || 0;
+                const cat   = item.category || aomGetCat(score);
+                return (
+                  <div key={item.id} className="ti2-pm-row ti2-pm-data-row">
+                    <span><strong>{item.name}</strong></span>
+                    <span>{item.hrmsId}</span>
+                    <span>{item.station}</span>
+                    <span>Traffic Inspector</span>
+                    <span>{item.lastDate}</span>
+                    <span><strong style={{color:aomCAT_C[cat]}}>{score}/100</strong></span>
+                    <span>
+                      <span className={`ti2-status-pill ti2-status-${item.status.toLowerCase() === "submitted" ? "pending" : item.status.toLowerCase()}`}>
+                        {item.status === "Submitted" ? "Pending" : item.status}
+                      </span>
+                    </span>
+                    <span>
+                      <button className="ti2-link-btn-sm" onClick={() => aomOpenReview(item.id)}>
+                        {item.status === "Submitted" ? <><ClipboardCheck size={12}/> Review</> : <><Eye size={12}/> View</>}
+                      </button>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
       default:
         return (
           <div className="page-header">
@@ -7183,6 +10017,7 @@ function AOmModule({ user, onLogout }) {
               item.label === "Station Management" ? stationPageActive : 
               item.label === "Assessments" ? assessmentsPageActive : 
               item.label === "Station Masters" ? stationMastersActive : 
+              item.label === "Approvals" ? activePage === "Approvals" :
               activePage === item.label;
 
             return (
@@ -7219,6 +10054,10 @@ function AOmModule({ user, onLogout }) {
         </main>
       </div>
       {renderChartZoomModal()}
+      {renderPmModal()}
+      {renderSmModal()}
+      {renderSsModal()}
+      {renderTmModal()}
     </div>
   );
 }
