@@ -41,12 +41,12 @@ import "./sdom.css";
 
 /* ─── NAV ─── */
 const navItems = [
-  { key: "dashboard",     label: "Dashboard",            icon: BarChart3 },
-  { key: "profile",       label: "My Profile",           icon: UserCircle2 },
-  { key: "pointsmen",     label: "Pointsmen",            icon: Users },
-  { key: "assess",        label: "Assess Pointsman",     icon: ClipboardCheck },
-  { key: "myAssessment",  label: "My Assessment (by TI)",icon: ClipboardCheck },
-  { key: "reports",       label: "Reports & Analytics",  icon: FileBarChart2 }
+  { key: "dashboard",     label: "Dashboard",             icon: Gauge },
+  { key: "pointsmen",     label: "Pointsmen",             icon: Users },
+  { key: "assess",        label: "Assess Pointsmen",      icon: ClipboardCheck },
+  { key: "myAssessment",  label: "My Assessment",         icon: FileBarChart2 },
+  { key: "reports",       label: "Reports and Analytics", icon: BarChart3 },
+  { key: "profile",       label: "My Profile",            icon: UserCircle2 }
 ];
 
 /* ─── HELPERS ─── */

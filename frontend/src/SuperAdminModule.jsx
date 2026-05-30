@@ -4,7 +4,8 @@ import {
   Search, ShieldCheck, UserRound, Users, UserCheck, TrainFront,
   Plus, Edit, Trash2, ArrowRightLeft, ArrowLeft, TrendingUp,
   AlertTriangle, CheckCircle, Clock, XCircle, Activity,
-  MapPin, Phone, Calendar, Award, UserPlus, FileText
+  MapPin, Phone, Calendar, Award, UserPlus, FileText,
+  Gauge, BusFront, FileCheck, UserCircle2
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
@@ -18,16 +19,16 @@ import "./sdom.css";
    ═══════════════════════════════════════════ */
 
 const NAV = [
-  { key: "dashboard",  label: "Dashboard",                icon: BarChart3 },
+  { key: "dashboard",  label: "Dashboard",                icon: Gauge },
   { key: "pointsmen",  label: "Pointsmen",                icon: Users },
-  { key: "sm",         label: "Station Masters",          icon: UserRound },
+  { key: "sm",         label: "Station Masters",          icon: Building2 },
   { key: "ss",         label: "Station Superintendents",  icon: UserCheck },
-  { key: "tm",         label: "Train Managers",           icon: TrainFront },
+  { key: "tm",         label: "Train Managers",           icon: BusFront },
   { key: "ti",         label: "Traffic Inspectors",       icon: ShieldCheck },
   { key: "stations",   label: "Stations",                 icon: Building2 },
-  { key: "records",    label: "Assessment Records",       icon: ClipboardList },
-  { key: "reports",    label: "Reports & Analytics",      icon: FileBarChart2 },
-  { key: "profile",    label: "My Profile",               icon: Award },
+  { key: "records",    label: "Assessments",              icon: FileCheck },
+  { key: "reports",    label: "Reports and Analytics",    icon: BarChart3 },
+  { key: "profile",    label: "My Profile",               icon: UserCircle2 },
 ];
 
 // Enterprise palette — navy/slate only
@@ -493,9 +494,9 @@ export default function SuperAdminModule({ user, onLogout }) {
     const summaryCards = [
       { key:"stations",  label:"Stations",                count: counts.stations,  sub:"Total in Nagpur Division",   icon:<Building2 size={18}/>,  color:"#1E3A5F" },
       { key:"pointsmen", label:"Pointsmen",               count: counts.pointsmen, sub:"Operational pointsmen",       icon:<Users size={18}/>,      color:"#1E3A5F" },
-      { key:"sm",        label:"Station Masters",         count: counts.sm,        sub:"Across all stations",         icon:<UserRound size={18}/>,  color:"#1E3A5F" },
+      { key:"sm",        label:"Station Masters",         count: counts.sm,        sub:"Across all stations",         icon:<Building2 size={18}/>,  color:"#1E3A5F" },
       { key:"ss",        label:"Station Superintendents", count: counts.ss,        sub:"Division supervisors",        icon:<UserCheck size={18}/>,  color:"#1E3A5F" },
-      { key:"tm",        label:"Train Managers",          count: counts.tm,        sub:"Active train managers",       icon:<TrainFront size={18}/>, color:"#1E3A5F" },
+      { key:"tm",        label:"Train Managers",          count: counts.tm,        sub:"Active train managers",       icon:<BusFront size={18}/>,   color:"#1E3A5F" },
       { key:"ti",        label:"Traffic Inspectors",      count: counts.ti,        sub:"Jurisdiction coverage",       icon:<ShieldCheck size={18}/>,color:"#1E3A5F" },
     ];
 
@@ -1497,8 +1498,8 @@ export default function SuperAdminModule({ user, onLogout }) {
 
     return (
       <div className="sdom-fade">
-        <h1 className="sdom-page-title">Assessment Records</h1>
-        <p className="sdom-page-subtitle">Division-wide assessment data. Apply filters to search specific records.</p>
+        <h1 className="sdom-page-title">Assessments</h1>
+        <p className="sdom-page-subtitle">Division-wide assessment data. Apply filters to search specific assessments.</p>
 
         {/* Overview cards */}
         <div className="sdom-overview-cards">
@@ -1585,7 +1586,7 @@ export default function SuperAdminModule({ user, onLogout }) {
           <div className="sdom-empty">
             <Search size={32} style={{marginBottom:12}}/>
             <div className="sdom-empty-title">Apply filters to search records</div>
-            <div className="sdom-empty-sub">Select a role, station, or enter a staff name above to view assessment records.</div>
+            <div className="sdom-empty-sub">Select a role, station, or enter a staff name above to view assessments.</div>
           </div>
         )}
       </div>
@@ -1768,7 +1769,7 @@ export default function SuperAdminModule({ user, onLogout }) {
 
     return (
       <div className="sdom-fade">
-        <h1 className="sdom-page-title">Reports & Analytics</h1>
+        <h1 className="sdom-page-title">Reports and Analytics</h1>
         <p className="sdom-page-subtitle">Division-level reporting hub. Use filters below to generate specific staff reports.</p>
 
         {/* Summary */}

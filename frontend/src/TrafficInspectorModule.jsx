@@ -1,12 +1,13 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   Activity, AlertTriangle, ArrowUpDown, Award, BarChart3, Building2,
-  CheckCircle2, ChevronRight, ClipboardCheck,
-  FileBarChart2, Filter, LogOut, Search, ShieldCheck,
+  CheckCircle2, CheckCircle, ChevronRight, ClipboardCheck,
+  FileBarChart2, FileCheck, Filter, LogOut, Search, ShieldCheck,
   TrendingUp, TrendingDown, UserCircle2, Users, XCircle, Eye,
   Calendar, BookOpen, Clock, HeartHandshake, HelpCircle, Download,
   FileSpreadsheet, FileText, Bell, Plus, RefreshCw, Edit, Trash2, Lock, Maximize2,
-  ArrowLeft, UserCheck, BusFront, ClipboardList
+  ArrowLeft, UserCheck, BusFront, ClipboardList, UserPlus, Send, Train, ExternalLink,
+  Gauge
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
@@ -14,25 +15,25 @@ import {
 } from "recharts";
 import "./sdom.css";
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    NAV CONFIG
    (Full 12 Sidebar Menu Items)
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════════ */
 const NAV = [
-  { key: "dashboard",               label: "Dashboard",                    icon: BarChart3 },
-  { key: "stations",                label: "Stations",                     icon: Building2 },
+  { key: "dashboard",               label: "Dashboard",                    icon: Gauge },
   { key: "pointsmen",               label: "Pointsmen",                    icon: Users },
   { key: "stationMasters",          label: "Station Masters",              icon: Building2 },
   { key: "stationSuperintendents",  label: "Station Superintendents",      icon: UserCheck },
   { key: "trainManagers",           label: "Train Managers",               icon: BusFront },
-  { key: "approvals",               label: "Approvals",                    icon: ClipboardCheck },
-  { key: "assessments",             label: "Assessments",                  icon: ClipboardList },
-  { key: "myAssessment",            label: "My Assessments",               icon: FileBarChart2 },
+  { key: "stations",                label: "Stations",                     icon: Building2 },
+  { key: "approvals",               label: "Approvals",                    icon: CheckCircle },
+  { key: "assessments",             label: "Assessments",                  icon: FileCheck },
   { key: "pmePosition",             label: "PME Position",                 icon: Activity },
   { key: "refPosition",             label: "REF Position",                 icon: Award },
   { key: "inspections",             label: "Inspections",                  icon: Eye },
   { key: "counselling",             label: "Counselling",                  icon: HeartHandshake },
-  { key: "reports",                 label: "Reports & Analytics",          icon: FileBarChart2 },
+  { key: "myAssessment",            label: "My Assessment",                icon: FileBarChart2 },
+  { key: "reports",                 label: "Reports and Analytics",        icon: BarChart3 },
   { key: "profile",                 label: "My Profile",                   icon: UserCircle2 },
 ];
 
@@ -49,10 +50,25 @@ const TI_PROFILE = {
   counsellingDate: "2026-05-12"
 };
 
+const stationTiMap = {
+  "Parbhani Junction": "TI PAR",
+  "Amla Junction": "TI AMLA",
+  "Badnera Junction": "TI NGP",
+  "Akola Junction": "TI PAR",
+  "Nagpur Junction": "TI NGP",
+  "Wardha Junction": "TI NGP",
+  "Betul Station": "TI AMLA",
+  "Itarsi Junction": "TI AMLA",
+  "Chandrapur Station": "TI NGP",
+  "Gondia Junction": "TI NGP",
+  "Dhamangaon Station": "TI NGP",
+  "Pulgaon Junction": "TI NGP"
+};
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+/* ═══════════════════════════════════════════
    HELPERS & CATEGORIES
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════════ */
 const getCat = s => s >= 80 ? "A" : s >= 50 ? "B" : s >= 26 ? "C" : "D";
 
 const getUserRisk = (u) => {
@@ -103,9 +119,9 @@ const MONTHLY_TREND = [
 ];
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    STATIC MOCK DATA — 12 STATIONS
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════════ */
 const INIT_STATIONS = [
   { id: "ST01", name: "Parbhani Junction", code: "PBN", avgScore: 82, safetyPct: 88, highRisk: 1, pointsmenCount: 10 },
   { id: "ST02", name: "Amla Junction", code: "AMLA", avgScore: 65, safetyPct: 71, highRisk: 3, pointsmenCount: 8 },
@@ -443,6 +459,21 @@ const getPerformanceSummaryText = (score, sections) => {
   return summary;
 };
 
+const formatQuarterPeriod = (periodStr) => {
+  if (!periodStr) return "—";
+  const match = periodStr.match(/Q([1-4])\s+(\d{4})/i);
+  if (!match) return periodStr;
+  const quarter = parseInt(match[1], 10);
+  const year = match[2];
+  switch (quarter) {
+    case 1: return `01 Jan ${year} – 31 Mar ${year}`;
+    case 2: return `01 Apr ${year} – 30 Jun ${year}`;
+    case 3: return `01 Jul ${year} – 30 Sep ${year}`;
+    case 4: return `01 Oct ${year} – 31 Dec ${year}`;
+    default: return periodStr;
+  }
+};
+
 const INIT_TI_ASSESS_HISTORY = [
   {
     id: 1, date: "2026-03-20", period: "Q1 2026", assessedBy: "AOM_GM_1001 — P. Joshi",
@@ -486,9 +517,9 @@ const INIT_TI_ASSESS_HISTORY = [
 ];
 
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    CUSTOM TOOLTIP
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════════ */
 const TiTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -499,11 +530,170 @@ const TiTooltip = ({ active, payload, label }) => {
   );
 };
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    MAIN MODULE COMPONENT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+═══════════════════════════════════════════ */
+
+const generateGraphCompleteData = (baseUsers, baseStations) => {
+  const stationsList = baseStations || INIT_STATIONS;
+  const usersList = [...(baseUsers || INIT_USERS)];
+  
+  const hasSS = usersList.some(u => u.role === "Station Superintendent");
+  if (!hasSS) {
+    usersList.push(...DEFAULT_SS_TM_USERS);
+  }
+
+  const names = [
+    "Rahul Sharma", "Amit Patel", "Vikram Singh", "Sanjay Dutt", "Vijay Kumar",
+    "Rohan Gupta", "Deepak Rao", "Karan Johar", "Abhishek Shah", "Manish Pandey",
+    "Suresh Raina", "Girish Karnad", "Pranav Mukherji", "Shantanu Sen", "Animesh Roy"
+  ];
+
+  const designations = {
+    "Pointsman": "Pointsman Grade I",
+    "Station Master": "Station Master",
+    "Station Superintendent": "Station Superintendent",
+    "Train Manager": "Train Manager"
+  };
+
+  const categories = ["A", "B", "C"];
+  let userCounter = 2000;
+
+  stationsList.forEach((st, sidx) => {
+    const roles = ["Pointsman", "Station Master", "Station Superintendent", "Train Manager"];
+    roles.forEach(role => {
+      const exists = usersList.some(u => u.station === st.name && u.role === role);
+      if (!exists) {
+        const id = (role === "Pointsman" ? "PM_" : role === "Station Master" ? "SM_" : role === "Station Superintendent" ? "SS_" : "TM_") + userCounter++;
+        const nameIdx = (sidx + role.length) % names.length;
+        const name = names[nameIdx] + " (" + st.code + ")";
+        const cat = categories[userCounter % categories.length];
+        
+        usersList.push({
+          id,
+          name,
+          role,
+          designation: designations[role],
+          station: st.name,
+          cat,
+          lastAssessDate: `2026-03-${10 + (userCounter % 15)}`,
+          score: 65 + (userCounter % 30),
+          pmeStatus: "Fit",
+          refStatus: "Cleared",
+          contact: `+91 98765 ${userCounter}`,
+          joiningDate: `2018-05-${12 + (userCounter % 15)}`
+        });
+      }
+    });
+  });
+
+  return usersList;
+};
+
+const generateAssessmentsForGraphs = (usersList, stationsList) => {
+  const pmAssess = [];
+  const smAssess = [];
+  const ssAssess = [];
+  const tmAssess = [];
+
+  stationsList.forEach((st, sidx) => {
+    // 1. Pointsman Assessments (1 Approved, 1 Pending for each station)
+    const stPMs = usersList.filter(u => u.station === st.name && u.role === "Pointsman");
+    stPMs.forEach((pm, pidx) => {
+      const isApproved = pidx % 2 === 0;
+      pmAssess.push({
+        id: `PA_${pm.id}`,
+        pointsmanName: pm.name,
+        hrmsId: pm.id,
+        station: st.name,
+        assessingSM: `SM at ${st.code}`,
+        submissionDate: `2026-04-${10 + pidx}`,
+        status: isApproved ? "Approved" : "Pending",
+        originalSections: [
+          { title: "Knowledge of Rules",      score: 18 + (pidx % 6), max: 25 },
+          { title: "Alertness & Observation", score: 18 + (pidx % 6), max: 25 },
+          { title: "Safety Record",           score: 10 + (pidx % 4), max: 15 },
+          { title: "Leadership & Management", score: 10 + (pidx % 4), max: 15 },
+          { title: "Discipline",              score: 7 + (pidx % 3),  max: 10 },
+          { title: "Appearance & Neatness",   score: 7 + (pidx % 3),  max: 10 },
+        ],
+        finalSections: isApproved ? [
+          { title: "Knowledge of Rules",      score: 18 + (pidx % 6), max: 25 },
+          { title: "Alertness & Observation", score: 18 + (pidx % 6), max: 25 },
+          { title: "Safety Record",           score: 10 + (pidx % 4), max: 15 },
+          { title: "Leadership & Management", score: 10 + (pidx % 4), max: 15 },
+          { title: "Discipline",              score: 7 + (pidx % 3),  max: 10 },
+          { title: "Appearance & Neatness",   score: 7 + (pidx % 3),  max: 10 },
+        ] : undefined,
+        meta: { pmeStatus: "Fit", refStatus: "Cleared", alcoholicStatus: "Non-Alcoholic" },
+        tiRemarks: isApproved ? "Field assessment approved successfully." : "",
+        tiModified: false,
+        approvalDate: isApproved ? "2026-04-12" : undefined,
+        auditTrail: isApproved ? [{ action: "Approved without modification", by: "TI R. Khan", date: "2026-04-12" }] : []
+      });
+    });
+
+    // 2. SM Assessment (1 Pending or Submitted per station)
+    const stSMs = usersList.filter(u => u.station === st.name && u.role === "Station Master");
+    stSMs.forEach((sm, smidx) => {
+      const status = smidx % 2 === 0 ? "Pending" : "Submitted";
+      smAssess.push({
+        id: `SMA_${sm.id}`,
+        name: sm.name,
+        hrmsId: sm.id,
+        station: st.name,
+        lastDate: `2026-03-${15 + smidx}`,
+        status
+      });
+    });
+
+    // 3. SS Assessment (1 Pending or Submitted per station)
+    const stSSs = usersList.filter(u => u.station === st.name && u.role === "Station Superintendent");
+    stSSs.forEach((ss, ssidx) => {
+      const status = ssidx % 2 === 0 ? "Pending" : "Submitted";
+      ssAssess.push({
+        id: `SSA_${ss.id}`,
+        name: ss.name,
+        hrmsId: ss.id,
+        station: st.name,
+        lastDate: `2026-04-${5 + ssidx}`,
+        status
+      });
+    });
+
+    // 4. TM Assessment (1 Pending or Submitted per station)
+    const stTMs = usersList.filter(u => u.station === st.name && u.role === "Train Manager");
+    stTMs.forEach((tm, tmidx) => {
+      const status = tmidx % 2 === 0 ? "Pending" : "Submitted";
+      tmAssess.push({
+        id: `TMA_${tm.id}`,
+        name: tm.name,
+        hrmsId: tm.id,
+        station: st.name,
+        lastDate: `2026-03-${20 + tmidx}`,
+        status
+      });
+    });
+  });
+
+  return { pmAssess, smAssess, ssAssess, tmAssess };
+};
+
+const POPULATED_USERS = generateGraphCompleteData(INIT_USERS, INIT_STATIONS);
+const { pmAssess: POPULATED_PM, smAssess: POPULATED_SM, ssAssess: POPULATED_SS, tmAssess: POPULATED_TM } = generateAssessmentsForGraphs(POPULATED_USERS, INIT_STATIONS);
+
 export default function TrafficInspectorModule({ user, onLogout }) {
   const [activePage, setActivePage]       = useState("dashboard");
+  // Dynamic Graph Completer V3 Migration Block
+  if (localStorage.getItem("ti_data_graph_complete_v3") !== "true") {
+    localStorage.setItem("ti_users", JSON.stringify(POPULATED_USERS));
+    localStorage.setItem("ti_sm_list", JSON.stringify(POPULATED_SM));
+    localStorage.setItem("ti_tm_list", JSON.stringify(POPULATED_TM));
+    localStorage.setItem("ti_ss_list", JSON.stringify(POPULATED_SS));
+    localStorage.setItem("ti_data_graph_complete_v3", "true");
+  }
+
+
   const [statusMsg, setStatusMsg]         = useState("");
   const [view, setView]                   = useState(null);
 
@@ -545,7 +735,7 @@ export default function TrafficInspectorModule({ user, onLogout }) {
   // Master Users & Stations States
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem("ti_users");
-    const initialList = saved ? JSON.parse(saved) : INIT_USERS;
+    const initialList = saved ? JSON.parse(saved) : POPULATED_USERS;
     const hasSS = initialList.some(u => u.role === "Station Superintendent");
     if (!hasSS) {
       return [...initialList, ...DEFAULT_SS_TM_USERS];
@@ -580,10 +770,10 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     refStatus: "Cleared"
   });
 
-  const [pmList, setPmList]               = useState(INIT_PM_ASSESSMENTS);
+  const [pmList, setPmList]               = useState(POPULATED_PM);
   const [smList, setSmList]               = useState(() => {
     const saved = localStorage.getItem("ti_sm_list");
-    return saved ? JSON.parse(saved) : INIT_SM_LIST;
+    return saved ? JSON.parse(saved) : POPULATED_SM;
   });
   useEffect(() => {
     localStorage.setItem("ti_sm_list", JSON.stringify(smList));
@@ -591,7 +781,7 @@ export default function TrafficInspectorModule({ user, onLogout }) {
 
   const [tmList, setTmList]               = useState(() => {
     const saved = localStorage.getItem("ti_tm_list");
-    return saved ? JSON.parse(saved) : INIT_TM_LIST;
+    return saved ? JSON.parse(saved) : POPULATED_TM;
   });
   useEffect(() => {
     localStorage.setItem("ti_tm_list", JSON.stringify(tmList));
@@ -691,6 +881,7 @@ export default function TrafficInspectorModule({ user, onLogout }) {
   const [userDesignationFilter, setUserDesignationFilter] = useState("All");
   const [userCategoryFilter, setUserCategoryFilter] = useState("All");
   const [userRiskFilter, setUserRiskFilter] = useState("All");
+  const [roleF, setRoleF] = useState({ name: "", station: "All", ti: "All", cat: "All", risk: "All" });
   
   // Edit User Modal State
   const [editingUser, setEditingUser]     = useState(null);
@@ -761,7 +952,7 @@ export default function TrafficInspectorModule({ user, onLogout }) {
   // Station Superintendent assessment state
   const [ssList, setSsList]               = useState(() => {
     const saved = localStorage.getItem("ti_ss_list");
-    return saved ? JSON.parse(saved) : INIT_SS_LIST;
+    return saved ? JSON.parse(saved) : POPULATED_SS;
   });
   useEffect(() => {
     localStorage.setItem("ti_ss_list", JSON.stringify(ssList));
@@ -778,6 +969,10 @@ export default function TrafficInspectorModule({ user, onLogout }) {
 
   // Unified Assessments page sub-state
   const [assessRole, setAssessRole]       = useState(null); // "SM" | "SS" | "TM"
+  const [rosterSearch, setRosterSearch]   = useState("");
+  const [rosterStation, setRosterStation] = useState("All");
+  const [rosterStatus, setRosterStatus]   = useState("All");
+  const [rosterDate, setRosterDate]       = useState("");
 
   const [repF, setRepF] = useState({ search: "", role: "All", station: "All", cat: "All", risk: "All" });
   const [repApplied, setRepApplied] = useState(false);
@@ -1003,8 +1198,11 @@ export default function TrafficInspectorModule({ user, onLogout }) {
 
   const pieData = useMemo(()=>{
     const c = { A: 0, B: 0, C: 0, D: 0 };
-    myUsers.filter(u => u.role === "Pointsman").forEach(u => {
-      c[getCat(u.score)]++;
+    myUsers.forEach(u => {
+      const cat = u.cat || getCat(u.score);
+      if (c[cat] !== undefined) {
+        c[cat]++;
+      }
     });
     return Object.entries(c).map(([name,value])=>({name,value}));
   }, [myUsers]);
@@ -1017,28 +1215,33 @@ export default function TrafficInspectorModule({ user, onLogout }) {
       const smCompleted = mySmList.filter(s => s.station === st.name && (s.status === "Submitted" || s.status === "Approved")).length;
       const smPending = mySmList.filter(s => s.station === st.name && s.status === "Pending").length;
       
+      const ssCompleted = ssList.filter(s => s.station === st.name && (s.status === "Submitted" || s.status === "Approved")).length;
+      const ssPending = ssList.filter(s => s.station === st.name && s.status === "Pending").length;
+
       const tmCompleted = myTmList.filter(t => t.station === st.name && (t.status === "Submitted" || t.status === "Approved")).length;
       const tmPending = myTmList.filter(t => t.station === st.name && t.status === "Pending").length;
 
       return {
-        station: st.code,
-        completed: pmCompleted + smCompleted + tmCompleted,
-        pending: pmPending + smPending + tmPending
+        name: st.code,
+        completed: pmCompleted + smCompleted + ssCompleted + tmCompleted,
+        pending: pmPending + smPending + ssPending + tmPending
       };
     });
-  }, [myStations, myPmList, mySmList, myTmList]);
+  }, [myStations, myPmList, mySmList, ssList, myTmList]);
 
   const roleBarData = useMemo(() => {
     const pmCount = myUsers.filter(u => u.role === "Pointsman").length;
     const smCount = myUsers.filter(u => u.role === "Station Master").length;
-    const tmCount = myTmList.length;
+    const ssCount = myUsers.filter(u => u.role === "Station Superintendent").length;
+    const tmCount = myUsers.filter(u => u.role === "Train Manager").length;
 
     return [
       { role: "Pointsmen", count: pmCount },
       { role: "Station Masters", count: smCount },
+      { role: "Station Superintendents", count: ssCount },
       { role: "Train Managers", count: tmCount }
     ];
-  }, [myUsers, myTmList]);
+  }, [myUsers]);
 
   const myCompliance = useMemo(() => {
     const overallSafetyPct = myStations.length ? Math.round(stationStats.reduce((s, st) => s + st.safetyPct, 0) / myStations.length) : 0;
@@ -1192,10 +1395,15 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     setStatusMsg("");
     setSelectedPmId(null);
     setActiveSmId(null);
+    setActiveSsId(null);
+    setActiveTmId(null);
+    setAssessRole(null);
     setSelectedStation(null);
     setSelectedReportUserId(null);
     setRepApplied(false);
     setBellDropdownOpen(false);
+    setRoleF({ name: "", station: "All", ti: "All", cat: "All", risk: "All" });
+    setView(null);
   };
 
   useEffect(() => {
@@ -2263,10 +2471,10 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     addAuditLog("Notifications Inbox Read", "Marked all alerts read.");
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: DASHBOARD
      (Highly scrollable & optimized for 12 stations)
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderDashboard = ()=>(
     <div className="sdom-fade">
       {/* Page header */}
@@ -2615,9 +2823,9 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     </div>
   );
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: PROFILE
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderProfile = () => {
     const sectionPerformanceData = [
       { month: "Dec'25", score: 76 },
@@ -2857,10 +3065,10 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     );
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: STATIONS
      (Card grid layout + detailed clickable sub-view)
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderStations = () => {
     const RISK_COLORS = {
       Low: "#16a34a",
@@ -3199,383 +3407,679 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     );
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: ROLE VIEW (Parity with AOM Pointsmen & Station Masters Directories)
      (Allows search, filter, edit, shift, and delete actions for scoped roles)
      (Provides full AOM design alignment using sdom.css tokens)
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderEditUserModal = () => (
-    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(15,23,42,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <form onSubmit={saveEditedUser} className="ti2-card" style={{ width: "450px", margin: "16px", display: "flex", flexDirection: "column", gap: "14px", maxHeight: "90vh", overflowY: "auto" }}>
-        <div className="ti2-card-hdr" style={{ marginBottom: 0 }}>
-          <h3>Edit Personnel Details</h3>
-          <button type="button" onClick={() => setEditingUser(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>×</button>
-        </div>
-
-        <div className="ti2-form-field">
-          <label>Full Name</label>
-          <input type="text" value={editingUser.name} onChange={e=>setEditingUser({...editingUser, name: e.target.value})} required/>
-        </div>
-        
-        <div className="ti2-form-field">
-          <label>Contact Mobile</label>
-          <input type="text" value={editingUser.contact} onChange={e=>setEditingUser({...editingUser, contact: e.target.value})} required/>
-        </div>
-
-        <div className="ti2-form-field">
-          <label>Role / Assignment</label>
-          <select value={editingUser.role} onChange={e=>setEditingUser({...editingUser, role: e.target.value, designation: e.target.value})} required>
-            <option value="Pointsman">Pointsman</option>
-            <option value="Station Master">Station Master</option>
-            <option value="Station Superintendent">Station Superintendent</option>
-            <option value="Train Manager">Train Manager</option>
-          </select>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-          <div className="ti2-form-field">
-            <label>PME Status</label>
-            <select value={editingUser.pmeStatus} onChange={e=>setEditingUser({...editingUser, pmeStatus: e.target.value})} required>
-              <option>Fit</option>
-              <option>Unfit</option>
-              <option>Overdue</option>
-            </select>
+    <div className="sdom-modal-overlay" onClick={e => e.target === e.currentTarget && setEditingUser(null)}>
+      <div className="sdom-modal" style={{ width: "900px", maxWidth: "95vw" }}>
+        <form onSubmit={saveEditedUser} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          
+          {/* Header inside modal */}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+            <div style={{
+              background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+              width: "56px",
+              height: "56px",
+              borderRadius: "14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+              color: "#ffffff"
+            }}>
+              <UserPlus size={28} />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                EDIT SYSTEM USER
+              </h2>
+              <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                Role-Based Operational Staff Provisioning &amp; Management Console
+              </p>
+            </div>
           </div>
-          <div className="ti2-form-field">
-            <label>REF Status</label>
-            <select value={editingUser.refStatus} onChange={e=>setEditingUser({...editingUser, refStatus: e.target.value})} required>
-              <option>Cleared</option>
-              <option>Pending</option>
-              <option>Expired</option>
-            </select>
+
+          {/* Section 1: General & Contact Information */}
+          <div>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+              1. General &amp; Contact Information
+            </h4>
+            <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="sdom-modal-field">
+                <label>Full Name *</label>
+                <input 
+                  value={editingUser.name || ""} 
+                  onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} 
+                  placeholder="Enter full name (e.g. A. K. Sharma)" 
+                  required
+                />
+              </div>
+              <div className="sdom-modal-field">
+                <label>Mobile Number *</label>
+                <input 
+                  value={editingUser.contact || ""} 
+                  onChange={e => setEditingUser({ ...editingUser, contact: e.target.value })} 
+                  placeholder="Enter 10-digit mobile number" 
+                  required
+                />
+              </div>
+              <div className="sdom-modal-field">
+                <label>HRMS ID / Employee ID *</label>
+                <input 
+                  value={editingUser.id || ""} 
+                  disabled
+                  placeholder="Enter unique ID" 
+                />
+              </div>
+              <div className="sdom-modal-field">
+                <label>Email ID *</label>
+                <input 
+                  value={editingUser.email || ""} 
+                  onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} 
+                  placeholder="Enter email address (e.g. user@rail.in)" 
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {editingUser.role === "Pointsman" && (
-          <>
-            <div className="ti2-form-field">
-              <label>Reporting Station Master</label>
-              <input type="text" value={editingUser.reportingSm || ""} onChange={e=>setEditingUser({...editingUser, reportingSm: e.target.value})} placeholder="SM Name"/>
+          {/* Section 2: Designation & Station Placement Setup */}
+          <div>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+              2. Designation &amp; Station Placement Setup
+            </h4>
+            <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="sdom-modal-field">
+                <label>Role / Designation *</label>
+                <select 
+                  value={editingUser.role} 
+                  onChange={e => setEditingUser({ ...editingUser, role: e.target.value, designation: e.target.value })}
+                  required
+                >
+                  <option value="Pointsman">Pointsman</option>
+                  <option value="Station Master">Station Master</option>
+                  <option value="Station Superintendent">Station Superintendent</option>
+                  <option value="Train Manager">Train Manager</option>
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Division *</label>
+                <select 
+                  value={editingUser.division || "Nagpur"} 
+                  onChange={e => setEditingUser({ ...editingUser, division: e.target.value })}
+                >
+                  {["Nagpur", "Pune", "Mumbai", "Solapur", "Bhusawal"].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Railway Zone *</label>
+                <select 
+                  value={editingUser.zone || "Central Railway"} 
+                  onChange={e => setEditingUser({ ...editingUser, zone: e.target.value })}
+                >
+                  {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Station Name *</label>
+                <select 
+                  value={editingUser.station} 
+                  onChange={e => setEditingUser({ ...editingUser, station: e.target.value })}
+                  required
+                >
+                  {myStations.map(s => <option key={s.id} value={s.name}>{s.name} ({s.code})</option>)}
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Category *</label>
+                <select 
+                  value={editingUser.cat || "A"} 
+                  onChange={e => setEditingUser({ ...editingUser, cat: e.target.value })}
+                >
+                  <option>A</option><option>B</option><option>C</option><option>D</option>
+                </select>
+              </div>
+              <div className="sdom-modal-field" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                  <label style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>PME Status</label>
+                  <select style={{ padding: "9px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }} value={editingUser.pmeStatus} onChange={e => setEditingUser({ ...editingUser, pmeStatus: e.target.value })} required>
+                    <option>Fit</option>
+                    <option>Unfit</option>
+                    <option>Overdue</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                  <label style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>REF Status</label>
+                  <select style={{ padding: "9px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }} value={editingUser.refStatus} onChange={e => setEditingUser({ ...editingUser, refStatus: e.target.value })} required>
+                    <option>Cleared</option>
+                    <option>Pending</option>
+                    <option>Expired</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <div className="ti2-form-field">
-              <label>Work Location Setup</label>
-              <select value={editingUser.workLocation || ""} onChange={e=>setEditingUser({...editingUser, workLocation: e.target.value})}>
-                <option value="">Select Location</option>
-                <option value="Yard">Yard Area</option>
-                <option value="Cabin A">Cabin A</option>
-                <option value="Cabin B">Cabin B</option>
-                <option value="Platform Area">Platform Area</option>
-                <option value="Level Crossing Gate">Level Crossing Gate</option>
-              </select>
-            </div>
-            <div className="ti2-form-field">
-              <label>Assigned Shift</label>
-              <select value={editingUser.shift || ""} onChange={e=>setEditingUser({...editingUser, shift: e.target.value})}>
-                <option value="">Select Shift</option>
-                <option value="Morning Shift (06:00 - 14:00)">Morning Shift (06:00 - 14:00)</option>
-                <option value="Evening Shift (14:00 - 22:00)">Evening Shift (14:00 - 22:00)</option>
-                <option value="Night Shift (22:00 - 06:00)">Night Shift (22:00 - 06:00)</option>
-                <option value="General Shift (09:00 - 18:00)">General Shift (09:00 - 18:00)</option>
-              </select>
-            </div>
-          </>
-        )}
+          </div>
 
-        {editingUser.role === "Train Manager" && (
-          <>
-            <div className="ti2-form-field">
-              <label>Crew Depot</label>
-              <select value={editingUser.workLocation || "Nagpur Depot"} onChange={e=>setEditingUser({...editingUser, workLocation: e.target.value})}>
-                <option value="Nagpur Depot">Nagpur Depot</option>
-                <option value="Pune Depot">Pune Depot</option>
-                <option value="Mumbai Depot">Mumbai Depot</option>
-                <option value="Solapur Depot">Solapur Depot</option>
-                <option value="Bhusawal Depot">Bhusawal Depot</option>
-              </select>
+          {/* Section 3: Dynamic Role-Based Custom Operational Profile */}
+          {(editingUser.role === "Station Master" || editingUser.role === "Station Superintendent") && (
+            <div style={{ padding: 18, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10, marginBottom: 16 }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                {editingUser.role} Operational Setup
+              </h4>
+              <div style={{ height: '1px', backgroundColor: '#a7f3d0', marginBottom: '16px' }}></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="sdom-modal-field">
+                  <label>Operational Station *</label>
+                  <select 
+                    value={editingUser.smStation || editingUser.station || ""} 
+                    onChange={e => setEditingUser({ ...editingUser, smStation: e.target.value, station: e.target.value })}
+                  >
+                    <option value="">Select Operational Station</option>
+                    {myStations.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Operational Zone *</label>
+                  <select 
+                    value={editingUser.smZone || editingUser.zone || "Central Railway"} 
+                    onChange={e => setEditingUser({ ...editingUser, smZone: e.target.value, zone: e.target.value })}
+                  >
+                    <option value="">Select Zone</option>
+                    {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Operational Division *</label>
+                  <select 
+                    value={editingUser.smDivision || editingUser.division || "Nagpur"} 
+                    onChange={e => setEditingUser({ ...editingUser, smDivision: e.target.value, division: e.target.value })}
+                  >
+                    <option value="">Select Division</option>
+                    {["Nagpur", "Pune", "Mumbai", "Solapur", "Bhusawal"].map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
-            <div className="ti2-form-field">
-              <label>Assigned Section Beats</label>
-              <input type="text" value={editingUser.reportingSm || "NGP-BSL Section"} onChange={e=>setEditingUser({...editingUser, reportingSm: e.target.value})} placeholder="e.g. NGP-BSL Section"/>
-            </div>
-            <div className="ti2-form-field">
-              <label>Assigned Shift</label>
-              <select value={editingUser.shift || "Goods Train Beat"} onChange={e=>setEditingUser({...editingUser, shift: e.target.value})}>
-                <option value="Mail/Express Beat">Mail/Express Beat</option>
-                <option value="Passenger Beat">Passenger Beat</option>
-                <option value="Goods Train Beat">Goods Train Beat</option>
-              </select>
-            </div>
-          </>
-        )}
+          )}
 
-        <div className="ti2-review-actions" style={{ marginTop: "10px" }}>
-          <button type="button" className="ti2-ghost-btn" onClick={() => setEditingUser(null)}>Cancel</button>
-          <button type="submit" className="ti2-primary-btn">Save Changes</button>
-        </div>
-      </form>
+          {editingUser.role === "Pointsman" && (
+            <div style={{ padding: 18, background: "#f0f7ff", border: "1px solid #c2e0ff", borderRadius: 10 }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                Pointsman Operational Setup
+              </h4>
+              <div style={{ height: '1px', backgroundColor: '#c2e0ff', marginBottom: '16px' }}></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="sdom-modal-field">
+                  <label>Reporting Station Master *</label>
+                  <input 
+                    value={editingUser.reportingSm || ""} 
+                    onChange={e => setEditingUser({ ...editingUser, reportingSm: e.target.value })} 
+                    placeholder="Station Master Name"
+                  />
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Work Location Setup *</label>
+                  <select 
+                    value={editingUser.workLocation || ""} 
+                    onChange={e => setEditingUser({ ...editingUser, workLocation: e.target.value })}
+                  >
+                    <option value="">Select Location</option>
+                    <option value="Yard">Yard Area</option>
+                    <option value="Cabin A">Cabin A</option>
+                    <option value="Cabin B">Cabin B</option>
+                    <option value="Platform Area">Platform Area</option>
+                    <option value="Level Crossing Gate">Level Crossing Gate</option>
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Assigned Shift *</label>
+                  <select 
+                    value={editingUser.shift || ""} 
+                    onChange={e => setEditingUser({ ...editingUser, shift: e.target.value })}
+                  >
+                    <option value="">Select Shift</option>
+                    <option value="Morning Shift (06:00 - 14:00)">Morning Shift (06:00 - 14:00)</option>
+                    <option value="Evening Shift (14:00 - 22:00)">Evening Shift (14:00 - 22:00)</option>
+                    <option value="Night Shift (22:00 - 06:00)">Night Shift (22:00 - 06:00)</option>
+                    <option value="General Shift (09:00 - 18:00)">General Shift (09:00 - 18:00)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {editingUser.role === "Train Manager" && (
+            <div style={{ padding: 18, background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: 10 }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b21a8', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                Train Manager Operational Setup
+              </h4>
+              <div style={{ height: '1px', backgroundColor: '#e9d5ff', marginBottom: '16px' }}></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="sdom-modal-field">
+                  <label>Crew Depot *</label>
+                  <select 
+                    value={editingUser.workLocation || "Nagpur Depot"} 
+                    onChange={e => setEditingUser({ ...editingUser, workLocation: e.target.value })}
+                  >
+                    <option value="Nagpur Depot">Nagpur Depot</option>
+                    <option value="Pune Depot">Pune Depot</option>
+                    <option value="Mumbai Depot">Mumbai Depot</option>
+                    <option value="Solapur Depot">Solapur Depot</option>
+                    <option value="Bhusawal Depot">Bhusawal Depot</option>
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Assigned Section Beats *</label>
+                  <input 
+                    value={editingUser.reportingSm || "NGP-BSL Section"} 
+                    onChange={e => setEditingUser({ ...editingUser, reportingSm: e.target.value })} 
+                    placeholder="E.g. NGP-BSL, NGP-DURG"
+                  />
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Assigned Shift *</label>
+                  <select 
+                    value={editingUser.shift || "Goods Train Beat"} 
+                    onChange={e => setEditingUser({ ...editingUser, shift: e.target.value })}
+                  >
+                    <option value="Mail/Express Beat">Mail/Express Beat</option>
+                    <option value="Passenger Beat">Passenger Beat</option>
+                    <option value="Goods Train Beat">Goods Train Beat</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" type="submit" style={{ flex: 1 }}>
+              🔒 UPDATE USER ACCOUNT
+            </button>
+            <button className="sdom-btn-ghost" type="button" style={{ flex: 1 }} onClick={() => setEditingUser(null)}>Cancel</button>
+          </div>
+
+        </form>
+      </div>
     </div>
   );
 
   const renderTransferUserModal = () => (
-    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(15,23,42,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="ti2-card" style={{ width: "420px", margin: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div className="ti2-card-hdr" style={{ marginBottom: 0 }}>
-          <h3>Transfer Personnel Deployment</h3>
-          <button type="button" onClick={() => setTransferringUser(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>×</button>
+    <div className="sdom-modal-overlay" onClick={e => e.target === e.currentTarget && setTransferringUser(null)}>
+      <div className="sdom-modal" style={{ width: "450px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#0d2c4d" }}>Transfer Personnel Deployment</h3>
+          <button type="button" onClick={() => setTransferringUser(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#64748b" }}>&times;</button>
         </div>
 
-        <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+        <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0", lineHeight: "1.4" }}>
           Transfer <strong>{transferringUser.name}</strong> from <strong>{transferringUser.station}</strong> to another station section.
         </p>
 
-        <div className="ti2-form-field">
+        <div className="sdom-modal-field">
           <label>Select Deployment Station</label>
           <select value={transferringUser.targetStation} onChange={e=>setTransferringUser({...transferringUser, targetStation: e.target.value})}>
             {myStations.map(st => <option key={st.id} value={st.name}>{st.name}</option>)}
           </select>
         </div>
 
-        <div className="ti2-review-actions" style={{ marginTop: "8px" }}>
-          <button type="button" className="ti2-ghost-btn" onClick={() => setTransferringUser(null)}>Cancel</button>
-          <button type="button" className="ti2-primary-btn" onClick={confirmTransfer}>Confirm Transfer</button>
+        <div className="sdom-modal-actions" style={{ marginTop: "24px" }}>
+          <button type="button" className="sdom-btn-primary" style={{ flex: 1 }} onClick={confirmTransfer}>Confirm Transfer</button>
+          <button type="button" className="sdom-btn-ghost" style={{ flex: 1 }} onClick={() => setTransferringUser(null)}>Cancel</button>
         </div>
       </div>
     </div>
   );
 
   const renderAddUserModal = () => (
-    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(15,23,42,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <form onSubmit={handleAddUserSubmit} className="ti2-card" style={{ width: "480px", margin: "16px", display: "flex", flexDirection: "column", gap: "14px", border: "1px solid #cbd5e1", maxHeight: "90vh", overflowY: "auto" }}>
-        <div className="ti2-card-hdr" style={{ marginBottom: 0 }}>
-          <h3>Add New Railway Personnel</h3>
-          <button type="button" onClick={() => setShowAddUserModal(false)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#64748b" }}>×</button>
-        </div>
-
-        <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
-          Log new personnel under your jurisdiction. All sections (PME, REF, and stats) will update in real-time.
-        </p>
-
-        <div className="ti2-form-field">
-          <label>Full Name <span style={{ color: "#dc2626" }}>*</span></label>
-          <input 
-            type="text" 
-            value={newUserData.name} 
-            onChange={e => setNewUserData({ ...newUserData, name: e.target.value })} 
-            placeholder="e.g. Ramesh Kumar" 
-            required 
-          />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "10px" }}>
-          <div className="ti2-form-field">
-            <label>Staff HRMS ID <span style={{ color: "#dc2626" }}>*</span></label>
-            <input 
-              type="text" 
-              value={newUserData.id} 
-              onChange={e => setNewUserData({ ...newUserData, id: e.target.value })} 
-              placeholder="e.g. 2405 (will auto-prepend)" 
-              required 
-            />
-          </div>
-          <div className="ti2-form-field">
-            <label>Prefix Preview</label>
-            <div style={{ padding: "9px 12px", border: "1.5px dashed #cbd5e1", background: "#f8fafc", borderRadius: "9px", fontSize: "13px", fontWeight: "700", textAlign: "center", color: "#2563eb", marginTop: "1px" }}>
-              {newUserData.role === "Station Master" ? "SM_" : newUserData.role === "Station Superintendent" ? "SS_" : newUserData.role === "Train Manager" ? "TM_" : "PM_"}{newUserData.id.replace(/^SM_|^PM_|^SS_|^TM_/i, "")}
+    <div className="sdom-modal-overlay" onClick={e => e.target === e.currentTarget && setShowAddUserModal(false)}>
+      <div className="sdom-modal" style={{ width: "900px", maxWidth: "95vw" }}>
+        <form onSubmit={handleAddUserSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          
+          {/* Header inside modal */}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
+            <div style={{
+              background: "linear-gradient(135deg, #0d2c4d 0%, #1e40af 100%)",
+              width: "56px",
+              height: "56px",
+              borderRadius: "14px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 12px rgba(13, 44, 77, 0.2)",
+              color: "#ffffff"
+            }}>
+              <UserPlus size={28} />
+            </div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "800", color: "#0d2c4d", letterSpacing: "-0.5px" }}>
+                ADD NEW SYSTEM USER
+              </h2>
+              <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                Role-Based Operational Staff Provisioning &amp; Management Console
+              </p>
             </div>
           </div>
-        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-          <div className="ti2-form-field">
-            <label>Role / Assignment <span style={{ color: "#dc2626" }}>*</span></label>
-            <select 
-              value={newUserData.role} 
-              onChange={e => {
-                const selectedRole = e.target.value;
-                const defaultDesig = selectedRole === "Pointsman" ? "Pointsman Grade I" : selectedRole;
-                setNewUserData({ ...newUserData, role: selectedRole, designation: defaultDesig });
-              }} 
-              required
-            >
-              <option value="Pointsman">Pointsman</option>
-              <option value="Station Master">Station Master</option>
-              <option value="Station Superintendent">Station Superintendent</option>
-              <option value="Train Manager">Train Manager</option>
-            </select>
+          {/* Section 1: General & Contact Information */}
+          <div>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+              1. General &amp; Contact Information
+            </h4>
+            <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="sdom-modal-field">
+                <label>Full Name *</label>
+                <input 
+                  value={newUserData.name || ""} 
+                  onChange={e => setNewUserData({ ...newUserData, name: e.target.value })} 
+                  placeholder="Enter full name (e.g. A. K. Sharma)" 
+                  required
+                />
+              </div>
+              <div className="sdom-modal-field">
+                <label>Mobile Number *</label>
+                <input 
+                  value={newUserData.contact || ""} 
+                  onChange={e => setNewUserData({ ...newUserData, contact: e.target.value })} 
+                  placeholder="Enter 10-digit mobile number" 
+                  required
+                />
+              </div>
+              <div className="sdom-modal-field">
+                <label>HRMS ID / Employee ID *</label>
+                <input 
+                  value={newUserData.id || ""} 
+                  onChange={e => setNewUserData({ ...newUserData, id: e.target.value })} 
+                  placeholder="Enter unique ID (e.g. PM_8820)" 
+                  required
+                />
+              </div>
+              <div className="sdom-modal-field">
+                <label>Email ID *</label>
+                <input 
+                  value={newUserData.email || ""} 
+                  onChange={e => setNewUserData({ ...newUserData, email: e.target.value })} 
+                  placeholder="Enter email address (e.g. user@rail.in)" 
+                  required
+                />
+              </div>
+            </div>
           </div>
 
-          {newUserData.role === "Pointsman" ? (
-            <div className="ti2-form-field">
-              <label>Designation <span style={{ color: "#dc2626" }}>*</span></label>
-              <select 
-                value={newUserData.designation} 
-                onChange={e => setNewUserData({ ...newUserData, designation: e.target.value })} 
-                required
-              >
-                <option value="Pointsman Grade I">Pointsman Grade I</option>
-                <option value="Pointsman Grade II">Pointsman Grade II</option>
-                <option value="Pointsman Grade III">Pointsman Grade III</option>
-              </select>
+          {/* Section 2: Designation & Station Placement Setup */}
+          <div>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '15px', fontWeight: '800' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0d2c4d', display: 'inline-block' }}></span>
+              2. Designation &amp; Station Placement Setup
+            </h4>
+            <div style={{ height: '1px', background: '#d5dfeb', marginBottom: '16px' }}></div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="sdom-modal-field">
+                <label>Role / Designation *</label>
+                <select 
+                  value={newUserData.role} 
+                  onChange={e => {
+                    const selectedRole = e.target.value;
+                    const defaultDesig = selectedRole === "Pointsman" ? "Pointsman Grade I" : selectedRole;
+                    setNewUserData({ ...newUserData, role: selectedRole, designation: defaultDesig });
+                  }}
+                  required
+                >
+                  <option value="Pointsman">Pointsman</option>
+                  <option value="Station Master">Station Master</option>
+                  <option value="Station Superintendent">Station Superintendent</option>
+                  <option value="Train Manager">Train Manager</option>
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Division *</label>
+                <select 
+                  value={newUserData.division || "Nagpur"} 
+                  onChange={e => setNewUserData({ ...newUserData, division: e.target.value })}
+                >
+                  {["Nagpur", "Pune", "Mumbai", "Solapur", "Bhusawal"].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Railway Zone *</label>
+                <select 
+                  value={newUserData.zone || "Central Railway"} 
+                  onChange={e => setNewUserData({ ...newUserData, zone: e.target.value })}
+                >
+                  {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Station Name *</label>
+                <select 
+                  value={newUserData.station} 
+                  onChange={e => setNewUserData({ ...newUserData, station: e.target.value })}
+                  required
+                >
+                  {myStations.map(s => <option key={s.id} value={s.name}>{s.name} ({s.code})</option>)}
+                </select>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Category *</label>
+                <select 
+                  value={newUserData.cat || "A"} 
+                  onChange={e => setNewUserData({ ...newUserData, cat: e.target.value })}
+                >
+                  <option>A</option><option>B</option><option>C</option><option>D</option>
+                </select>
+              </div>
+              <div className="sdom-modal-field" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                  <label style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>PME Status</label>
+                  <select style={{ padding: "9px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }} value={newUserData.pmeStatus} onChange={e => setNewUserData({ ...newUserData, pmeStatus: e.target.value })} required>
+                    <option>Fit</option>
+                    <option>Unfit</option>
+                    <option>Overdue</option>
+                    <option>Pending</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                  <label style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", fontWeight: 700 }}>REF Status</label>
+                  <select style={{ padding: "9px 12px", borderRadius: "6px", border: "1px solid #cbd5e1" }} value={newUserData.refStatus} onChange={e => setNewUserData({ ...newUserData, refStatus: e.target.value })} required>
+                    <option>Cleared</option>
+                    <option>Pending</option>
+                    <option>Expired</option>
+                  </select>
+                </div>
+              </div>
+              <div className="sdom-modal-field">
+                <label>Joining Date *</label>
+                <input 
+                  type="date" 
+                  value={newUserData.joiningDate || ""} 
+                  onChange={e => setNewUserData({ ...newUserData, joiningDate: e.target.value })} 
+                  required
+                />
+              </div>
             </div>
-          ) : (
-            <div className="ti2-form-field">
-              <label>Designation</label>
-              <input type="text" value={newUserData.designation || newUserData.role} disabled />
+          </div>
+
+          {/* Section 3: Dynamic Role-Based Custom Operational Profile */}
+          {(newUserData.role === "Station Master" || newUserData.role === "Station Superintendent") && (
+            <div style={{ padding: 18, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 10, marginBottom: 16 }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                {newUserData.role} Operational Setup
+              </h4>
+              <div style={{ height: '1px', backgroundColor: '#a7f3d0', marginBottom: '16px' }}></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="sdom-modal-field">
+                  <label>Operational Station *</label>
+                  <select 
+                    value={newUserData.smStation || newUserData.station || ""} 
+                    onChange={e => setNewUserData({ ...newUserData, smStation: e.target.value, station: e.target.value })}
+                  >
+                    <option value="">Select Operational Station</option>
+                    {myStations.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Operational Zone *</label>
+                  <select 
+                    value={newUserData.smZone || newUserData.zone || "Central Railway"} 
+                    onChange={e => setNewUserData({ ...newUserData, smZone: e.target.value, zone: e.target.value })}
+                  >
+                    <option value="">Select Zone</option>
+                    {["Central Railway", "Western Railway", "Northern Railway", "Southern Railway", "Eastern Railway"].map(z => <option key={z} value={z}>{z}</option>)}
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Operational Division *</label>
+                  <select 
+                    value={newUserData.smDivision || newUserData.division || "Nagpur"} 
+                    onChange={e => setNewUserData({ ...newUserData, smDivision: e.target.value, division: e.target.value })}
+                  >
+                    <option value="">Select Division</option>
+                    {["Nagpur", "Pune", "Mumbai", "Solapur", "Bhusawal"].map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
           )}
-        </div>
 
-        <div className="ti2-form-field">
-          <label>Assigned Station <span style={{ color: "#dc2626" }}>*</span></label>
-          <select 
-            value={newUserData.station} 
-            onChange={e => setNewUserData({ ...newUserData, station: e.target.value })} 
-            required
-          >
-            {myStations.map(st => (
-              <option key={st.id} value={st.name}>{st.name} ({st.code})</option>
-            ))}
-          </select>
-        </div>
+          {newUserData.role === "Pointsman" && (
+            <div style={{ padding: 18, background: "#f0f7ff", border: "1px solid #c2e0ff", borderRadius: 10 }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0d2c4d', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                Pointsman Operational Setup
+              </h4>
+              <div style={{ height: '1px', backgroundColor: '#c2e0ff', marginBottom: '16px' }}></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="sdom-modal-field">
+                  <label>Reporting Station Master *</label>
+                  <input 
+                    value={newUserData.reportingSm || ""} 
+                    onChange={e => setNewUserData({ ...newUserData, reportingSm: e.target.value })} 
+                    placeholder="Station Master Name"
+                  />
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Work Location Setup *</label>
+                  <select 
+                    value={newUserData.workLocation || ""} 
+                    onChange={e => setNewUserData({ ...newUserData, workLocation: e.target.value })}
+                  >
+                    <option value="">Select Location</option>
+                    <option value="Yard">Yard Area</option>
+                    <option value="Cabin A">Cabin A</option>
+                    <option value="Cabin B">Cabin B</option>
+                    <option value="Platform Area">Platform Area</option>
+                    <option value="Level Crossing Gate">Level Crossing Gate</option>
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Assigned Shift *</label>
+                  <select 
+                    value={newUserData.shift || ""} 
+                    onChange={e => setNewUserData({ ...newUserData, shift: e.target.value })}
+                  >
+                    <option value="">Select Shift</option>
+                    <option value="Morning Shift (06:00 - 14:00)">Morning Shift (06:00 - 14:00)</option>
+                    <option value="Evening Shift (14:00 - 22:00)">Evening Shift (14:00 - 22:00)</option>
+                    <option value="Night Shift (22:00 - 06:00)">Night Shift (22:00 - 06:00)</option>
+                    <option value="General Shift (09:00 - 18:00)">General Shift (09:00 - 18:00)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-          <div className="ti2-form-field">
-            <label>Contact Mobile <span style={{ color: "#dc2626" }}>*</span></label>
-            <input 
-              type="text" 
-              value={newUserData.contact} 
-              onChange={e => setNewUserData({ ...newUserData, contact: e.target.value })} 
-              placeholder="e.g. +91 98765 43210" 
-              required 
-            />
+          {newUserData.role === "Train Manager" && (
+            <div style={{ padding: 18, background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: 10 }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b21a8', margin: '0 0 10px', fontSize: '14px', fontWeight: '800' }}>
+                Train Manager Operational Setup
+              </h4>
+              <div style={{ height: '1px', backgroundColor: '#e9d5ff', marginBottom: '16px' }}></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="sdom-modal-field">
+                  <label>Crew Depot *</label>
+                  <select 
+                    value={newUserData.workLocation || "Nagpur Depot"} 
+                    onChange={e => setNewUserData({ ...newUserData, workLocation: e.target.value })}
+                  >
+                    <option value="Nagpur Depot">Nagpur Depot</option>
+                    <option value="Pune Depot">Pune Depot</option>
+                    <option value="Mumbai Depot">Mumbai Depot</option>
+                    <option value="Solapur Depot">Solapur Depot</option>
+                    <option value="Bhusawal Depot">Bhusawal Depot</option>
+                  </select>
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Assigned Section Beats *</label>
+                  <input 
+                    value={newUserData.reportingSm || "NGP-BSL Section"} 
+                    onChange={e => setNewUserData({ ...newUserData, reportingSm: e.target.value })} 
+                    placeholder="E.g. NGP-BSL, NGP-DURG"
+                  />
+                </div>
+                <div className="sdom-modal-field">
+                  <label>Assigned Shift *</label>
+                  <select 
+                    value={newUserData.shift || "Goods Train Beat"} 
+                    onChange={e => setNewUserData({ ...newUserData, shift: e.target.value })}
+                  >
+                    <option value="Mail/Express Beat">Mail/Express Beat</option>
+                    <option value="Passenger Beat">Passenger Beat</option>
+                    <option value="Goods Train Beat">Goods Train Beat</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="sdom-modal-actions" style={{ marginTop: 24 }}>
+            <button className="sdom-btn-primary" type="submit" style={{ flex: 1 }}>
+              👤 ADD USER ACCOUNT
+            </button>
+            <button className="sdom-btn-ghost" type="button" style={{ flex: 1 }} onClick={() => setShowAddUserModal(false)}>Cancel</button>
           </div>
-          <div className="ti2-form-field">
-            <label>Joining Date <span style={{ color: "#dc2626" }}>*</span></label>
-            <input 
-              type="date" 
-              value={newUserData.joiningDate} 
-              onChange={e => setNewUserData({ ...newUserData, joiningDate: e.target.value })} 
-              required 
-            />
-          </div>
-        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-          <div className="ti2-form-field">
-            <label>PME Status</label>
-            <select value={newUserData.pmeStatus} onChange={e => setNewUserData({ ...newUserData, pmeStatus: e.target.value })}>
-              <option>Fit</option>
-              <option>Unfit</option>
-              <option>Overdue</option>
-              <option>Pending</option>
-            </select>
-          </div>
-          <div className="ti2-form-field">
-            <label>REF Status</label>
-            <select value={newUserData.refStatus} onChange={e => setNewUserData({ ...newUserData, refStatus: e.target.value })}>
-              <option>Cleared</option>
-              <option>Pending</option>
-              <option>Expired</option>
-            </select>
-          </div>
-        </div>
-
-        {newUserData.role === "Pointsman" && (
-          <>
-            <div className="ti2-form-field">
-              <label>Reporting Station Master <span style={{ color: "#dc2626" }}>*</span></label>
-              <input 
-                type="text" 
-                value={newUserData.reportingSm || ""} 
-                onChange={e => setNewUserData({ ...newUserData, reportingSm: e.target.value })} 
-                placeholder="Station Master Name"
-                required
-              />
-            </div>
-            <div className="ti2-form-field">
-              <label>Work Location Setup <span style={{ color: "#dc2626" }}>*</span></label>
-              <select 
-                value={newUserData.workLocation || ""} 
-                onChange={e => setNewUserData({ ...newUserData, workLocation: e.target.value })}
-                required
-              >
-                <option value="">Select Location</option>
-                <option value="Yard">Yard Area</option>
-                <option value="Cabin A">Cabin A</option>
-                <option value="Cabin B">Cabin B</option>
-                <option value="Platform Area">Platform Area</option>
-                <option value="Level Crossing Gate">Level Crossing Gate</option>
-              </select>
-            </div>
-            <div className="ti2-form-field">
-              <label>Assigned Shift <span style={{ color: "#dc2626" }}>*</span></label>
-              <select 
-                value={newUserData.shift || ""} 
-                onChange={e => setNewUserData({ ...newUserData, shift: e.target.value })}
-                required
-              >
-                <option value="">Select Shift</option>
-                <option value="Morning Shift (06:00 - 14:00)">Morning Shift (06:00 - 14:00)</option>
-                <option value="Evening Shift (14:00 - 22:00)">Evening Shift (14:00 - 22:00)</option>
-                <option value="Night Shift (22:00 - 06:00)">Night Shift (22:00 - 06:00)</option>
-                <option value="General Shift (09:00 - 18:00)">General Shift (09:00 - 18:00)</option>
-              </select>
-            </div>
-          </>
-        )}
-
-        {newUserData.role === "Train Manager" && (
-          <>
-            <div className="ti2-form-field">
-              <label>Crew Depot <span style={{ color: "#dc2626" }}>*</span></label>
-              <select 
-                value={newUserData.workLocation || "Nagpur Depot"} 
-                onChange={e => setNewUserData({ ...newUserData, workLocation: e.target.value })}
-                required
-              >
-                <option value="Nagpur Depot">Nagpur Depot</option>
-                <option value="Pune Depot">Pune Depot</option>
-                <option value="Mumbai Depot">Mumbai Depot</option>
-                <option value="Solapur Depot">Solapur Depot</option>
-                <option value="Bhusawal Depot">Bhusawal Depot</option>
-              </select>
-            </div>
-            <div className="ti2-form-field">
-              <label>Assigned Section Beats <span style={{ color: "#dc2626" }}>*</span></label>
-              <input 
-                type="text" 
-                value={newUserData.reportingSm || "NGP-BSL Section"} 
-                onChange={e => setNewUserData({ ...newUserData, reportingSm: e.target.value })} 
-                placeholder="E.g. NGP-BSL Section"
-                required
-              />
-            </div>
-            <div className="ti2-form-field">
-              <label>Assigned Shift <span style={{ color: "#dc2626" }}>*</span></label>
-              <select 
-                value={newUserData.shift || "Goods Train Beat"} 
-                onChange={e => setNewUserData({ ...newUserData, shift: e.target.value })}
-                required
-              >
-                <option value="Mail/Express Beat">Mail/Express Beat</option>
-                <option value="Passenger Beat">Passenger Beat</option>
-                <option value="Goods Train Beat">Goods Train Beat</option>
-              </select>
-            </div>
-          </>
-        )}
-
-        <div className="ti2-review-actions" style={{ marginTop: "12px" }}>
-          <button type="button" className="ti2-ghost-btn" onClick={() => setShowAddUserModal(false)}>Cancel</button>
-          <button type="submit" className="ti2-primary-btn">Save Personnel</button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
+
 
   const renderRoleView = (roleKey, title) => {
     // If a profile detail is being viewed
     if (view?.type === "staffDetail") return renderStaffDetail(view.data);
+
+    // Filter logic mirroring SuperAdmin's generic filtering
+    const filtered = users.filter(s => {
+      const isRoleMatch = s.role === roleKey;
+      if (!isRoleMatch) return false;
+      
+      const userTi = stationTiMap[s.station] || "TI NGP";
+      const userCat = s.cat || getCat(s.score);
+      const isHighRisk = s.pmeStatus === "Overdue" || s.refStatus === "Expired" || s.score < 50;
+      const userRisk = isHighRisk ? "High" : s.score >= 80 ? "Low" : "Medium";
+      
+      return (
+        (roleF.station === "All" || s.station === roleF.station) &&
+        (roleF.ti      === "All" || userTi    === roleF.ti)      &&
+        (roleF.cat     === "All" || userCat   === roleF.cat)     &&
+        (roleF.risk    === "All" || userRisk  === roleF.risk)    &&
+        (!roleF.name   || s.name.toLowerCase().includes(roleF.name.toLowerCase()) ||
+                          s.id.toLowerCase().includes(roleF.name.toLowerCase()))
+      );
+    });
+
+    const STATION_OPTS = ["All", ...stations.map(s => s.name)];
+    const TI_OPTS      = ["All", "TI PAR", "TI AMLA", "TI NGP"];
 
     return (
       <div className="ti2-page-body animate-fade-in">
@@ -3583,61 +4087,57 @@ export default function TrafficInspectorModule({ user, onLogout }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
               <h1 className="sdom-page-title">{title} Management</h1>
-              <p className="sdom-page-subtitle">Search, filter, and manage all {title.toLowerCase()}s under your Nagpur Division jurisdiction.</p>
+              <p className="sdom-page-subtitle">Search, filter and manage all {title.toLowerCase()}s in the division.</p>
             </div>
-            <button className="sdom-btn-primary" onClick={() => openAddUserModal(roleKey)} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <button className="sdom-btn-primary" onClick={() => openAddUserModal(roleKey)}>
               <Plus size={16} /> Add New {title}
             </button>
           </div>
 
-          {/* Filters - matching AOM/SuperAdmin style */}
-          <div className="sdom-filter-bar" style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
-            <div className="sdom-filter-field" style={{ minWidth: 200, flex: 1.5 }}>
+          {/* Filters - EXACT match of SuperAdmin style */}
+          <div className="sdom-filter-bar">
+            <div className="sdom-filter-field" style={{ minWidth: 200 }}>
               <label>Name / ID</label>
-              <input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder={`Search ${title.toLowerCase()} name or ID...`} />
+              <input value={roleF.name} onChange={e => setRoleF(p => ({ ...p, name: e.target.value }))} placeholder="Search..." />
             </div>
-            <div className="sdom-filter-field" style={{ flex: 1 }}>
-              <label>Station Location</label>
-              <select value={userStationFilter} onChange={e => setUserStationFilter(e.target.value)}>
-                <option value="All">All Stations</option>
-                {myStations.map(st => <option key={st.id} value={st.name}>{st.name}</option>)}
+            <div className="sdom-filter-field">
+              <label>Station</label>
+              <select value={roleF.station} onChange={e => setRoleF(p => ({ ...p, station: e.target.value }))}>
+                {STATION_OPTS.map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
-            <div className="sdom-filter-field" style={{ flex: 1 }}>
-              <label>Category Grade</label>
-              <select value={userCategoryFilter} onChange={e => setUserCategoryFilter(e.target.value)}>
-                <option value="All">All Grades</option>
-                <option value="A">Grade A</option>
-                <option value="B">Grade B</option>
-                <option value="C">Grade C</option>
-                <option value="D">Grade D</option>
+            <div className="sdom-filter-field">
+              <label>TI Area</label>
+              <select value={roleF.ti} onChange={e => setRoleF(p => ({ ...p, ti: e.target.value }))}>
+                {TI_OPTS.map(o => <option key={o}>{o}</option>)}
               </select>
             </div>
-            <div className="sdom-filter-field" style={{ flex: 1 }}>
+            <div className="sdom-filter-field">
+              <label>Category</label>
+              <select value={roleF.cat} onChange={e => setRoleF(p => ({ ...p, cat: e.target.value }))}>
+                <option>All</option><option>A</option><option>B</option><option>C</option><option>D</option>
+              </select>
+            </div>
+            <div className="sdom-filter-field">
               <label>Risk Level</label>
-              <select value={userRiskFilter} onChange={e => setUserRiskFilter(e.target.value)}>
-                <option value="All">All Risks</option>
-                <option value="High">High Risk Only</option>
-                <option value="Non-High">Normal Compliance</option>
+              <select value={roleF.risk} onChange={e => setRoleF(p => ({ ...p, risk: e.target.value }))}>
+                <option>All</option><option>Low</option><option>Medium</option><option>High</option>
               </select>
             </div>
           </div>
 
-          <div className="sdom-chart-card" style={{ padding: "20px" }}>
+          <div className="sdom-chart-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <span style={{ fontWeight: 700, color: "#1e293b" }}>{filteredUsers.length} {title.toLowerCase()}s found</span>
-              <button className="sdom-btn-outline" onClick={() => exportAlert("Excel", `Section_${title.replace(/\s+/g, '_')}_List`)} style={{ padding: "6px 12px", fontSize: "0.8rem", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <FileSpreadsheet size={13}/> Export Ledger
-              </button>
+              <span style={{ fontWeight: 700, color: "#1e293b" }}>{filtered.length} staff found</span>
             </div>
             <div className="sdom-table-wrap">
               <table className="sdom-table">
                 <thead>
                   <tr>
                     <th>Name</th>
-                    <th>HRMS ID</th>
-                    <th>Station Location</th>
-                    <th>Division</th>
+                    <th>Emp ID</th>
+                    <th>Station</th>
+                    <th>TI Area</th>
                     <th>Category</th>
                     <th>Risk</th>
                     <th>Last Score</th>
@@ -3646,43 +4146,33 @@ export default function TrafficInspectorModule({ user, onLogout }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.length === 0 && (
+                  {filtered.length === 0 && (
                     <tr>
                       <td colSpan={9} style={{ textAlign: "center", padding: 32, color: "#94a3b8" }}>
-                        No {title.toLowerCase()} records match your current filter selections.
+                        No records found
                       </td>
                     </tr>
                   )}
-                  {filteredUsers.map(s => {
-                    const grade = getCat(s.score);
+                  {filtered.map(s => {
+                    const grade = s.cat || getCat(s.score);
                     const computedRisk = getUserRisk(s);
                     const computedStatus = s.pmeStatus === "Unfit" ? "Rejected" : s.refStatus === "Expired" ? "Pending" : "Approved";
-                    
                     return (
                       <tr key={s.id}>
                         <td style={{ fontWeight: 700 }}>{s.name}</td>
-                        <td style={{ color: "#64748b", fontFamily: "monospace", fontSize: "0.85rem" }}>{s.id}</td>
-                        <td style={{ fontWeight: "600" }}>{s.station}</td>
-                        <td>Nagpur Division</td>
+                        <td style={{ color: "#64748b", fontSize: "0.85rem" }}>{s.id}</td>
+                        <td>{s.station}</td>
+                        <td>{stationTiMap[s.station] || "TI NGP"}</td>
                         <td>{catBadge(grade)}</td>
                         <td>{riskBadge(computedRisk)}</td>
                         <td style={{ fontWeight: 700 }}>{s.score}%</td>
                         <td>{statusBadge(computedStatus)}</td>
                         <td>
-                          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
-                            <button className="sdom-btn-outline" style={{ padding: "4px 8px", fontSize: "0.8rem" }}
-                              onClick={() => setView({ type: "staffDetail", data: s, returnTo: activePage })}>
-                              View
-                            </button>
-                            <button className="ti2-view-profile-btn" onClick={() => handleEditUser(s)} style={{ padding: "6px 8px" }} title={`Edit ${title}`}>
-                              <Edit size={11}/>
-                            </button>
-                            <button className="ti2-link-btn-sm" onClick={() => handleTransferClick(s)} style={{ padding: "6px 8px" }} title="Transfer Station">
-                              <RefreshCw size={11}/>
-                            </button>
-                            <button className="ti2-danger-btn" onClick={() => handleDeleteUser(s.id, s.name)} style={{ padding: "6px 8px" }} title="Remove Record">
-                              <Trash2 size={11}/>
-                            </button>
+                          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
+                            <button className="sdom-btn-outline" style={{ padding: "5px 10px", fontSize: "0.8rem" }} onClick={() => setView({ type: "staffDetail", data: s, returnTo: activePage })}>View</button>
+                            <button className="sdom-icon-btn" title="Edit" onClick={() => handleEditUser(s)} style={{ background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Edit size={15} color="#2563eb"/></button>
+                            <button className="sdom-icon-btn" title="Transfer Station" onClick={() => handleTransferClick(s)} style={{ background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><RefreshCw size={15} color="#d97706"/></button>
+                            <button className="sdom-icon-btn" title="Remove" onClick={() => handleDeleteUser(s.id, s.name)} style={{ background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={15} color="#dc2626"/></button>
                           </div>
                         </td>
                       </tr>
@@ -3702,10 +4192,11 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     );
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+  /* ═══════════════════════════════════════════
      RENDER: MY ASSESSMENTS PAGE
      (Interactive Quiz + timeline scorecard history)
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderMyAssessment = ()=>{
     if (quizState === "quiz") {
       const question = TI_QUIZ[currentQuestion];
@@ -4142,43 +4633,30 @@ export default function TrafficInspectorModule({ user, onLogout }) {
       );
     }
 
-    if (quizState === "result") {
-      const record = selectedRecord || {
-        totalScore: latestQuizScore,
-        category: getCat(latestQuizScore),
-        period: "Self-Check",
-        date: new Date().toISOString().slice(0, 10),
-        aomRemarks: "Self-compliance check completed.",
-        sections: [
-          { title: "Whistle Codes & Hand Signals",          marks: 0, outOf: 20 },
-          { title: "Token & Line Clear Authorities",        marks: 0, outOf: 20 },
-          { title: "Station Interlocking & Track Circuits", marks: 0, outOf: 20 },
-          { title: "Shunting Operations & Point Locking",   marks: 0, outOf: 20 },
-          { title: "Gate Signals & Siding Isolation",        marks: 0, outOf: 20 }
-        ]
-      };
-      
-      const cat = record.category || getCat(record.totalScore);
-      const performanceSummary = getPerformanceSummaryText(record.totalScore, record.sections);
+    if (selectedRecord) {
+      const sc = selectedRecord;
+      const cat = sc.category || "A";
+      const liveTotal = sc.totalScore || 0;
+      const performanceSummary = getPerformanceSummaryText(liveTotal, sc.sections);
 
       return (
         <div className="ti2-card animate-fade-in" style={{ padding: "24px", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
           <div className="ti2-card-hdr" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "14px", marginBottom: "20px" }}>
             <h2 style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0 }}><ShieldCheck size={22} color="#16a34a"/> Detailed Evaluation Scorecard</h2>
-            <button className="ti2-primary-btn" onClick={() => { setQuizState("idle"); setSelectedRecord(null); }}>â† Return to Ledger</button>
+            <button className="ti2-primary-btn" onClick={() => { setSelectedRecord(null); setQuizState("idle"); }}>← Return to History</button>
           </div>
 
           <div className="pm-scorecard-hero" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "20px", display: "flex", alignItems: "center", gap: "24px", marginBottom: "24px" }}>
             <div className="pm-sc-score-circle" style={{ width: "90px", height: "90px", borderRadius: "50%", border: `6px solid ${CAT_C[cat] || "#2563eb"}`, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", flexShrink: 0, background: "#fff" }}>
-              <strong style={{ fontSize: "24px", color: CAT_C[cat] || "#2563eb", fontWeight: "800" }}>{record.totalScore}</strong>
+              <strong style={{ fontSize: "24px", color: CAT_C[cat] || "#2563eb", fontWeight: "800" }}>{liveTotal}</strong>
               <span style={{ fontSize: "10px", color: "#64748b", fontWeight: "600", marginTop: "-2px" }}>/100</span>
             </div>
             <div>
               <span className="pm-cat-badge-lg" style={{ background: CAT_B[cat], color: CAT_C[cat], display: "inline-block", padding: "4px 10px", borderRadius: "999px", fontSize: "12px", fontWeight: "700", marginBottom: "6px" }}>
                 Final Category: Category {cat}
               </span>
-              <p className="pm-sc-period" style={{ margin: "2px 0", fontSize: "14px", color: "#1e293b", fontWeight: "600" }}>{record.period} - Self-Compliance Audit</p>
-              <p className="pm-sc-date" style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>Attempt Completed: {record.date} &nbsp;·&nbsp; Assessed By: {record.assessedBy || "Self Compliance"}</p>
+              <p className="pm-sc-period" style={{ margin: "2px 0", fontSize: "14px", color: "#1e293b", fontWeight: "600" }}>{sc.period} - Self-Compliance Audit</p>
+              <p className="pm-sc-date" style={{ margin: "2px 0 0", fontSize: "12px", color: "#64748b" }}>Attempt Completed: {sc.date} &nbsp;·&nbsp; Assessed By: {sc.assessedBy || "Area Operation Manager"}</p>
             </div>
           </div>
 
@@ -4188,11 +4666,11 @@ export default function TrafficInspectorModule({ user, onLogout }) {
             <p style={{ margin: 0, fontSize: "13px", color: "#1e3a8a", lineHeight: "1.5" }}>{performanceSummary}</p>
           </div>
 
-          {/* Module Performance Details */}
+          {/* Competency Domain Breakdown */}
           <div className="pm-sc-sections" style={{ marginBottom: "30px" }}>
             <h3 style={{ fontSize: "15px", color: "#0f172a", marginBottom: "16px", fontWeight: "700" }}>Safety Domain Competency Breakdown</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {record.sections.map(s => {
+              {sc.sections.map(s => {
                 const spc = Math.round((s.marks / s.outOf) * 100);
                 const barColor = spc >= 80 ? "#16a34a" : spc >= 50 ? "#2563eb" : spc >= 26 ? "#d97706" : "#dc2626";
                 return (
@@ -4212,7 +4690,7 @@ export default function TrafficInspectorModule({ user, onLogout }) {
           <div className="pm-mcq-review-panel" style={{ borderTop: "1px solid #e2e8f0", paddingTop: "24px" }}>
             <div className="pm-chart-header" style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "6px" }}>
               <Clock size={16} color="#475569"/>
-              <h3 style={{ margin: 0, fontSize: "15px", color: "#0f172a", fontWeight: "700" }}>Complete Self-Assessment Question Review</h3>
+              <h3 style={{ margin: 0, fontSize: "15px", color: "#0f172a", fontWeight: "700" }}>Complete Assessment Question Review</h3>
             </div>
             <p className="pm-subtitle" style={{ fontSize: "12px", color: "#64748b", marginTop: "-10px", marginBottom: "20px" }}>
               Below is the detailed response evaluation for all 25 compulsory questions. Correct responses are highlighted in green; incorrect choices are highlighted in red.
@@ -4220,7 +4698,7 @@ export default function TrafficInspectorModule({ user, onLogout }) {
 
             <div className="pm-review-questions-list" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {TI_QUIZ.map((q, qIndex) => {
-                const selectedOpt = quizAnswers ? quizAnswers[qIndex] : null;
+                const selectedOpt = sc.userAnswers ? sc.userAnswers[qIndex] : null;
                 const isCorrect = selectedOpt === q.ans;
 
                 return (
@@ -4275,109 +4753,159 @@ export default function TrafficInspectorModule({ user, onLogout }) {
       );
     }
 
-    const avgScore = Math.round(tiAssessments.reduce((s,a)=>s+a.totalScore,0)/tiAssessments.length);
-    return (
-      <div className="ti2-card animate-fade-in" style={{ padding: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
-          <div>
-            <h2>Self-Assessments &amp; Timeline Ledger</h2>
-            <p className="ti2-subtitle" style={{ margin: "2px 0 0" }}>Evaluations conducted by Area Operation Managers (AOM) and self safety audits.</p>
-          </div>
-          
-          <div style={{ display: "flex", gap: "8px" }}>
-            {isExamAssigned ? (
-              <button 
-                className="ti2-primary-btn" 
-                onClick={startQuiz} 
-                style={{ background: "#16a34a", animation: "pulse 2s infinite", display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <Plus size={13}/> Take Assigned Safety Assessment
-              </button>
-            ) : (
-              <button 
-                className="ti2-primary-btn" 
-                disabled 
-                style={{ background: "#64748b", cursor: "not-allowed", opacity: 0.8, display: "flex", alignItems: "center", gap: "6px" }}
-                title="Assessment access is locked until assigned by AOM"
-              >
-                <Lock size={13}/> Safety Exam Locked (Awaiting AOM)
-              </button>
-            )}
-            <button className="ti2-view-profile-btn" onClick={() => exportAlert("PDF", "TI_Assessment_History_R Khan")}>
-              <Download size={13}/> Export Timeline
-            </button>
-          </div>
-        </div>
+    const testActive = isExamAssigned;
+    const avgScore = tiAssessments.length 
+      ? Math.round(tiAssessments.reduce((s, a) => s + a.totalScore, 0) / tiAssessments.length) 
+      : 0;
 
-        {/* Real-time AOM Exam Assignment Banner */}
-        {isExamAssigned ? (
-          <div style={{ background: "#dcfce7", borderLeft: "4px solid #16a34a", padding: "16px", borderRadius: "8px", marginBottom: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <ShieldCheck size={26} color="#16a34a" style={{ flexShrink: 0 }}/>
-              <div>
-                <strong style={{ color: "#14532d", fontSize: "14px", display: "block" }}>ðŸ“ Assigned Exam Dispatch Alert</strong>
-                <span style={{ color: "#166534", fontSize: "12px", lineHeight: "1.4" }}>The Area Operation Manager (AOM) has assigned a standard 25-question Safety & Compliance Assessment for you. Please complete it now.</span>
+    return (
+      <section className="sm2-card">
+        {/* MCQ Assessment Assignment Banner */}
+        {testActive ? (
+          <div style={{
+            background:"linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%)",
+            border:"1.5px solid #fed7aa",
+            borderRadius:12,
+            padding:20,
+            marginBottom:24,
+            boxShadow:"0 4px 6px -1px rgba(0,0,0,0.05)"
+          }}>
+            <div style={{display:"flex", gap:16, alignItems:"start"}}>
+              <div style={{
+                background:"#ffedd5",
+                borderRadius:50,
+                width:42,
+                height:42,
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+                flexShrink:0
+              }}>
+                <ShieldCheck size={22} color="#ea580c"/>
+              </div>
+              <div style={{flex:1}}>
+                <h3 style={{margin:"0 0 6px", fontSize:16, fontWeight:700, color:"#c2410c"}}>
+                  ⚠️ Pending Competency Assessment
+                </h3>
+                <p style={{margin:"0 0 14px", fontSize:13, color:"#9a3412", lineHeight:1.4}}>
+                  Your supervisor (Area Operation Manager) has scheduled a periodic safety &amp; competency assessment for you. You must complete the 25-question MCQ exam.
+                </p>
+                <button
+                  onClick={startQuiz}
+                  style={{
+                    background:"#ea580c",
+                    color:"#ffffff",
+                    border:"none",
+                    padding:"10px 20px",
+                    borderRadius:8,
+                    fontSize:13.5,
+                    fontWeight:700,
+                    cursor:"pointer",
+                    boxShadow:"0 4px 6px rgba(234, 88, 12, 0.2)",
+                    display:"flex",
+                    alignItems:"center",
+                    gap:8
+                  }}
+                >
+                  Start 25 MCQ Online Assessment
+                </button>
               </div>
             </div>
-            <button 
-              className="ti2-primary-btn" 
-              onClick={startQuiz} 
-              style={{ background: "#16a34a", flexShrink: 0, padding: "8px 14px", fontSize: "12px", fontWeight: "700" }}
-            >
-              Start Assigned Exam
-            </button>
           </div>
         ) : (
-          <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderLeft: "4px solid #64748b", padding: "16px", borderRadius: "8px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
-            <Lock size={22} color="#64748b" style={{ flexShrink: 0 }}/>
-            <div>
-              <strong style={{ color: "#334155", fontSize: "14px", display: "block" }}>🔒 No Pending Assigned Exams</strong>
-              <span style={{ color: "#64748b", fontSize: "12px", lineHeight: "1.4" }}>You have no pending safety exams assigned to you by the AOM. Safety compliance assessments must be explicitly dispatched by the AOM before you can attempt them.</span>
+          <div style={{
+            background:"#f0fdf4",
+            border:"1.5px solid #bbf7d0",
+            borderRadius:12,
+            padding:18,
+            marginBottom:24,
+            display:"flex",
+            alignItems:"center",
+            gap:14
+          }}>
+            <ShieldCheck size={24} color="#16a34a"/>
+            <div style={{flex:1}}>
+              <h3 style={{margin:"0 0 2px", fontSize:14.5, fontWeight:700, color:"#14532d"}}>
+                All assessments are up to date. No pending test available.
+              </h3>
+              <p style={{margin:0, fontSize:12, color:"#166534"}}>
+                Your periodic safety and competency evaluation is currently active and compliant.
+              </p>
+            </div>
+            <div style={{display:"flex", gap:16, fontSize:12, textAlign:"right"}}>
+              <div>
+                <span style={{color:"#166534", display:"block"}}>Last Exam Score</span>
+                <strong style={{color:"#14532d", fontSize:13}}>{tiAssessments[0] ? `${tiAssessments[0].totalScore}%` : "88%"}</strong>
+              </div>
+              <div style={{borderLeft:"1px solid #bbf7d0", paddingLeft:16}}>
+                <span style={{color:"#166534", display:"block"}}>Next Due Date</span>
+                <strong style={{color:"#14532d", fontSize:13}}>25 Sep 2026</strong>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="ti2-myassess-summary">
-          {[
-            { label:"Total Assessments", v: tiAssessments.length },
-            { label:"Latest Score",      v: `${tiAssessments[0]?.totalScore || 0}/100` },
-            { label:"Average Score",     v: `${avgScore || 0}/100` },
-            { label:"Latest Category",   v: tiAssessments[0]?.category || "Grade A" },
-          ].map(c=>(
-            <div key={c.label} className="ti2-report-mini">
-              <label>{c.label}</label>
-              <strong style={c.label==="Latest Category"?{color:CAT_C[c.v]}:{}}>{c.v}</strong>
-            </div>
-          ))}
+        <div className="sm2-card-hdr"><h2>My Assessment History (by AOM)</h2></div>
+        <p className="sm2-subtitle">All assessments conducted by the Area Operation Manager for your section. Click any row to view the detailed scorecard.</p>
+
+        {/* Summary strip */}
+        <div className="sm2-myassess-summary">
+          <div className="sm2-report-mini">
+            <label>Total Assessments</label>
+            <strong>{tiAssessments.length}</strong>
+          </div>
+          <div className="sm2-report-mini">
+            <label>Latest Score</label>
+            <strong>{tiAssessments[0] ? `${tiAssessments[0].totalScore}/100` : "—"}</strong>
+          </div>
+          <div className="sm2-report-mini">
+            <label>Average AOM Score</label>
+            <strong>{avgScore ? `${avgScore}/100` : "—"}</strong>
+          </div>
+          <div className="sm2-report-mini">
+            <label>Latest Assessment</label>
+            <strong style={{color: CAT_C[tiAssessments[0]?.category] || "#2563eb"}}>
+              {tiAssessments[0] ? `Category ${tiAssessments[0].category}` : "—"}
+            </strong>
+          </div>
         </div>
 
-        {/* Timeline representation list */}
-        <div className="ti2-myassess-list">
-          <div className="ti2-myassess-head">
-            {["Period","Date","Total Score","Category","Assessed By","Status",""].map(h=><span key={h}>{h}</span>)}
+        {/* List */}
+        <div className="sm2-myassess-list">
+          <div className="sm2-myassess-head">
+            {["Period","Date","Score Scale","Category","Assessed By","Status",""].map(h =>
+              <span key={h}>{h}</span>)}
           </div>
-          {tiAssessments.map(sc=>{
-            const cat=sc.category;
+          {tiAssessments.map(sc => {
+            const cat = sc.category;
             return (
-              <div key={sc.id} className="ti2-myassess-row" style={{ gridTemplateColumns: "1.3fr 1fr 1fr 1fr 1.8fr 1fr 0.8fr" }}>
-                <span><strong>{sc.period}</strong></span>
+              <button key={sc.id} className="sm2-myassess-row" onClick={() => setSelectedRecord(sc)}>
+                <span title={`Cycle: ${sc.period}\nDuration: ${formatQuarterPeriod(sc.period)}`}>
+                  <strong>{formatQuarterPeriod(sc.period)}</strong>
+                </span>
                 <span>{sc.date}</span>
                 <span><strong>{sc.totalScore}/100</strong></span>
-                <span><span className="ti2-badge" style={{background:CAT_B[cat],color:CAT_C[cat]}}>Cat. {cat}</span></span>
-                <span style={{fontSize:12,color:"#64748b"}}>{sc.assessedBy}</span>
-                <span><span className={`ti2-status-pill ti2-status-${sc.approvalStatus.toLowerCase()}`}>{sc.approvalStatus}</span></span>
-                <span style={{color:"#2563eb",fontSize:12,fontWeight:600,cursor:"pointer"}} onClick={() => { setSelectedRecord(sc); setLatestQuizScore(sc.totalScore); setQuizAnswers(sc.userAnswers || generateTiMockResponses(sc.totalScore)); setQuizState("result"); }}>Review</span>
-              </div>
+                <span>
+                  <span className="sm2-badge" style={{background:CAT_B[cat],color:CAT_C[cat]}}>
+                    Cat. {cat}
+                  </span>
+                </span>
+                <span style={{fontSize:11,color:"#64748b"}}>{sc.assessedBy}</span>
+                <span>
+                  <span className={`sm2-status-pill sm2-status-${sc.approvalStatus.toLowerCase()}`}>{sc.approvalStatus}</span>
+                </span>
+                <span style={{color:"#2563eb",fontSize:12,fontWeight:600}}>View Form</span>
+              </button>
             );
           })}
         </div>
-      </div>
+      </section>
     );
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: PME POSITION PAGE
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderPmePosition = () => {
     const due = users.filter(u => u.pmeStatus === "Due" || u.pmeStatus === "Pending");
     const fit = users.filter(u => u.pmeStatus === "Fit");
@@ -4434,9 +4962,9 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     setShowCounForm(true);
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: REF POSITION PAGE
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderRefPosition = () => {
     const completed = users.filter(u => u.refStatus === "Cleared");
     const pending = users.filter(u => u.refStatus === "Pending");
@@ -4487,9 +5015,9 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     );
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: INSPECTIONS PAGE
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderInspections = () => (
     <div className="ti2-page-body animate-fade-in">
       <div className="ti2-card">
@@ -4557,9 +5085,9 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     </div>
   );
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: COUNSELLING PAGE
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderCounselling = () => (
     <div className="ti2-page-body animate-fade-in">
       <div className="ti2-card">
@@ -4863,100 +5391,320 @@ export default function TrafficInspectorModule({ user, onLogout }) {
       return {};
     };
 
-    /* ─── LEVEL 3: Individual form views ─── */
+    // ─── LEVEL 3: Form views (SM, SS, TM) ───
     if (assessRole === "SM" && activeSmId) {
       const sm     = smList.find(s => s.id === activeSmId);
       const f      = smForms[activeSmId] || defaultSMForm();
       const locked = !!smLocked[activeSmId];
-      const { ynScore, knowledge, total } = computeSMScore(f);
+      
+      const mcqDataStr = localStorage.getItem(`sm_mcq_test_${sm?.hrmsId}`);
+      const mcqData = mcqDataStr ? JSON.parse(mcqDataStr) : null;
+      const isMcqCompleted = !!(mcqData && mcqData.completed);
+      const isActivated = localStorage.getItem(`sm_test_activated_${sm?.hrmsId}`) === "true";
+      
+      const knowledge = isMcqCompleted ? (mcqData?.correctCount || 22) : (parseInt(f.knowledgeMarks) || 0);
+      let ynScore = 0;
+      TI_SM_CRITERIA.forEach(sec => {
+        f[sec.key]?.forEach(v => { if (v === "Yes") ynScore += sec.weight; });
+      });
+      const total = knowledge + ynScore;
       const isAlcoholic = f.alcoholicStatus === "Alcoholic";
       const liveCat = isAlcoholic ? "D" : getCat(total);
+
       return (
-        <div className="ti2-card animate-fade-in">
-          <div className="ti2-card-hdr">
-            <div><h2>Assess Station Master — {sm?.name}</h2><p style={{margin:"2px 0 0",fontSize:12,color:"#64748b"}}>{sm?.hrmsId} · {sm?.station}</p></div>
-            <button className="ti2-link-btn" onClick={() => setActiveSmId(null)}>â† Back</button>
+        <section className="sm2-card animate-fade-in" style={{ padding: "24px" }}>
+          <div className="sm2-card-hdr" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+            <div>
+              <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                Assessment — {sm?.name}
+              </h2>
+              <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "#64748b" }}>
+                {sm?.hrmsId} · {sm?.lastDate || "20 May 2026"}
+              </p>
+            </div>
+            <button 
+              className="sm2-ghost-btn" 
+              style={{ display: "flex", alignItems: "center", gap: "6px", border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer", padding: "8px 16px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", color: "#475569" }} 
+              onClick={() => setActiveSmId(null)}
+            >
+              ← Back
+            </button>
           </div>
-          {TI_SM_CRITERIA.map((sec, si) => (
-            <div key={sec.key} className="ti2-assess-section">
-              <div className="ti2-assess-sec-hdr">
-                <span className="ti2-assess-sec-num">{String(si+1).padStart(2,"0")}</span>
-                <div><strong>{sec.label}</strong><span className="ti2-assess-sec-meta">{sec.count} criteria · {sec.weight} marks each · Total {sec.count*sec.weight}</span></div>
-                <span className="ti2-assess-live-marks">{f[sec.key].filter(v=>v==="Yes").length*sec.weight} / {sec.count*sec.weight}</span>
+
+          {/* ── Section 1: Knowledge of Rules ── */}
+          <div className="sm2-assess-section">
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">01</span>
+              <div>
+                <strong>Knowledge of Rules (MCQ-based)</strong>
+                <span className="sm2-assess-sec-meta">Auto-calculated from Station Master MCQ Test</span>
               </div>
-              <div className="ti2-yn-grid">
+              <span className="sm2-assess-live-marks">{knowledge} / 25</span>
+            </div>
+            
+            <div className="sm2-mcq-card-container" style={{marginTop: 16}}>
+              {isMcqCompleted ? (
+                <div className="sm2-mcq-success-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className="sm2-status-dot green"></span>
+                      <span className="sm2-status-text text-green font-semibold">MCQ Test Completed</span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only (Synced)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body">
+                    <div className="sm2-mcq-score-display">
+                      <div className="sm2-mcq-large-score">
+                        <strong>{mcqData?.correctCount || 22}</strong>
+                        <span>/ 25</span>
+                      </div>
+                      <div className="sm2-mcq-percentage-badge">
+                        {mcqData?.percentage || 88}% Score
+                      </div>
+                      <button 
+                        type="button"
+                        style={{ marginLeft: "auto", background: "#fee2e2", border: "none", color: "#dc2626", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                        onClick={() => {
+                          localStorage.removeItem(`sm_mcq_test_${sm?.hrmsId}`);
+                          setSMField(activeSmId, "knowledgeMarks", "0");
+                        }}
+                      >
+                        Reset Mock Exam
+                      </button>
+                    </div>
+                    
+                    <div className="sm2-mcq-progress-container">
+                      <div className="sm2-mcq-progress-bar">
+                        <div 
+                          className="sm2-mcq-progress-fill" 
+                          style={{ 
+                            width: `${mcqData?.percentage || 88}%`,
+                            background: (mcqData?.percentage || 88) >= 80 ? "#16a34a" : (mcqData?.percentage || 88) >= 50 ? "#2563eb" : "#dc2626"
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Submitted On</span>
+                        <strong className="sm2-mcq-meta-val">{mcqData?.submittedDate || "30 May 2026"}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{sm?.name}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="sm2-mcq-pending-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className={`sm2-status-dot ${isActivated ? "amber" : "red"}`}></span>
+                      <span className={`sm2-status-text text-${isActivated ? "amber" : "red"} font-semibold`}>
+                        {isActivated ? "MCQ Test Active" : "MCQ Test Locked"}
+                      </span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body pending" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div className="sm2-mcq-pending-message" style={{ display: "flex", gap: "12px", background: isActivated ? "#fffbeb" : "#fef2f2", border: isActivated ? "1px solid #fef3c7" : "1px solid #fee2e2", padding: "16px", borderRadius: "8px" }}>
+                      <AlertTriangle size={24} color={isActivated ? "#d97706" : "#dc2626"} style={{marginTop: 2, flexShrink: 0}} />
+                      <div>
+                        <h4 style={{margin:"0 0 4px", fontSize:14, color: isActivated ? "#b45309" : "#991b1b"}}>{isActivated ? "Awaiting Station Master Attempt" : "Competency Exam Locked"}</h4>
+                        <p style={{margin:0, fontSize:12.5, lineHeight:1.5, color: isActivated ? "#d97706" : "#dc2626"}}>
+                          {isActivated ? (
+                            <span>The Station Master safety competency trial is active. Request SM (<strong>{sm?.name}</strong>) to log into their portal and attempt the 25 safety questions to automatically sync scores.</span>
+                          ) : (
+                            <span>The Station Master MCQ exam is currently locked. You must click the <strong>Activate Safety Exam</strong> button below to enable the Station Master to log in and attempt the test.</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: "flex", gap: "12px" }}>
+                      <button 
+                        type="button"
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          border: "none",
+                          background: isActivated ? "#fef2f2" : "#2563eb",
+                          color: isActivated ? "#dc2626" : "#ffffff",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                        }}
+                        onClick={() => {
+                          const nextVal = !isActivated;
+                          localStorage.setItem(`sm_test_activated_${sm?.hrmsId}`, nextVal ? "true" : "false");
+                          setSMField(activeSmId, "automaticTraining", f.automaticTraining);
+                        }}
+                      >
+                        {isActivated ? "Deactivate Safety Competency Exam" : "Activate Safety Competency Exam"}
+                      </button>
+
+
+                    </div>
+
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessment Status</span>
+                        <strong className={`sm2-mcq-meta-val text-${isActivated ? "amber" : "red"}`}>{isActivated ? "Active & Awaiting Attempt" : "Locked (Awaiting Activation)"}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{sm?.name}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Total Questions</span>
+                        <strong className="sm2-mcq-meta-val">25 Questions (1 mark each)</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Sections 02-06: Yes/No blocks ── */}
+          {TI_SM_CRITERIA.map((sec, si) => (
+            <div key={sec.key} className="sm2-assess-section" style={{ opacity: 1 }}>
+              <div className="sm2-assess-sec-hdr">
+                <span className="sm2-assess-sec-num">{String(si+2).padStart(2,"0")}</span>
+                <div><strong>{sec.label}</strong><span className="sm2-assess-sec-meta">{sec.count} criteria · {sec.weight} marks each · Total {sec.count*sec.weight}</span></div>
+                <span className="sm2-assess-live-marks">{f[sec.key].filter(v=>v==="Yes").length*sec.weight} / {sec.count*sec.weight}</span>
+              </div>
+              <div className="sm2-yn-grid">
                 {sec.criteria.map((cr, idx) => (
-                  <div key={idx} className="ti2-yn-row">
-                    <span className="ti2-yn-label">{idx+1}. {cr}</span>
-                    <div className="ti2-yn-btns">
-                      {["Yes","No"].map(v => (
-                        <button key={v} disabled={locked} type="button"
-                          className={`ti2-yn-btn ti2-yn-${v.toLowerCase()}${f[sec.key][idx]===v?" active":""}`}
-                          onClick={() => toggleSMYN(activeSmId, sec.key, idx, v)}>{v}</button>
-                      ))}
+                  <div key={idx} className="sm2-yn-row">
+                    <span className="sm2-yn-label">{idx+1}. {cr}</span>
+                    <div className="sm2-yn-btns">
+                      <button
+                        type="button" disabled={locked}
+                        className={f[sec.key][idx] === "Yes" ? "sm2-yn-btn sm2-yn-yes active" : "sm2-yn-btn sm2-yn-yes"}
+                        style={{ cursor: locked ? "not-allowed" : "pointer" }}
+                        onClick={() => toggleSMYN(activeSmId, sec.key, idx, "Yes")}>
+                        Yes
+                      </button>
+                      <button
+                        type="button" disabled={locked}
+                        className={f[sec.key][idx] === "No" ? "sm2-yn-btn sm2-yn-no active" : "sm2-yn-btn sm2-yn-no"}
+                        style={{ cursor: locked ? "not-allowed" : "pointer" }}
+                        onClick={() => toggleSMYN(activeSmId, sec.key, idx, "No")}>
+                        No
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ))}
-          <div className="ti2-assess-section">
-            <div className="ti2-assess-sec-hdr">
-              <span className="ti2-assess-sec-num">06</span>
-              <div><strong>Knowledge & Administrative Details</strong><span className="ti2-assess-sec-meta">Manual entry</span></div>
-              <span className="ti2-assess-live-marks">{knowledge}/25</span>
+
+          {/* ── Section 07: Additional Details ── */}
+          <div className="sm2-assess-section" style={{ opacity: 1 }}>
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">07</span>
+              <div><strong>Additional Details</strong><span className="sm2-assess-sec-meta">Mandatory fields</span></div>
             </div>
-            <div className="ti2-assess-form" style={{marginTop:12}}>
-              <div className="ti2-form-field"><label>Knowledge Marks (0–25)</label>
-                <input type="number" min={0} max={25} disabled={locked} value={f.knowledgeMarks} onChange={e=>setSMField(activeSmId,"knowledgeMarks",e.target.value)} placeholder="Enter MCQ marks"/></div>
-              <div className="ti2-form-field"><label>Alcoholic Status <span style={{color:"#dc2626"}}>*</span></label>
+            <div className="sm2-assess-form" style={{marginTop:12}}>
+              <div className="sm2-form-field">
+                <label>Knowledge Marks (MCQ Test)</label>
+                <input type="number" min={0} max={25} disabled={locked} value={knowledge} onChange={e=>{
+                  const val = e.target.value;
+                  setSMField(activeSmId,"knowledgeMarks",val);
+                }} placeholder="Synced MCQ marks" style={{ background: "#f1f5f9" }} readOnly/>
+              </div>
+              <div className="sm2-form-field">
+                <label>Alcoholic Status <span style={{color:"#dc2626"}}>*</span></label>
                 <select disabled={locked} value={f.alcoholicStatus} onChange={e=>setSMField(activeSmId,"alcoholicStatus",e.target.value)}>
-                  <option value="">Select…</option><option>Non-Alcoholic</option><option>Alcoholic</option>
-                </select></div>
-              <div className="ti2-form-field"><label>PME Status</label>
+                  <option value="">Select…</option>
+                  <option>Non-Alcoholic</option>
+                  <option>Alcoholic</option>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>PME Status</label>
                 <select disabled={locked} value={f.pmeStatus} onChange={e=>setSMField(activeSmId,"pmeStatus",e.target.value)}>
                   <option>Fit</option><option>Unfit</option><option>Pending</option>
-                </select></div>
-              <div className="ti2-form-field"><label>REF Status</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>REF Status</label>
                 <select disabled={locked} value={f.refStatus} onChange={e=>setSMField(activeSmId,"refStatus",e.target.value)}>
                   <option>Cleared</option><option>Pending</option><option>Failed</option>
-                </select></div>
-              <div className="ti2-form-field"><label>Counselling</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>Counselling</label>
                 <select disabled={locked} value={f.counselling} onChange={e=>setSMField(activeSmId,"counselling",e.target.value)}>
                   <option>Not Required</option><option>Recommended</option><option>Mandatory</option>
-                </select></div>
-              <div className="ti2-form-field"><label>Automatic Training</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>Automatic Training</label>
                 <select disabled={locked} value={f.automaticTraining} onChange={e=>setSMField(activeSmId,"automaticTraining",e.target.value)}>
                   <option>Not Required</option><option>Recommended</option><option>Mandatory</option>
-                </select></div>
-              <div className="ti2-form-field" style={{gridColumn:"1/-1"}}>
+                </select>
+              </div>
+              <div className="sm2-form-field sm2-form-full" style={{gridColumn:"1/-1"}}>
                 <label>Remarks for AOM</label>
-                <textarea rows={3} disabled={locked} value={f.remarks} onChange={e=>setSMField(activeSmId,"remarks",e.target.value)} placeholder="Enter observations…"/>
+                <textarea rows={3} disabled={locked} value={f.remarks} onChange={e=>setSMField(activeSmId,"remarks",e.target.value)} placeholder="Enter observations, recommendations…"/>
               </div>
             </div>
           </div>
-          <div className="ti2-live-score">
+
+          {/* ── Live Score Bar ── */}
+          <div className="sm2-live-score" style={{ opacity: 1 }}>
+            <div><label>Knowledge (MCQ)</label><strong>{knowledge}/25</strong></div>
             <div><label>Yes/No Score</label><strong>{ynScore}/75</strong></div>
-            <div><label>Knowledge</label><strong>{knowledge}/25</strong></div>
             <div><label>Grand Total</label><strong style={{color:CAT_C[liveCat],fontSize:22}}>{total}/100</strong></div>
-            <div><label>Category</label><span className="ti2-badge" style={{background:CAT_B[liveCat],color:CAT_C[liveCat],fontSize:13,padding:"4px 14px"}}>Category {liveCat}</span></div>
+            <div><label>Category</label><span className="sm2-badge" style={{background:CAT_B[liveCat],color:CAT_C[liveCat],fontSize:13,padding:"4px 14px"}}>Category {liveCat}</span></div>
           </div>
+
           {locked && (
             <div style={{display:"flex",flexDirection:"column",gap:"10px",marginTop:"16px"}}>
-              <div className="ti2-locked-banner">✓ Assessment submitted. Pending AOM Approval.</div>
-              <button type="button" className="ti2-ghost-btn" style={{border:"1px solid #7c3aed",color:"#7c3aed"}} onClick={() => setSmLocked(p => ({...p,[activeSmId]:false}))}>
+              <div style={{ background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "12px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", textAlign: "center" }}>
+                ✓ Assessment submitted. Pending AOM Approval.
+              </div>
+              <button type="button" className="sm2-ghost-btn" style={{border:"1px solid #7c3aed",color:"#7c3aed", padding: "10px", borderRadius: "8px", fontWeight: "700", background: "none", cursor: "pointer"}} onClick={() => setSmLocked(p => ({...p,[activeSmId]:false}))}>
                 <Edit size={14} style={{marginRight:6}}/> Unlock & Edit Assessment
               </button>
             </div>
           )}
           {!locked && (
-            <div className="ti2-review-actions">
-              <button className="ti2-primary-btn" onClick={() => submitSMAssessment(activeSmId)}>
-                <CheckCircle2 size={14}/> Submit for AOM Approval
-              </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                <button className="sm2-ghost-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer" }} onClick={() => {
+                  setSmForms(prev => ({
+                    ...prev,
+                    [activeSmId]: {
+                      ...f,
+                      knowledgeMarks: String(knowledge)
+                    }
+                  }));
+                  alert("Assessment saved as draft successfully!");
+                }}>Save as Draft</button>
+                <button className="sm2-primary-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "none", background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }} onClick={() => {
+                  setSMField(activeSmId, "knowledgeMarks", String(knowledge));
+                  submitSMAssessment(activeSmId);
+                }}>
+                  <CheckCircle2 size={14}/> Submit for AOM Approval
+                </button>
+              </div>
             </div>
           )}
-        </div>
+        </section>
       );
     }
 
@@ -4964,95 +5712,315 @@ export default function TrafficInspectorModule({ user, onLogout }) {
       const ss     = ssList.find(s => s.id === activeSsId);
       const f      = ssForms[activeSsId] || defaultSSForm();
       const locked = !!ssLocked[activeSsId];
-      const { ynScore, knowledge, total } = computeSSScore(f);
+      
+      const mcqDataStr = localStorage.getItem(`ss_mcq_test_${ss?.hrmsId}`);
+      const mcqData = mcqDataStr ? JSON.parse(mcqDataStr) : null;
+      const isMcqCompleted = !!(mcqData && mcqData.completed);
+      const isActivated = localStorage.getItem(`ss_test_activated_${ss?.hrmsId}`) === "true";
+      
+      const knowledge = isMcqCompleted ? (mcqData?.correctCount || 21) : (parseInt(f.knowledgeMarks) || 0);
+      let ynScore = 0;
+      TI_SS_CRITERIA.forEach(sec => {
+        f[sec.key]?.forEach(v => { if (v === "Yes") ynScore += sec.weight; });
+      });
+      const total = knowledge + ynScore;
       const isAlcoholic = f.alcoholicStatus === "Alcoholic";
       const liveCat = isAlcoholic ? "D" : getCat(total);
+
       return (
-        <div className="ti2-card animate-fade-in">
-          <div className="ti2-card-hdr">
-            <div><h2>Assess Station Superintendent — {ss?.name}</h2><p style={{margin:"2px 0 0",fontSize:12,color:"#64748b"}}>{ss?.hrmsId} · {ss?.station}</p></div>
-            <button className="ti2-link-btn" onClick={() => setActiveSsId(null)}>â† Back</button>
+        <section className="sm2-card animate-fade-in" style={{ padding: "24px" }}>
+          <div className="sm2-card-hdr" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+            <div>
+              <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                Assessment — {ss?.name}
+              </h2>
+              <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "#64748b" }}>
+                {ss?.hrmsId} · {ss?.station}
+              </p>
+            </div>
+            <button 
+              className="sm2-ghost-btn" 
+              style={{ display: "flex", alignItems: "center", gap: "6px", border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer", padding: "8px 16px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", color: "#475569" }} 
+              onClick={() => setActiveSsId(null)}
+            >
+              ← Back
+            </button>
           </div>
-          {TI_SS_CRITERIA.map((sec, si) => (
-            <div key={sec.key} className="ti2-assess-section">
-              <div className="ti2-assess-sec-hdr">
-                <span className="ti2-assess-sec-num">{String(si+1).padStart(2,"0")}</span>
-                <div><strong>{sec.label}</strong><span className="ti2-assess-sec-meta">{sec.count} criteria · {sec.weight} marks each · Total {sec.count*sec.weight}</span></div>
-                <span className="ti2-assess-live-marks">{f[sec.key]?.filter(v=>v==="Yes").length*sec.weight} / {sec.count*sec.weight}</span>
+
+          {/* ── Section 1: Knowledge of Rules ── */}
+          <div className="sm2-assess-section">
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">01</span>
+              <div>
+                <strong>Knowledge of Rules (MCQ-based)</strong>
+                <span className="sm2-assess-sec-meta">Auto-calculated from Station Superintendent MCQ Test</span>
               </div>
-              <div className="ti2-yn-grid">
+              <span className="sm2-assess-live-marks">{knowledge} / 25</span>
+            </div>
+            
+            <div className="sm2-mcq-card-container" style={{marginTop: 16}}>
+              {isMcqCompleted ? (
+                <div className="sm2-mcq-success-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className="sm2-status-dot green"></span>
+                      <span className="sm2-status-text text-green font-semibold">MCQ Test Completed</span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only (Synced)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body">
+                    <div className="sm2-mcq-score-display">
+                      <div className="sm2-mcq-large-score">
+                        <strong>{mcqData?.correctCount || 21}</strong>
+                        <span>/ 25</span>
+                      </div>
+                      <div className="sm2-mcq-percentage-badge">
+                        {mcqData?.percentage || 84}% Score
+                      </div>
+                      <button 
+                        type="button"
+                        style={{ marginLeft: "auto", background: "#fee2e2", border: "none", color: "#dc2626", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                        onClick={() => {
+                          localStorage.removeItem(`ss_mcq_test_${ss?.hrmsId}`);
+                          setSSField(activeSsId, "knowledgeMarks", "0");
+                        }}
+                      >
+                        Reset Mock Exam
+                      </button>
+                    </div>
+                    
+                    <div className="sm2-mcq-progress-container">
+                      <div className="sm2-mcq-progress-bar">
+                        <div 
+                          className="sm2-mcq-progress-fill" 
+                          style={{ 
+                            width: `${mcqData?.percentage || 84}%`,
+                            background: (mcqData?.percentage || 84) >= 80 ? "#16a34a" : (mcqData?.percentage || 84) >= 50 ? "#2563eb" : "#dc2626"
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Submitted On</span>
+                        <strong className="sm2-mcq-meta-val">{mcqData?.submittedDate || "30 May 2026"}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{ss?.name}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="sm2-mcq-pending-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className={`sm2-status-dot ${isActivated ? "amber" : "red"}`}></span>
+                      <span className={`sm2-status-text text-${isActivated ? "amber" : "red"} font-semibold`}>
+                        {isActivated ? "MCQ Test Active" : "MCQ Test Locked"}
+                      </span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body pending" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div className="sm2-mcq-pending-message" style={{ display: "flex", gap: "12px", background: isActivated ? "#fffbeb" : "#fef2f2", border: isActivated ? "1px solid #fef3c7" : "1px solid #fee2e2", padding: "16px", borderRadius: "8px" }}>
+                      <AlertTriangle size={24} color={isActivated ? "#d97706" : "#dc2626"} style={{marginTop: 2, flexShrink: 0}} />
+                      <div>
+                        <h4 style={{margin:"0 0 4px", fontSize:14, color: isActivated ? "#b45309" : "#991b1b"}}>{isActivated ? "Awaiting Station Superintendent Attempt" : "Competency Exam Locked"}</h4>
+                        <p style={{margin:0, fontSize:12.5, lineHeight:1.5, color: isActivated ? "#d97706" : "#dc2626"}}>
+                          {isActivated ? (
+                            <span>The Station Superintendent safety competency trial is active. Request SS (<strong>{ss?.name}</strong>) to log into their portal and attempt the 25 safety questions to automatically sync scores.</span>
+                          ) : (
+                            <span>The Station Superintendent MCQ exam is currently locked. You must click the <strong>Activate Safety Exam</strong> button below to enable the Station Superintendent to log in and attempt the test.</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: "flex", gap: "12px" }}>
+                      <button 
+                        type="button"
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          border: "none",
+                          background: isActivated ? "#fef2f2" : "#2563eb",
+                          color: isActivated ? "#dc2626" : "#ffffff",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                        }}
+                        onClick={() => {
+                          const nextVal = !isActivated;
+                          localStorage.setItem(`ss_test_activated_${ss?.hrmsId}`, nextVal ? "true" : "false");
+                          setSSField(activeSsId, "automaticTraining", f.automaticTraining);
+                        }}
+                      >
+                        {isActivated ? "Deactivate Safety Competency Exam" : "Activate Safety Competency Exam"}
+                      </button>
+
+
+                    </div>
+
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessment Status</span>
+                        <strong className={`sm2-mcq-meta-val text-${isActivated ? "amber" : "red"}`}>{isActivated ? "Active & Awaiting Attempt" : "Locked (Awaiting Activation)"}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{ss?.name}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Total Questions</span>
+                        <strong className="sm2-mcq-meta-val">25 Questions (1 mark each)</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Sections 02-06: Yes/No blocks ── */}
+          {TI_SS_CRITERIA.map((sec, si) => (
+            <div key={sec.key} className="sm2-assess-section" style={{ opacity: 1 }}>
+              <div className="sm2-assess-sec-hdr">
+                <span className="sm2-assess-sec-num">{String(si+2).padStart(2,"0")}</span>
+                <div><strong>{sec.label}</strong><span className="sm2-assess-sec-meta">{sec.count} criteria · {sec.weight} marks each · Total {sec.count*sec.weight}</span></div>
+                <span className="sm2-assess-live-marks">{f[sec.key]?.filter(v=>v==="Yes").length*sec.weight} / {sec.count*sec.weight}</span>
+              </div>
+              <div className="sm2-yn-grid">
                 {sec.criteria.map((cr, idx) => (
-                  <div key={idx} className="ti2-yn-row">
-                    <span className="ti2-yn-label">{idx+1}. {cr}</span>
-                    <div className="ti2-yn-btns">
-                      {["Yes","No"].map(v => (
-                        <button key={v} disabled={locked} type="button"
-                          className={`ti2-yn-btn ti2-yn-${v.toLowerCase()}${f[sec.key]?.[idx]===v?" active":""}`}
-                          onClick={() => toggleSSYN(activeSsId, sec.key, idx, v)}>{v}</button>
-                      ))}
+                  <div key={idx} className="sm2-yn-row">
+                    <span className="sm2-yn-label">{idx+1}. {cr}</span>
+                    <div className="sm2-yn-btns">
+                      <button
+                        type="button" disabled={locked}
+                        className={f[sec.key]?.[idx] === "Yes" ? "sm2-yn-btn sm2-yn-yes active" : "sm2-yn-btn sm2-yn-yes"}
+                        style={{ cursor: locked ? "not-allowed" : "pointer" }}
+                        onClick={() => toggleSSYN(activeSsId, sec.key, idx, "Yes")}>
+                        Yes
+                      </button>
+                      <button
+                        type="button" disabled={locked}
+                        className={f[sec.key]?.[idx] === "No" ? "sm2-yn-btn sm2-yn-no active" : "sm2-yn-btn sm2-yn-no"}
+                        style={{ cursor: locked ? "not-allowed" : "pointer" }}
+                        onClick={() => toggleSSYN(activeSsId, sec.key, idx, "No")}>
+                        No
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ))}
-          <div className="ti2-assess-section">
-            <div className="ti2-assess-sec-hdr">
-              <span className="ti2-assess-sec-num">06</span>
-              <div><strong>Knowledge & Administrative Details</strong><span className="ti2-assess-sec-meta">Manual entry</span></div>
-              <span className="ti2-assess-live-marks">{knowledge}/25</span>
+
+          {/* ── Section 07: Additional Details ── */}
+          <div className="sm2-assess-section" style={{ opacity: 1 }}>
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">07</span>
+              <div><strong>Additional Details</strong><span className="sm2-assess-sec-meta">Mandatory fields</span></div>
             </div>
-            <div className="ti2-assess-form" style={{marginTop:12}}>
-              <div className="ti2-form-field"><label>Knowledge Marks (0–25)</label>
-                <input type="number" min={0} max={25} disabled={locked} value={f.knowledgeMarks} onChange={e=>setSSField(activeSsId,"knowledgeMarks",e.target.value)} placeholder="Enter MCQ marks"/></div>
-              <div className="ti2-form-field"><label>Alcoholic Status <span style={{color:"#dc2626"}}>*</span></label>
+            <div className="sm2-assess-form" style={{marginTop:12}}>
+              <div className="sm2-form-field">
+                <label>Knowledge Marks (MCQ Test)</label>
+                <input type="number" min={0} max={25} disabled={locked} value={knowledge} onChange={e=>{
+                  const val = e.target.value;
+                  setSSField(activeSsId,"knowledgeMarks",val);
+                }} placeholder="Synced MCQ marks" style={{ background: "#f1f5f9" }} readOnly/>
+              </div>
+              <div className="sm2-form-field">
+                <label>Alcoholic Status <span style={{color:"#dc2626"}}>*</span></label>
                 <select disabled={locked} value={f.alcoholicStatus} onChange={e=>setSSField(activeSsId,"alcoholicStatus",e.target.value)}>
-                  <option value="">Select…</option><option>Non-Alcoholic</option><option>Alcoholic</option>
-                </select></div>
-              <div className="ti2-form-field"><label>PME Status</label>
+                  <option value="">Select…</option>
+                  <option>Non-Alcoholic</option>
+                  <option>Alcoholic</option>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>PME Status</label>
                 <select disabled={locked} value={f.pmeStatus} onChange={e=>setSSField(activeSsId,"pmeStatus",e.target.value)}>
                   <option>Fit</option><option>Unfit</option><option>Pending</option>
-                </select></div>
-              <div className="ti2-form-field"><label>REF Status</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>REF Status</label>
                 <select disabled={locked} value={f.refStatus} onChange={e=>setSSField(activeSsId,"refStatus",e.target.value)}>
                   <option>Cleared</option><option>Pending</option><option>Failed</option>
-                </select></div>
-              <div className="ti2-form-field"><label>Counselling</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>Counselling</label>
                 <select disabled={locked} value={f.counselling} onChange={e=>setSSField(activeSsId,"counselling",e.target.value)}>
                   <option>Not Required</option><option>Recommended</option><option>Mandatory</option>
-                </select></div>
-              <div className="ti2-form-field"><label>Automatic Training</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>Automatic Training</label>
                 <select disabled={locked} value={f.automaticTraining} onChange={e=>setSSField(activeSsId,"automaticTraining",e.target.value)}>
                   <option>Not Required</option><option>Recommended</option><option>Mandatory</option>
-                </select></div>
-              <div className="ti2-form-field" style={{gridColumn:"1/-1"}}>
+                </select>
+              </div>
+              <div className="sm2-form-field sm2-form-full" style={{gridColumn:"1/-1"}}>
                 <label>Remarks for AOM</label>
-                <textarea rows={3} disabled={locked} value={f.remarks} onChange={e=>setSSField(activeSsId,"remarks",e.target.value)} placeholder="Enter observations…"/>
+                <textarea rows={3} disabled={locked} value={f.remarks} onChange={e=>setSSField(activeSsId,"remarks",e.target.value)} placeholder="Enter observations, recommendations…"/>
               </div>
             </div>
           </div>
-          <div className="ti2-live-score">
+
+          {/* ── Live Score Bar ── */}
+          <div className="sm2-live-score" style={{ opacity: 1 }}>
+            <div><label>Knowledge (MCQ)</label><strong>{knowledge}/25</strong></div>
             <div><label>Yes/No Score</label><strong>{ynScore}/75</strong></div>
-            <div><label>Knowledge</label><strong>{knowledge}/25</strong></div>
             <div><label>Grand Total</label><strong style={{color:CAT_C[liveCat],fontSize:22}}>{total}/100</strong></div>
-            <div><label>Category</label><span className="ti2-badge" style={{background:CAT_B[liveCat],color:CAT_C[liveCat],fontSize:13,padding:"4px 14px"}}>Category {liveCat}</span></div>
+            <div><label>Category</label><span className="sm2-badge" style={{background:CAT_B[liveCat],color:CAT_C[liveCat],fontSize:13,padding:"4px 14px"}}>Category {liveCat}</span></div>
           </div>
+
           {locked && (
             <div style={{display:"flex",flexDirection:"column",gap:"10px",marginTop:"16px"}}>
-              <div className="ti2-locked-banner">✓ Assessment submitted. Pending AOM Approval.</div>
-              <button type="button" className="ti2-ghost-btn" style={{border:"1px solid #7c3aed",color:"#7c3aed"}} onClick={() => setSsLocked(p => ({...p,[activeSsId]:false}))}>
+              <div style={{ background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "12px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", textAlign: "center" }}>
+                ✓ Assessment submitted. Pending AOM Approval.
+              </div>
+              <button type="button" className="sm2-ghost-btn" style={{border:"1px solid #7c3aed",color:"#7c3aed", padding: "10px", borderRadius: "8px", fontWeight: "700", background: "none", cursor: "pointer"}} onClick={() => setSsLocked(p => ({...p,[activeSsId]:false}))}>
                 <Edit size={14} style={{marginRight:6}}/> Unlock & Edit Assessment
               </button>
             </div>
           )}
           {!locked && (
-            <div className="ti2-review-actions">
-              <button className="ti2-primary-btn" onClick={() => submitSSAssessment(activeSsId)}>
-                <CheckCircle2 size={14}/> Submit for AOM Approval
-              </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                <button className="sm2-ghost-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer" }} onClick={() => {
+                  setSsForms(prev => ({
+                    ...prev,
+                    [activeSsId]: {
+                      ...f,
+                      knowledgeMarks: String(knowledge)
+                    }
+                  }));
+                  alert("Assessment saved as draft successfully!");
+                }}>Save as Draft</button>
+                <button className="sm2-primary-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "none", background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }} onClick={() => {
+                  setSSField(activeSsId, "knowledgeMarks", String(knowledge));
+                  submitSSAssessment(activeSsId);
+                }}>
+                  <CheckCircle2 size={14}/> Submit for AOM Approval
+                </button>
+              </div>
             </div>
           )}
-        </div>
+        </section>
       );
     }
 
@@ -5060,348 +6028,1187 @@ export default function TrafficInspectorModule({ user, onLogout }) {
       const tm     = tmList.find(t => t.id === activeTmId);
       const f      = tmForms[activeTmId] || defaultTMForm();
       const locked = !!tmLocked[activeTmId];
-      const { ynScore, knowledge, total } = computeTMScore(f);
+      
+      const mcqDataStr = localStorage.getItem(`tm_mcq_test_${tm?.hrmsId}`);
+      const mcqData = mcqDataStr ? JSON.parse(mcqDataStr) : null;
+      const isMcqCompleted = !!(mcqData && mcqData.completed);
+      const isActivated = localStorage.getItem(`tm_test_activated_${tm?.hrmsId}`) === "true";
+      
+      const knowledge = isMcqCompleted ? (mcqData?.correctCount || 23) : (parseInt(f.knowledgeMarks) || 0);
+      let ynScore = 0;
+      TI_TM_CRITERIA.forEach(sec => {
+        f[sec.key]?.forEach(v => { if (v === "Yes") ynScore += sec.weight; });
+      });
+      const total = knowledge + ynScore;
       const isAlcoholic = f.alcoholicStatus === "Alcoholic";
       const liveCat = isAlcoholic ? "D" : getCat(total);
+
       return (
-        <div className="ti2-card animate-fade-in">
-          <div className="ti2-card-hdr">
-            <div><h2>Assess Train Manager — {tm?.name}</h2><p style={{margin:"2px 0 0",fontSize:12,color:"#64748b"}}>{tm?.hrmsId} · Home Station: {tm?.station}</p></div>
-            <button className="ti2-link-btn" onClick={() => setActiveTmId(null)}>â† Back</button>
+        <section className="sm2-card animate-fade-in" style={{ padding: "24px" }}>
+          <div className="sm2-card-hdr" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+            <div>
+              <h2 style={{ fontSize: "20px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+                Assessment — {tm?.name}
+              </h2>
+              <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "#64748b" }}>
+                {tm?.hrmsId} · Home Station: {tm?.station}
+              </p>
+            </div>
+            <button 
+              className="sm2-ghost-btn" 
+              style={{ display: "flex", alignItems: "center", gap: "6px", border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer", padding: "8px 16px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", color: "#475569" }} 
+              onClick={() => setActiveTmId(null)}
+            >
+              ← Back
+            </button>
           </div>
-          {TI_TM_CRITERIA.map((sec, si) => (
-            <div key={sec.key} className="ti2-assess-section">
-              <div className="ti2-assess-sec-hdr">
-                <span className="ti2-assess-sec-num">{String(si+1).padStart(2,"0")}</span>
-                <div><strong>{sec.label}</strong><span className="ti2-assess-sec-meta">{sec.count} criteria · {sec.weight} marks each · Total {sec.count*sec.weight}</span></div>
-                <span className="ti2-assess-live-marks">{f[sec.key]?.filter(v=>v==="Yes").length*sec.weight} / {sec.count*sec.weight}</span>
+
+          {/* ── Section 1: Knowledge of Rules ── */}
+          <div className="sm2-assess-section">
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">01</span>
+              <div>
+                <strong>Knowledge of Rules (MCQ-based)</strong>
+                <span className="sm2-assess-sec-meta">Auto-calculated from Train Manager MCQ Test</span>
               </div>
-              <div className="ti2-yn-grid">
+              <span className="sm2-assess-live-marks">{knowledge} / 25</span>
+            </div>
+            
+            <div className="sm2-mcq-card-container" style={{marginTop: 16}}>
+              {isMcqCompleted ? (
+                <div className="sm2-mcq-success-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className="sm2-status-dot green"></span>
+                      <span className="sm2-status-text text-green font-semibold">MCQ Test Completed</span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only (Synced)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body">
+                    <div className="sm2-mcq-score-display">
+                      <div className="sm2-mcq-large-score">
+                        <strong>{mcqData?.correctCount || 23}</strong>
+                        <span>/ 25</span>
+                      </div>
+                      <div className="sm2-mcq-percentage-badge">
+                        {mcqData?.percentage || 92}% Score
+                      </div>
+                      <button 
+                        type="button"
+                        style={{ marginLeft: "auto", background: "#fee2e2", border: "none", color: "#dc2626", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}
+                        onClick={() => {
+                          localStorage.removeItem(`tm_mcq_test_${tm?.hrmsId}`);
+                          setTMField(activeTmId, "knowledgeMarks", "0");
+                        }}
+                      >
+                        Reset Mock Exam
+                      </button>
+                    </div>
+                    
+                    <div className="sm2-mcq-progress-container">
+                      <div className="sm2-mcq-progress-bar">
+                        <div 
+                          className="sm2-mcq-progress-fill" 
+                          style={{ 
+                            width: `${mcqData?.percentage || 92}%`,
+                            background: (mcqData?.percentage || 92) >= 80 ? "#16a34a" : (mcqData?.percentage || 92) >= 50 ? "#2563eb" : "#dc2626"
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Submitted On</span>
+                        <strong className="sm2-mcq-meta-val">{mcqData?.submittedDate || "30 May 2026"}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{tm?.name}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="sm2-mcq-pending-card">
+                  <div className="sm2-mcq-card-header">
+                    <div className="sm2-mcq-status">
+                      <span className={`sm2-status-dot ${isActivated ? "amber" : "red"}`}></span>
+                      <span className={`sm2-status-text text-${isActivated ? "amber" : "red"} font-semibold`}>
+                        {isActivated ? "MCQ Test Active" : "MCQ Test Locked"}
+                      </span>
+                    </div>
+                    <div className="sm2-mcq-lock-badge">
+                      <Lock size={12} />
+                      <span>Read-Only</span>
+                    </div>
+                  </div>
+                  
+                  <div className="sm2-mcq-card-body pending" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div className="sm2-mcq-pending-message" style={{ display: "flex", gap: "12px", background: isActivated ? "#fffbeb" : "#fef2f2", border: isActivated ? "1px solid #fef3c7" : "1px solid #fee2e2", padding: "16px", borderRadius: "8px" }}>
+                      <AlertTriangle size={24} color={isActivated ? "#d97706" : "#dc2626"} style={{marginTop: 2, flexShrink: 0}} />
+                      <div>
+                        <h4 style={{margin:"0 0 4px", fontSize:14, color: isActivated ? "#b45309" : "#991b1b"}}>{isActivated ? "Awaiting Train Manager Attempt" : "Competency Exam Locked"}</h4>
+                        <p style={{margin:0, fontSize:12.5, lineHeight:1.5, color: isActivated ? "#d97706" : "#dc2626"}}>
+                          {isActivated ? (
+                            <span>The Train Manager safety competency trial is active. Request TM (<strong>{tm?.name}</strong>) to log into their portal and attempt the 25 safety questions to automatically sync scores.</span>
+                          ) : (
+                            <span>The Train Manager MCQ exam is currently locked. You must click the <strong>Activate Safety Exam</strong> button below to enable the Train Manager to log in and attempt the test.</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: "flex", gap: "12px" }}>
+                      <button 
+                        type="button"
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          border: "none",
+                          background: isActivated ? "#fef2f2" : "#2563eb",
+                          color: isActivated ? "#dc2626" : "#ffffff",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                        }}
+                        onClick={() => {
+                          const nextVal = !isActivated;
+                          localStorage.setItem(`tm_test_activated_${tm?.hrmsId}`, nextVal ? "true" : "false");
+                          setTMField(activeTmId, "automaticTraining", f.automaticTraining);
+                        }}
+                      >
+                        {isActivated ? "Deactivate Safety Competency Exam" : "Activate Safety Competency Exam"}
+                      </button>
+
+
+                    </div>
+
+                    <div className="sm2-mcq-meta-grid">
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessment Status</span>
+                        <strong className={`sm2-mcq-meta-val text-${isActivated ? "amber" : "red"}`}>{isActivated ? "Active & Awaiting Attempt" : "Locked (Awaiting Activation)"}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Assessed Entity</span>
+                        <strong className="sm2-mcq-meta-val">{tm?.name}</strong>
+                      </div>
+                      <div className="sm2-mcq-meta-item">
+                        <span className="sm2-mcq-meta-label">Total Questions</span>
+                        <strong className="sm2-mcq-meta-val">25 Questions (1 mark each)</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Sections 02-06: Yes/No blocks ── */}
+          {TI_TM_CRITERIA.map((sec, si) => (
+            <div key={sec.key} className="sm2-assess-section" style={{ opacity: 1 }}>
+              <div className="sm2-assess-sec-hdr">
+                <span className="sm2-assess-sec-num">{String(si+2).padStart(2,"0")}</span>
+                <div><strong>{sec.label}</strong><span className="sm2-assess-sec-meta">{sec.count} criteria · {sec.weight} marks each · Total {sec.count*sec.weight}</span></div>
+                <span className="sm2-assess-live-marks">{f[sec.key]?.filter(v=>v==="Yes").length*sec.weight} / {sec.count*sec.weight}</span>
+              </div>
+              <div className="sm2-yn-grid">
                 {sec.criteria.map((cr, idx) => (
-                  <div key={idx} className="ti2-yn-row">
-                    <span className="ti2-yn-label">{idx+1}. {cr}</span>
-                    <div className="ti2-yn-btns">
-                      {["Yes","No"].map(v => (
-                        <button key={v} disabled={locked} type="button"
-                          className={`ti2-yn-btn ti2-yn-${v.toLowerCase()}${f[sec.key]?.[idx]===v?" active":""}`}
-                          onClick={() => toggleTMYN(activeTmId, sec.key, idx, v)}>{v}</button>
-                      ))}
+                  <div key={idx} className="sm2-yn-row">
+                    <span className="sm2-yn-label">{idx+1}. {cr}</span>
+                    <div className="sm2-yn-btns">
+                      <button
+                        type="button" disabled={locked}
+                        className={f[sec.key]?.[idx] === "Yes" ? "sm2-yn-btn sm2-yn-yes active" : "sm2-yn-btn sm2-yn-yes"}
+                        style={{ cursor: locked ? "not-allowed" : "pointer" }}
+                        onClick={() => toggleTMYN(activeTmId, sec.key, idx, "Yes")}>
+                        Yes
+                      </button>
+                      <button
+                        type="button" disabled={locked}
+                        className={f[sec.key]?.[idx] === "No" ? "sm2-yn-btn sm2-yn-no active" : "sm2-yn-btn sm2-yn-no"}
+                        style={{ cursor: locked ? "not-allowed" : "pointer" }}
+                        onClick={() => toggleTMYN(activeTmId, sec.key, idx, "No")}>
+                        No
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ))}
-          <div className="ti2-assess-section">
-            <div className="ti2-assess-sec-hdr">
-              <span className="ti2-assess-sec-num">06</span>
-              <div><strong>Knowledge & Administrative Details</strong><span className="ti2-assess-sec-meta">Manual entry</span></div>
-              <span className="ti2-assess-live-marks">{knowledge}/25</span>
+
+          {/* ── Section 07: Additional Details ── */}
+          <div className="sm2-assess-section" style={{ opacity: 1 }}>
+            <div className="sm2-assess-sec-hdr">
+              <span className="sm2-assess-sec-num">07</span>
+              <div><strong>Additional Details</strong><span className="sm2-assess-sec-meta">Mandatory fields</span></div>
             </div>
-            <div className="ti2-assess-form" style={{marginTop:12}}>
-              <div className="ti2-form-field"><label>Knowledge Marks (0–25)</label>
-                <input type="number" min={0} max={25} disabled={locked} value={f.knowledgeMarks} onChange={e=>setTMField(activeTmId,"knowledgeMarks",e.target.value)} placeholder="Enter MCQ marks"/></div>
-              <div className="ti2-form-field"><label>Alcoholic Status <span style={{color:"#dc2626"}}>*</span></label>
+            <div className="sm2-assess-form" style={{marginTop:12}}>
+              <div className="sm2-form-field">
+                <label>Knowledge Marks (MCQ Test)</label>
+                <input type="number" min={0} max={25} disabled={locked} value={knowledge} onChange={e=>{
+                  const val = e.target.value;
+                  setTMField(activeTmId,"knowledgeMarks",val);
+                }} placeholder="Synced MCQ marks" style={{ background: "#f1f5f9" }} readOnly/>
+              </div>
+              <div className="sm2-form-field">
+                <label>Alcoholic Status <span style={{color:"#dc2626"}}>*</span></label>
                 <select disabled={locked} value={f.alcoholicStatus} onChange={e=>setTMField(activeTmId,"alcoholicStatus",e.target.value)}>
-                  <option value="">Select…</option><option>Non-Alcoholic</option><option>Alcoholic</option>
-                </select></div>
-              <div className="ti2-form-field"><label>PME Status</label>
+                  <option value="">Select…</option>
+                  <option>Non-Alcoholic</option>
+                  <option>Alcoholic</option>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>PME Status</label>
                 <select disabled={locked} value={f.pmeStatus} onChange={e=>setTMField(activeTmId,"pmeStatus",e.target.value)}>
                   <option>Fit</option><option>Unfit</option><option>Pending</option>
-                </select></div>
-              <div className="ti2-form-field"><label>REF Status</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>REF Status</label>
                 <select disabled={locked} value={f.refStatus} onChange={e=>setTMField(activeTmId,"refStatus",e.target.value)}>
                   <option>Cleared</option><option>Pending</option><option>Failed</option>
-                </select></div>
-              <div className="ti2-form-field"><label>Counselling</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>Counselling</label>
                 <select disabled={locked} value={f.counselling} onChange={e=>setTMField(activeTmId,"counselling",e.target.value)}>
                   <option>Not Required</option><option>Recommended</option><option>Mandatory</option>
-                </select></div>
-              <div className="ti2-form-field"><label>Automatic Training</label>
+                </select>
+              </div>
+              <div className="sm2-form-field">
+                <label>Automatic Training</label>
                 <select disabled={locked} value={f.automaticTraining} onChange={e=>setTMField(activeTmId,"automaticTraining",e.target.value)}>
                   <option>Not Required</option><option>Recommended</option><option>Mandatory</option>
-                </select></div>
-              <div className="ti2-form-field" style={{gridColumn:"1/-1"}}>
+                </select>
+              </div>
+              <div className="sm2-form-field sm2-form-full" style={{gridColumn:"1/-1"}}>
                 <label>Remarks for AOM</label>
-                <textarea rows={3} disabled={locked} value={f.remarks} onChange={e=>setTMField(activeTmId,"remarks",e.target.value)} placeholder="Enter observations…"/>
+                <textarea rows={3} disabled={locked} value={f.remarks} onChange={e=>setTMField(activeTmId,"remarks",e.target.value)} placeholder="Enter observations, recommendations…"/>
               </div>
             </div>
           </div>
-          <div className="ti2-live-score">
+
+          {/* ── Live Score Bar ── */}
+          <div className="sm2-live-score" style={{ opacity: 1 }}>
+            <div><label>Knowledge (MCQ)</label><strong>{knowledge}/25</strong></div>
             <div><label>Yes/No Score</label><strong>{ynScore}/75</strong></div>
-            <div><label>Knowledge</label><strong>{knowledge}/25</strong></div>
             <div><label>Grand Total</label><strong style={{color:CAT_C[liveCat],fontSize:22}}>{total}/100</strong></div>
-            <div><label>Category</label><span className="ti2-badge" style={{background:CAT_B[liveCat],color:CAT_C[liveCat],fontSize:13,padding:"4px 14px"}}>Category {liveCat}</span></div>
+            <div><label>Category</label><span className="sm2-badge" style={{background:CAT_B[liveCat],color:CAT_C[liveCat],fontSize:13,padding:"4px 14px"}}>Category {liveCat}</span></div>
           </div>
+
           {locked && (
             <div style={{display:"flex",flexDirection:"column",gap:"10px",marginTop:"16px"}}>
-              <div className="ti2-locked-banner">✓ Assessment submitted. Pending AOM Approval.</div>
-              <button type="button" className="ti2-ghost-btn" style={{border:"1px solid #7c3aed",color:"#7c3aed"}} onClick={() => setTmLocked(p => ({...p,[activeTmId]:false}))}>
+              <div style={{ background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "12px", borderRadius: "8px", fontWeight: "700", fontSize: "13px", textAlign: "center" }}>
+                ✓ Assessment submitted. Pending AOM Approval.
+              </div>
+              <button type="button" className="sm2-ghost-btn" style={{border:"1px solid #7c3aed",color:"#7c3aed", padding: "10px", borderRadius: "8px", fontWeight: "700", background: "none", cursor: "pointer"}} onClick={() => setTmLocked(p => ({...p,[activeTmId]:false}))}>
                 <Edit size={14} style={{marginRight:6}}/> Unlock & Edit Assessment
               </button>
             </div>
           )}
           {!locked && (
-            <div className="ti2-review-actions">
-              <button className="ti2-primary-btn" onClick={() => submitTMAssessment(activeTmId)}>
-                <CheckCircle2 size={14}/> Submit for AOM Approval
-              </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                <button className="sm2-ghost-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer" }} onClick={() => {
+                  setTmForms(prev => ({
+                    ...prev,
+                    [activeTmId]: {
+                      ...f,
+                      knowledgeMarks: String(knowledge)
+                    }
+                  }));
+                  alert("Assessment saved as draft successfully!");
+                }}>Save as Draft</button>
+                <button className="sm2-primary-btn" style={{ padding: "10px 20px", borderRadius: "8px", fontWeight: "700", border: "none", background: "#2563eb", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }} onClick={() => {
+                  setTMField(activeTmId, "knowledgeMarks", String(knowledge));
+                  submitTMAssessment(activeTmId);
+                }}>
+                  <CheckCircle2 size={14}/> Submit for AOM Approval
+                </button>
+              </div>
             </div>
           )}
-        </div>
+        </section>
       );
     }
 
-    /* ─── LEVEL 2: Role-specific list views ─── */
-    const renderSMList = () => (
-      <div className="ti2-card animate-fade-in">
-        <div className="ti2-card-hdr">
-          <div>
-            <h2>Assessments — Station Masters</h2>
-            <p className="ti2-subtitle" style={{margin:"4px 0 0"}}>Station Masters pending assessment are listed below. Open the form to conduct a structured evaluation.</p>
+    // ─── LEVEL 2: Roster/List View Generic Render ───
+    const renderRoleRoster = (roleKey) => {
+      const config = {
+        SM: {
+          title: "Station Masters",
+          searchLabel: "Search Station Master",
+          colHeader: "STATION MASTER",
+          list: smList,
+          openForm: openSMForm,
+          sendAccess: handleSendExamAccess,
+          avatarBg: "#1e3a8a",
+          roleName: "Station Master",
+          rolePillBg: "#eff6ff",
+          rolePillColor: "#2563eb",
+        },
+        SS: {
+          title: "Station Superintendents",
+          searchLabel: "Search Station Superintendent",
+          colHeader: "STATION SUPERINTENDENT",
+          list: ssList,
+          openForm: openSSForm,
+          sendAccess: handleSendSSExamAccess,
+          avatarBg: "#1e3a8a",
+          roleName: "Station Superintendent",
+          rolePillBg: "#f5f3ff",
+          rolePillColor: "#7c3aed",
+        },
+        TM: {
+          title: "Train Managers",
+          searchLabel: "Search Train Manager",
+          colHeader: "TRAIN MANAGER",
+          list: tmList,
+          openForm: openTMForm,
+          sendAccess: handleSendTMExamAccess,
+          avatarBg: "#1e3a8a",
+          roleName: "Train Manager",
+          rolePillBg: "#f0fdf4",
+          rolePillColor: "#16a34a",
+        }
+      }[roleKey];
+
+      const totalStaff = config.list.length;
+      const pendingCount = config.list.filter(x => x.status === "Pending" || x.status === "Exam Sent").length;
+      const completedCount = config.list.filter(x => x.status === "Submitted" || x.status === "Exam Taken").length;
+      const rejectedCount = config.list.filter(x => x.status === "Rejected").length;
+      const lastUpdatedDate = "20 May 2026";
+
+      const stations = ["All", ...new Set(config.list.map(x => x.station))];
+
+      const filteredList = config.list.filter(item => {
+        const matchesSearch = rosterSearch === "" || 
+          item.name.toLowerCase().includes(rosterSearch.toLowerCase()) || 
+          item.hrmsId.toLowerCase().includes(rosterSearch.toLowerCase());
+        
+        const matchesStation = rosterStation === "All" || item.station === rosterStation;
+        const matchesStatus = rosterStatus === "All" || item.status === rosterStatus;
+        const matchesDate = rosterDate === "" || item.lastDate === rosterDate;
+        
+        return matchesSearch && matchesStation && matchesStatus && matchesDate;
+      });
+
+      const stationCodeMap = {
+        "Parbhani Junction": "PBN",
+        "Amla Junction": "AMLA",
+        "Badnera Junction": "BDN",
+        "Akola Junction": "AK",
+        "Nagpur Junction": "NGP",
+        "Wardha Junction": "WR",
+        "Betul Station": "BYT",
+        "Itarsi Junction": "ET",
+        "Chandrapur Station": "CD",
+        "Gondia Junction": "G",
+        "Dhamangaon Station": "DMN",
+        "Pulgaon Junction": "PLO"
+      };
+
+      return (
+        <div className="ti2-page-body animate-fade-in" style={{ padding: "24px", background: "#f8fafc", minHeight: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div>
+              <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "0 0 4px" }}>
+                Assessments — {config.title}
+              </h1>
+              <p style={{ margin: 0, fontSize: "14px", color: "#64748b", fontWeight: "500" }}>
+                {config.title} pending assessment are listed below. Open the form to conduct a structured evaluation.
+              </p>
+            </div>
+            <button 
+              onClick={() => { setAssessRole(null); setRosterSearch(""); setRosterStation("All"); setRosterStatus("All"); setRosterDate(""); }}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                fontWeight: "700",
+                color: "#334155",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer"
+              }}
+            >
+              ← Back to Roles
+            </button>
           </div>
-          <button className="ti2-link-btn" onClick={() => setAssessRole(null)}>â† Back to Roles</button>
-        </div>
-        <div className="ti2-table-wrap" style={{marginTop:"16px"}}>
-          <div className="ti2-pm-head" style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.5fr 1.2fr 1fr 1.3fr 2.5fr",gap:"12px",alignItems:"center",padding:"12px 18px",background:"#f8fafc",borderBottom:"1.5px solid #e2edf8",fontSize:"12px",fontWeight:"800",color:"#475569",textTransform:"uppercase",letterSpacing:"0.5px"}}>
-            <span>Station Master</span><span>HRMS ID</span><span>Station</span><span>Last Assessed</span><span>Score</span><span>Exam Status</span><span style={{textAlign:"right",paddingRight:"10px"}}>Action</span>
-          </div>
-          {smList.map(s => (
-            <div key={s.id} className="ti2-pm-data-row" style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.5fr 1.2fr 1fr 1.3fr 2.5fr",gap:"12px",alignItems:"center",padding:"14px 18px",borderBottom:"1px solid #f1f5f9",background:"#ffffff"}}>
-              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                <div className="ti2-pm-avatar" style={{width:32,height:32,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>{s.name.charAt(0)}</div>
-                <strong style={{color:"#0f172a",fontSize:"13px"}}>{s.name}</strong>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px", marginBottom: "24px" }}>
+            {[
+              { label: `Total ${config.title}`, value: totalStaff, subtitle: "In your jurisdiction", icon: Users, bg: "#f8fafc", color: "#475569", valColor: "#0f172a" },
+              { label: "Pending Assessments", value: pendingCount, subtitle: "Awaiting completion", icon: ClipboardList, bg: "#f8fafc", color: "#d97706", valColor: "#d97706" },
+              { label: "Completed This Month", value: completedCount, subtitle: "Assessments done", icon: Send, bg: "#f8fafc", color: "#16a34a", valColor: "#16a34a" },
+              { label: "Rejected", value: rejectedCount, subtitle: "Needs review", icon: AlertTriangle, bg: "#f8fafc", color: "#dc2626", valColor: "#dc2626" },
+              { label: "Last Updated", value: lastUpdatedDate, subtitle: "Recent activity", icon: Calendar, bg: "#f8fafc", color: "#64748b", valColor: "#0f172a" }
+            ].map((stat, idx) => (
+              <div 
+                key={idx}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px"
+                }}
+              >
+                <div style={{ width: "40px", height: "40px", borderRadius: "8px", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", color: stat.color, flexShrink: 0 }}>
+                  <stat.icon size={20} />
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+                    <span style={{ fontSize: "22px", fontWeight: "800", color: stat.valColor }}>{stat.value}</span>
+                  </div>
+                  <div style={{ fontSize: "12px", fontWeight: "700", color: "#334155", marginTop: "2px" }}>{stat.label}</div>
+                  <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "500", marginTop: "1px" }}>{stat.subtitle}</div>
+                </div>
               </div>
-              <span style={{fontSize:"13px",color:"#475569",fontWeight:"600"}}>{s.hrmsId}</span>
-              <span style={{fontSize:"13px",color:"#475569"}}>{s.station}</span>
-              <span style={{fontSize:"12px",color:"#64748b"}}>{s.lastDate}</span>
-              <span style={{fontSize:"13px",fontWeight:"800",color:"#0f172a"}}>{s.score ? `${s.score}/100` : "—"}</span>
-              <div><span className={`ti2-status-pill ti2-status-${s.status.toLowerCase().replace(/\s+/g,"-")}`} style={{...getStatusStyle(s.status),padding:"4px 10px",fontSize:"11px",fontWeight:"700"}}>{s.status}</span></div>
-              <div style={{display:"flex",gap:"8px",alignItems:"center",justifyContent:"flex-end"}}>
-                {s.status === "Pending" && (<>
-                  <button className="ti2-primary-btn-sm" style={{background:"#7c3aed",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>handleSendExamAccess(s.id)}>Send Access</button>
-                  <button className="ti2-primary-btn-sm" style={{background:"none",border:"1.5px solid #cbd5e1",color:"#475569",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSMForm(s.id)}>Open Form</button>
-                </>)}
-                {s.status === "Exam Sent" && (<>
-                  <span style={{fontSize:"11px",color:"#6b21a8",fontWeight:"800",background:"#f3e8ff",padding:"6px 10px",borderRadius:"8px",display:"flex",alignItems:"center",gap:"4px"}}><Clock size={12}/> Waiting for SM...</span>
-                  <button className="ti2-primary-btn-sm" style={{background:"none",border:"1.5px solid #cbd5e1",color:"#475569",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSMForm(s.id)}>Open Form</button>
-                </>)}
-                {s.status === "Exam Taken" && (
-                  <button className="ti2-primary-btn-sm" style={{background:"#16a34a",border:"none",color:"#fff",padding:"6px 16px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSMForm(s.id)}>Start Assessment</button>
-                )}
-                {s.status === "Submitted" && (<>
-                  <button className="ti2-primary-btn-sm" style={{background:"#2563eb",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSMForm(s.id)}>View Form</button>
-                  <button className="ti2-primary-btn-sm" style={{background:"#ea580c",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSMForm(s.id, true)}>Edit</button>
-                </>)}
+            ))}
+          </div>
+
+          <div 
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px",
+              padding: "20px",
+              marginBottom: "24px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+            }}
+          >
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr 1fr auto", gap: "16px", alignItems: "end" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>
+                  {config.searchLabel}
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Search size={14} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+                  <input 
+                    type="text"
+                    placeholder="Name or HRMS ID..."
+                    value={rosterSearch}
+                    onChange={(e) => setRosterSearch(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px 10px 36px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "13px",
+                      fontWeight: "500",
+                      color: "#0f172a",
+                      boxSizing: "border-box"
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>Station</label>
+                <select 
+                  value={rosterStation}
+                  onChange={(e) => setRosterStation(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    color: "#0f172a",
+                    boxSizing: "border-box"
+                  }}
+                >
+                  <option value="All">All Stations</option>
+                  {stations.filter(x => x !== "All").map(st => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>Exam Status</label>
+                <select 
+                  value={rosterStatus}
+                  onChange={(e) => setRosterStatus(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    color: "#0f172a",
+                    boxSizing: "border-box"
+                  }}
+                >
+                  <option value="All">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Exam Sent">Exam Sent</option>
+                  <option value="Exam Taken">Exam Taken</option>
+                  <option value="Submitted">Submitted</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "6px" }}>Last Assessed</label>
+                <div style={{ position: "relative" }}>
+                  <Calendar size={14} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+                  <input 
+                    type="date"
+                    value={rosterDate}
+                    onChange={(e) => setRosterDate(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 36px 10px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "13px",
+                      fontWeight: "500",
+                      color: "#0f172a",
+                      boxSizing: "border-box"
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button 
+                  onClick={() => { setRosterSearch(""); setRosterStation("All"); setRosterStatus("All"); setRosterDate(""); }}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    padding: "10px 16px",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    color: "#475569",
+                    cursor: "pointer"
+                  }}
+                >
+                  Reset
+                </button>
+                <button 
+                  style={{
+                    background: "#0f172a",
+                    border: "none",
+                    padding: "10px 20px",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer"
+                  }}
+                >
+                  <Filter size={14} /> Apply Filters
+                </button>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    );
+          </div>
 
-    const renderSSList = () => (
-      <div className="ti2-card animate-fade-in">
-        <div className="ti2-card-hdr">
-          <div>
-            <h2>Assessments — Station Superintendents</h2>
-            <p className="ti2-subtitle" style={{margin:"4px 0 0"}}>Station Superintendents pending assessment are listed below. Open the form to conduct a structured evaluation.</p>
-          </div>
-          <button className="ti2-link-btn" onClick={() => setAssessRole(null)}>â† Back to Roles</button>
-        </div>
-        <div className="ti2-table-wrap" style={{marginTop:"16px"}}>
-          <div className="ti2-pm-head" style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.5fr 1.2fr 1fr 1.3fr 2.5fr",gap:"12px",alignItems:"center",padding:"12px 18px",background:"#f8fafc",borderBottom:"1.5px solid #e2edf8",fontSize:"12px",fontWeight:"800",color:"#475569",textTransform:"uppercase",letterSpacing:"0.5px"}}>
-            <span>Superintendent</span><span>HRMS ID</span><span>Station</span><span>Last Assessed</span><span>Score</span><span>Exam Status</span><span style={{textAlign:"right",paddingRight:"10px"}}>Action</span>
-          </div>
-          {ssList.map(s => (
-            <div key={s.id} className="ti2-pm-data-row" style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.5fr 1.2fr 1fr 1.3fr 2.5fr",gap:"12px",alignItems:"center",padding:"14px 18px",borderBottom:"1px solid #f1f5f9",background:"#ffffff"}}>
-              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                <div className="ti2-pm-avatar" style={{width:32,height:32,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>{s.name.charAt(0)}</div>
-                <strong style={{color:"#0f172a",fontSize:"13px"}}>{s.name}</strong>
+          <div 
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "16px",
+              padding: "24px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+            }}
+          >
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1.5px solid #e2e8f0", background: "#f8fafc", textAlign: "left" }}>
+                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      {config.colHeader}
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>HRMS ID</th>
+                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>STATION</th>
+                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>LAST ASSESSED</th>
+                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>SCORE</th>
+                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>EXAM STATUS</th>
+                    <th style={{ padding: "12px 16px", fontSize: "11px", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", textAlign: "right" }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredList.map((item) => {
+                    const grade = item.score ? getCat(item.score) : "—";
+                    const isVingh = item.name.includes("Singh");
+                    const scale = isVingh || item.name.includes("Verma") || item.name.includes("Dubey") ? "Junior Scale" : "Senior Scale";
+                    
+                    const stationCode = stationCodeMap[item.station] || "STN";
+
+                    const examStatusBadgeStyle = (status) => {
+                      if (status === "Exam Sent") return { bg: "#f3e8ff", color: "#6b21a8" };
+                      if (status === "Exam Taken") return { bg: "#dcfce7", color: "#166534" };
+                      if (status === "Submitted") return { bg: "#dbeafe", color: "#2563eb" };
+                      if (status === "Rejected") return { bg: "#fee2e2", color: "#dc2626" };
+                      return { bg: "#f1f5f9", color: "#475569" };
+                    };
+
+                    const statusColors = examStatusBadgeStyle(item.status);
+
+                    return (
+                      <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: config.avatarBg, color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "14px" }}>
+                              {item.name.charAt(0)}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "14px" }}>{item.name}</div>
+                              <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "500", marginTop: "2px" }}>{scale}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#475569", fontWeight: "600", fontSize: "13px", fontFamily: "monospace" }}>
+                          {item.hrmsId}
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ color: "#334155", fontSize: "13px", fontWeight: "500" }}>{item.station}</span>
+                            <span style={{ background: "#eff6ff", color: "#2563eb", padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: "700" }}>
+                              {stationCode}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#64748b", fontSize: "13px", fontWeight: "500" }}>
+                          {item.lastDate || "—"}
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#0f172a", fontWeight: "800", fontSize: "14px" }}>
+                          {item.score ? `${item.score}/100` : "—"}
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ background: statusColors.bg, color: statusColors.color, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700" }}>
+                              {item.status}
+                            </span>
+                            {item.status === "Exam Sent" && (
+                              <span style={{ background: "#f3e8ff", color: "#6b21a8", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
+                                <Clock size={12} /> Waiting for {roleKey} Response
+                              </span>
+                            )}
+                            {item.status === "Rejected" && (
+                              <span style={{ background: "#fee2e2", color: "#dc2626", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
+                                <AlertTriangle size={12} /> Needs Review
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContext: "flex-end" }}>
+                            {item.status === "Pending" && (
+                              <>
+                                <button 
+                                  onClick={() => config.sendAccess(item.id)}
+                                  style={{
+                                    background: "#7c3aed",
+                                    border: "none",
+                                    color: "#ffffff",
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    cursor: "pointer",
+                                    fontWeight: "700",
+                                    fontSize: "12px"
+                                  }}
+                                >
+                                  Send Access
+                                </button>
+                                <button 
+                                  onClick={() => config.openForm(item.id)}
+                                  style={{
+                                    background: "#ffffff",
+                                    border: "1px solid #cbd5e1",
+                                    padding: "5px 12px",
+                                    borderRadius: "8px",
+                                    fontSize: "12px",
+                                    fontWeight: "700",
+                                    color: "#475569",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  Open Form <ExternalLink size={12} />
+                                </button>
+                              </>
+                            )}
+                            {item.status === "Exam Sent" && (
+                              <button 
+                                onClick={() => config.openForm(item.id)}
+                                style={{
+                                  background: "#ffffff",
+                                  border: "1px solid #cbd5e1",
+                                  padding: "5px 12px",
+                                  borderRadius: "8px",
+                                  fontSize: "12px",
+                                  fontWeight: "700",
+                                  color: "#475569",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                Open Form <ExternalLink size={12} />
+                              </button>
+                            )}
+                            {item.status === "Exam Taken" && (
+                              <button 
+                                onClick={() => config.openForm(item.id)}
+                                style={{
+                                  background: "#16a34a",
+                                  border: "none",
+                                  color: "#ffffff",
+                                  padding: "6px 16px",
+                                  borderRadius: "8px",
+                                  cursor: "pointer",
+                                  fontWeight: "700",
+                                  fontSize: "12px"
+                                }}
+                              >
+                                Start Assessment
+                              </button>
+                            )}
+                            {item.status === "Submitted" && (
+                              <>
+                                <button 
+                                  onClick={() => config.openForm(item.id)}
+                                  style={{
+                                    background: "#2563eb",
+                                    border: "none",
+                                    color: "#ffffff",
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    cursor: "pointer",
+                                    fontWeight: "700",
+                                    fontSize: "12px"
+                                  }}
+                                >
+                                  View Form
+                                </button>
+                                <button 
+                                  onClick={() => config.openForm(item.id, true)}
+                                  style={{
+                                    background: "#ea580c",
+                                    border: "none",
+                                    color: "#ffffff",
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    cursor: "pointer",
+                                    fontWeight: "700",
+                                    fontSize: "12px"
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                              </>
+                            )}
+                            {item.status === "Rejected" && (
+                              <button 
+                                onClick={() => config.openForm(item.id)}
+                                style={{
+                                  background: "#ffffff",
+                                  border: "1px solid #cbd5e1",
+                                  padding: "5px 12px",
+                                  borderRadius: "8px",
+                                  fontSize: "12px",
+                                  fontWeight: "700",
+                                  color: "#475569",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                Open Form <ExternalLink size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredList.length === 0 && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#64748b", fontSize: "14px", fontWeight: "500" }}>
+                        No {config.title.toLowerCase()} match your current filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", borderTop: "1px solid #f1f5f9", paddingTop: "16px" }}>
+              <div style={{ fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                Showing 1 to {filteredList.length} of {filteredList.length} entries
               </div>
-              <span style={{fontSize:"13px",color:"#475569",fontWeight:"600"}}>{s.hrmsId}</span>
-              <span style={{fontSize:"13px",color:"#475569"}}>{s.station}</span>
-              <span style={{fontSize:"12px",color:"#64748b"}}>{s.lastDate}</span>
-              <span style={{fontSize:"13px",fontWeight:"800",color:"#0f172a"}}>{s.score ? `${s.score}/100` : "—"}</span>
-              <div><span className={`ti2-status-pill ti2-status-${s.status.toLowerCase().replace(/\s+/g,"-")}`} style={{...getStatusStyle(s.status),padding:"4px 10px",fontSize:"11px",fontWeight:"700"}}>{s.status}</span></div>
-              <div style={{display:"flex",gap:"8px",alignItems:"center",justifyContent:"flex-end"}}>
-                {s.status === "Pending" && (<>
-                  <button className="ti2-primary-btn-sm" style={{background:"#7c3aed",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>handleSendSSExamAccess(s.id)}>Send Access</button>
-                  <button className="ti2-primary-btn-sm" style={{background:"none",border:"1.5px solid #cbd5e1",color:"#475569",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSSForm(s.id)}>Open Form</button>
-                </>)}
-                {s.status === "Exam Sent" && (<>
-                  <span style={{fontSize:"11px",color:"#6b21a8",fontWeight:"800",background:"#f3e8ff",padding:"6px 10px",borderRadius:"8px",display:"flex",alignItems:"center",gap:"4px"}}><Clock size={12}/> Waiting for SS...</span>
-                  <button className="ti2-primary-btn-sm" style={{background:"none",border:"1.5px solid #cbd5e1",color:"#475569",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSSForm(s.id)}>Open Form</button>
-                </>)}
-                {s.status === "Exam Taken" && (
-                  <button className="ti2-primary-btn-sm" style={{background:"#16a34a",border:"none",color:"#fff",padding:"6px 16px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSSForm(s.id)}>Start Assessment</button>
-                )}
-                {s.status === "Submitted" && (<>
-                  <button className="ti2-primary-btn-sm" style={{background:"#2563eb",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSSForm(s.id)}>View Form</button>
-                  <button className="ti2-primary-btn-sm" style={{background:"#ea580c",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openSSForm(s.id, true)}>Edit</button>
-                </>)}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <button 
+                  disabled
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#cbd5e1",
+                    cursor: "not-allowed"
+                  }}
+                >
+                  &lt;
+                </button>
+                <button 
+                  style={{
+                    background: "#0f172a",
+                    border: "none",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#ffffff",
+                    fontWeight: "700",
+                    fontSize: "13px"
+                  }}
+                >
+                  1
+                </button>
+                <button 
+                  disabled
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #cbd5e1",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#cbd5e1",
+                    cursor: "not-allowed"
+                  }}
+                >
+                  &gt;
+                </button>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    );
 
-    const renderTMList = () => (
-      <div className="ti2-card animate-fade-in">
-        <div className="ti2-card-hdr">
-          <div>
-            <h2>Assessments — Train Managers</h2>
-            <p className="ti2-subtitle" style={{margin:"4px 0 0"}}>Train Managers pending assessment are listed below. Open the form to conduct a structured evaluation.</p>
           </div>
-          <button className="ti2-link-btn" onClick={() => setAssessRole(null)}>â† Back to Roles</button>
-        </div>
-        <div className="ti2-table-wrap" style={{marginTop:"16px"}}>
-          <div className="ti2-pm-head" style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.5fr 1.2fr 1fr 1.3fr 2.5fr",gap:"12px",alignItems:"center",padding:"12px 18px",background:"#f8fafc",borderBottom:"1.5px solid #e2edf8",fontSize:"12px",fontWeight:"800",color:"#475569",textTransform:"uppercase",letterSpacing:"0.5px"}}>
-            <span>Train Manager</span><span>HRMS ID</span><span>Home Depot</span><span>Last Assessed</span><span>Score</span><span>Exam Status</span><span style={{textAlign:"right",paddingRight:"10px"}}>Action</span>
-          </div>
-          {tmList.map(t => (
-            <div key={t.id} className="ti2-pm-data-row" style={{display:"grid",gridTemplateColumns:"1.8fr 1fr 1.5fr 1.2fr 1fr 1.3fr 2.5fr",gap:"12px",alignItems:"center",padding:"14px 18px",borderBottom:"1px solid #f1f5f9",background:"#ffffff"}}>
-              <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                <div className="ti2-pm-avatar" style={{width:32,height:32,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>{t.name.charAt(0)}</div>
-                <strong style={{color:"#0f172a",fontSize:"13px"}}>{t.name}</strong>
-              </div>
-              <span style={{fontSize:"13px",color:"#475569",fontWeight:"600"}}>{t.hrmsId}</span>
-              <span style={{fontSize:"13px",color:"#475569"}}>{t.station}</span>
-              <span style={{fontSize:"12px",color:"#64748b"}}>{t.lastDate}</span>
-              <span style={{fontSize:"13px",fontWeight:"800",color:"#0f172a"}}>{t.score ? `${t.score}/100` : "—"}</span>
-              <div><span className={`ti2-status-pill ti2-status-${t.status.toLowerCase().replace(/\s+/g,"-")}`} style={{...getStatusStyle(t.status),padding:"4px 10px",fontSize:"11px",fontWeight:"700"}}>{t.status}</span></div>
-              <div style={{display:"flex",gap:"8px",alignItems:"center",justifyContent:"flex-end"}}>
-                {t.status === "Pending" && (<>
-                  <button className="ti2-primary-btn-sm" style={{background:"#7c3aed",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>handleSendTMExamAccess(t.id)}>Send Access</button>
-                  <button className="ti2-primary-btn-sm" style={{background:"none",border:"1.5px solid #cbd5e1",color:"#475569",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openTMForm(t.id)}>Open Form</button>
-                </>)}
-                {t.status === "Exam Sent" && (<>
-                  <span style={{fontSize:"11px",color:"#6b21a8",fontWeight:"800",background:"#f3e8ff",padding:"6px 10px",borderRadius:"8px",display:"flex",alignItems:"center",gap:"4px"}}><Clock size={12}/> Waiting for TM...</span>
-                  <button className="ti2-primary-btn-sm" style={{background:"none",border:"1.5px solid #cbd5e1",color:"#475569",padding:"5px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openTMForm(t.id)}>Open Form</button>
-                </>)}
-                {t.status === "Exam Taken" && (
-                  <button className="ti2-primary-btn-sm" style={{background:"#16a34a",border:"none",color:"#fff",padding:"6px 16px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openTMForm(t.id)}>Start Assessment</button>
-                )}
-                {t.status === "Submitted" && (<>
-                  <button className="ti2-primary-btn-sm" style={{background:"#2563eb",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openTMForm(t.id)}>View Form</button>
-                  <button className="ti2-primary-btn-sm" style={{background:"#ea580c",border:"none",color:"#fff",padding:"6px 12px",borderRadius:"8px",cursor:"pointer",fontWeight:"700",fontSize:"12px"}} onClick={()=>openTMForm(t.id, true)}>Edit</button>
-                </>)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
 
-    if (assessRole === "SM") return renderSMList();
-    if (assessRole === "SS") return renderSSList();
-    if (assessRole === "TM") return renderTMList();
+        </div>
+      );
+    };
 
-    /* ─── LEVEL 1: Role picker ─── */
+    if (assessRole === "SM") return renderRoleRoster("SM");
+    if (assessRole === "SS") return renderRoleRoster("SS");
+    if (assessRole === "TM") return renderRoleRoster("TM");
+
+    // ─── LEVEL 1: Role picker Redesign ───
     const smPending = smList.filter(s => s.status === "Pending" || s.status === "Exam Sent").length;
     const ssPending = ssList.filter(s => s.status === "Pending" || s.status === "Exam Sent").length;
     const tmPending = tmList.filter(t => t.status === "Pending" || t.status === "Exam Sent").length;
+
+    const smCompleted = smList.filter(s => s.status === "Submitted" || s.status === "Exam Taken").length;
+    const ssCompleted = ssList.filter(s => s.status === "Submitted" || s.status === "Exam Taken").length;
+    const tmCompleted = tmList.filter(t => t.status === "Submitted" || t.status === "Exam Taken").length;
 
     const roles = [
       {
         key: "SM",
         label: "Station Masters",
         icon: Building2,
-        color: "#2563eb",
-        bg: "#eff6ff",
-        border: "#bfdbfe",
         pending: smPending,
+        completed: smCompleted,
         total: smList.length,
-        desc: "Conduct structured field evaluations for Station Masters on safety compliance, rule knowledge, and administrative duties."
+        desc: "Conduct structured field evaluations for Station Masters on safety compliance, rule knowledge, administrative duties, and operational practices."
       },
       {
         key: "SS",
         label: "Station Superintendents",
         icon: UserCheck,
-        color: "#7c3aed",
-        bg: "#f5f3ff",
-        border: "#ddd6fe",
         pending: ssPending,
+        completed: ssCompleted,
         total: ssList.length,
         desc: "Evaluate Station Superintendents on operational supervision, staff management, safety compliance, and infrastructure upkeep."
       },
       {
         key: "TM",
         label: "Train Managers",
-        icon: BusFront,
-        color: "#16a34a",
-        bg: "#f0fdf4",
-        border: "#bbf7d0",
+        icon: Train,
         pending: tmPending,
+        completed: tmCompleted,
         total: tmList.length,
         desc: "Assess Train Managers on train safety, signaling compliance, shunting operations, documentation, and emergency protocols."
       }
     ];
 
     return (
-      <div className="ti2-card animate-fade-in">
-        <div className="ti2-card-hdr" style={{marginBottom:"8px"}}>
-          <div>
-            <h2>Assessments</h2>
-            <p className="ti2-subtitle" style={{margin:"4px 0 0"}}>Select a staff category to conduct structured competency assessments.</p>
-          </div>
+      <div className="ti2-page-body animate-fade-in" style={{ padding: "24px", background: "#f8fafc", minHeight: "100%" }}>
+        
+        {/* Title and Subtitle */}
+        <div style={{ marginBottom: "24px" }}>
+          <h1 style={{ fontSize: "28px", fontWeight: "800", color: "#0f172a", margin: "0 0 4px" }}>Assessments</h1>
+          <p style={{ margin: 0, fontSize: "14px", color: "#64748b", fontWeight: "500" }}>Select a staff category to conduct structured competency assessments.</p>
         </div>
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"20px",marginTop:"20px"}}>
+        {/* 3 Grid Cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", marginBottom: "24px" }}>
           {roles.map(role => (
-            <button
+            <div 
               key={role.key}
-              onClick={() => setAssessRole(role.key)}
               style={{
-                background: role.bg,
-                border: `2px solid ${role.border}`,
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
                 borderRadius: "16px",
-                padding: "28px 24px",
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "all 0.2s ease",
-                position: "relative",
-                overflow: "hidden"
+                padding: "24px",
+                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                position: "relative"
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${role.color}22`; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
             >
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}}>
-                <div style={{width:48,height:48,borderRadius:"12px",background:role.color,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <role.icon size={24} color="#fff"/>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffffff" }}>
+                    <role.icon size={22} style={{ margin: "auto" }} />
+                  </div>
+                  {role.pending > 0 && (
+                    <span style={{ background: "#fee2e2", color: "#dc2626", borderRadius: "999px", fontSize: "11px", fontWeight: "800", padding: "4px 12px" }}>
+                      {role.pending} Pending
+                    </span>
+                  )}
                 </div>
-                {role.pending > 0 && (
-                  <span style={{background:"#dc2626",color:"#fff",borderRadius:"999px",fontSize:"11px",fontWeight:"800",padding:"3px 10px",minWidth:24,textAlign:"center"}}>
-                    {role.pending} pending
-                  </span>
-                )}
-              </div>
-              <h3 style={{margin:"0 0 6px",fontSize:"17px",fontWeight:"800",color:"#0f172a"}}>{role.label}</h3>
-              <p style={{margin:"0 0 16px",fontSize:"12.5px",color:"#475569",lineHeight:"1.5"}}>{role.desc}</p>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <span style={{fontSize:"12px",color:"#64748b"}}>{role.total} personnel on roster</span>
-                <span style={{fontSize:"13px",fontWeight:"700",color:role.color,display:"flex",alignItems:"center",gap:"4px"}}>
-                  Open <ChevronRight size={16}/>
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
 
-        {/* Quick stats strip */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"14px",marginTop:"24px",padding:"18px",background:"#f8fafc",borderRadius:"12px",border:"1px solid #e2e8f0"}}>
-          {[
-            { label:"Total Personnel", value: smList.length + ssList.length + tmList.length },
-            { label:"Pending Assessments", value: smPending + ssPending + tmPending, color:"#dc2626" },
-            { label:"Submitted This Month", value: [...smList,...ssList,...tmList].filter(x=>x.status==="Submitted").length, color:"#16a34a" }
-          ].map((stat,i) => (
-            <div key={i} style={{textAlign:"center"}}>
-              <div style={{fontSize:"26px",fontWeight:"800",color:stat.color||"#0f172a"}}>{stat.value}</div>
-              <div style={{fontSize:"11px",color:"#64748b",fontWeight:"600",textTransform:"uppercase",letterSpacing:"0.5px"}}>{stat.label}</div>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>{role.label}</h3>
+                <p style={{ margin: "0 0 24px 0", fontSize: "13px", color: "#475569", lineHeight: "1.5", minHeight: "60px" }}>{role.desc}</p>
+              </div>
+
+              <div>
+                {/* Stats grid inside card */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderTop: "1px solid #f1f5f9", paddingTop: "16px", marginBottom: "16px", textAlign: "center" }}>
+                  <div style={{ borderRight: "1px solid #f1f5f9" }}>
+                    <div style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>{role.total}</div>
+                    <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "600", marginTop: "2px" }}>Total Staff</div>
+                  </div>
+                  <div style={{ borderRight: "1px solid #f1f5f9" }}>
+                    <div style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>{role.completed}</div>
+                    <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "600", marginTop: "2px" }}>Completed</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "16px", fontWeight: "800", color: "#0f172a" }}>{role.pending}</div>
+                    <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "600", marginTop: "2px" }}>Pending</div>
+                  </div>
+                </div>
+
+                {/* Open button */}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button 
+                    onClick={() => setAssessRole(role.key)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#2563eb",
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "4px 8px"
+                    }}
+                  >
+                    Open <span style={{ transition: "transform 0.2s" }} className="open-arrow">→</span>
+                  </button>
+                </div>
+              </div>
+
             </div>
           ))}
         </div>
+
+        {/* Quick Stats Strip (5 Columns) */}
+        <div 
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "16px",
+            background: "#ffffff",
+            padding: "20px",
+            borderRadius: "16px",
+            border: "1px solid #e2e8f0",
+            marginBottom: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+          }}
+        >
+          {[
+            { label: "Total Personnel", value: smList.length + ssList.length + tmList.length, icon: Users, bg: "#f1f5f9", iconColor: "#475569", valColor: "#0f172a" },
+            { label: "Pending Assessments", value: smPending + ssPending + tmPending, icon: ClipboardList, bg: "#fee2e2", iconColor: "#dc2626", valColor: "#dc2626" },
+            { label: "Completed Assessments", value: smCompleted + ssCompleted + tmCompleted, icon: CheckCircle2, bg: "#dcfce7", iconColor: "#16a34a", valColor: "#16a34a" },
+            { label: "Submitted This Month", value: 2, icon: Send, bg: "#dbeafe", iconColor: "#2563eb", valColor: "#2563eb" },
+            { label: "Current Assessment Cycle", value: "May 2026", icon: Calendar, bg: "#f1f5f9", iconColor: "#475569", valColor: "#0f172a" }
+          ].map((stat, idx) => (
+            <div 
+              key={idx}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                borderRight: idx < 4 ? "1px solid #e2e8f0" : "none",
+                paddingRight: "16px"
+              }}
+            >
+              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: stat.bg, display: "flex", alignItems: "center", justifyContent: "center", color: stat.iconColor, flexShrink: 0 }}>
+                <stat.icon size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: "20px", fontWeight: "800", color: stat.valColor, lineHeight: 1.1 }}>{stat.value}</div>
+                <div style={{ fontSize: "11px", color: "#64748b", fontWeight: "700", marginTop: "2px", textTransform: "uppercase", letterSpacing: "0.2px", lineHeight: "1.2" }}>{stat.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Recent Assessments Card */}
+        <div 
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "16px",
+            padding: "24px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div>
+              <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: "0 0 4px 0" }}>Recent Assessments</h2>
+              <p style={{ margin: 0, fontSize: "13px", color: "#64748b", fontWeight: "500" }}>Latest assessment activities across all categories</p>
+            </div>
+            <button 
+              type="button"
+              onClick={() => alert("Redirecting to full assessment ledger...")}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #cbd5e1",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: "700",
+                color: "#334155",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer"
+              }}
+            >
+              <ClipboardList size={14} /> View All Assessments
+            </button>
+          </div>
+
+          {/* Table */}
+          <div className="sdom-table-wrap" style={{ overflowX: "auto" }}>
+            <table className="sdom-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1.5px solid #e2e8f0", background: "#f8fafc", textAlign: "left" }}>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Staff Name</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Category</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Assessment Type</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Status</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Assessed By</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700" }}>Date</th>
+                  <th style={{ padding: "12px 16px", fontSize: "12px", color: "#475569", fontWeight: "700", textAlign: "right" }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { name: "R. Khan", role: "Station Master", type: "Field Evaluation", status: "Pending", by: "TI PAR", date: "09 May 2026" },
+                  { name: "A. Kulkarni", role: "Station Superintendent", type: "Operational Review", status: "Pending", by: "TI AMLA", date: "08 May 2026" },
+                  { name: "S. Verma", role: "Train Manager", type: "Safety & Compliance", status: "Completed", by: "TI NGP", date: "07 May 2026" },
+                  { name: "P. Sharma", role: "Station Master", type: "Field Evaluation", status: "Pending", by: "TI PAR", date: "06 May 2026" },
+                  { name: "M. Joshi", role: "Train Manager", type: "Documentation Audit", status: "Pending", by: "TI AMLA", date: "05 May 2026" }
+                ].map((row, idx) => {
+                  const roleColors = {
+                    "Station Master": { bg: "#eff6ff", color: "#2563eb" },
+                    "Station Superintendent": { bg: "#f5f3ff", color: "#7c3aed" },
+                    "Train Manager": { bg: "#f0fdf4", color: "#16a34a" }
+                  }[row.role] || { bg: "#f1f5f9", color: "#475569" };
+
+                  const statusColors = {
+                    "Completed": { bg: "#dcfce7", color: "#16a34a" },
+                    "Pending": { bg: "#fee2e2", color: "#dc2626" }
+                  }[row.status] || { bg: "#f1f5f9", color: "#475569" };
+
+                  return (
+                    <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "14px 16px", fontWeight: "700", color: "#0f172a" }}>{row.name}</td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{ background: roleColors.bg, color: roleColors.color, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700" }}>
+                          {row.role}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", color: "#334155", fontSize: "13px", fontWeight: "500" }}>{row.type}</td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{ background: statusColors.bg, color: statusColors.color, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "700" }}>
+                          {row.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", color: "#475569", fontSize: "13px", fontWeight: "600" }}>{row.by}</td>
+                      <td style={{ padding: "14px 16px", color: "#64748b", fontSize: "13px" }}>{row.date}</td>
+                      <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                        <button 
+                          type="button"
+                          onClick={() => alert(`Viewing details of assessment for ${row.name}...`)}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #cbd5e1",
+                            padding: "5px 12px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            color: "#475569",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          <Eye size={12} /> View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     );
   };
@@ -5727,9 +7534,9 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     );
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      RENDER: CONTENT ROUTER
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   const renderContent = ()=>{
     switch(activePage){
       case "dashboard":    return renderDashboard();
@@ -5751,9 +7558,9 @@ export default function TrafficInspectorModule({ user, onLogout }) {
     }
   };
 
-  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  /* ═══════════════════════════════════════════
      SHELL LAYOUT
-  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+  ═══════════════════════════════════════════ */
   return (
     <div className="ti2-layout">
       

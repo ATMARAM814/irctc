@@ -51,7 +51,7 @@ import "./sdom.css";
 const navItems = [
   { key: "dashboard",    label: "Dashboard",     icon: Gauge },
   { key: "myAssessment", label: "My Assessment",  icon: FileBarChart2 },
-  { key: "profile",      label: "Profile",        icon: UserCircle2 }
+  { key: "profile",      label: "My Profile",     icon: UserCircle2 }
 ];
 
 /* ─── Static profile data with requested fields ─── */

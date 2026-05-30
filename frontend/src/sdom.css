@@ -47,11 +47,18 @@
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
-  --font-ui: 'Poppins', 'Segoe UI', sans-serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ── RESET ──────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── RESET & TYPOGRAPHY OVERRIDES ───────────────────── */
+*, *::before, *::after { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
 
 /* ── APP SHELL ──────────────────────────────────────── */
 .sdom-app-layout {
@@ -62,6 +69,7 @@
   background: var(--bg-page);
   font-family: var(--font-ui);
   color: var(--text-primary);
+  letter-spacing: -0.011em;
 }
 
 /* ── TOPBAR ─────────────────────────────────────────── */
@@ -961,4 +969,68 @@
   .sdom-overview-cards     { grid-template-columns: repeat(3, 1fr); }
   .sdom-report-grid        { grid-template-columns: repeat(3, 1fr); }
   .sdom-pipeline-row       { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── PREMIUM SAAS TYPOGRAPHY OVERRIDES ───────────────── */
+h1, h2, h3, h4, h5, h6,
+.sdom-page-title,
+.sdom-section-title,
+.sdom-chart-title,
+.sdom-station-hero-name {
+  font-weight: 600 !important;
+  letter-spacing: -0.022em !important;
+}
+
+.sdom-stat-value,
+.sdom-overview-card-val,
+.sdom-station-hero-stat .val,
+.sdom-station-header-stat .val,
+.sdom-compliance-pct,
+.sdom-topbar-logo {
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.sdom-topbar-title,
+.sdom-topbar-avatar,
+.sdom-sidebar-section-label,
+.sdom-stat-label,
+.sdom-overview-card-lbl,
+.sdom-filter-field label,
+.sdom-badge,
+.sdom-table th,
+.sdom-timeline-dot,
+.sdom-report-cat-title {
+  font-weight: 500 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+}
+
+.sdom-topbar-user-name,
+.sdom-logout-btn,
+.sdom-nav-btn.active,
+.sdom-btn-primary,
+.sdom-btn-outline,
+.sdom-btn-ghost,
+.sdom-back-btn,
+.sdom-compliance-header,
+.sdom-timeline-label,
+.sdom-station-hero-stat .lbl,
+.sdom-station-header-stat .lbl {
+  font-weight: 500 !important;
+}
+
+.sdom-page-subtitle,
+.sdom-chart-subtitle,
+.sdom-topbar-sub,
+.sdom-topbar-user-role,
+.sdom-stat-sub {
+  color: var(--text-secondary) !important;
+  opacity: 0.85;
+  font-weight: 400 !important;
+}
+
+body, p, span, td, li, select, input, textarea {
+  font-weight: 400 !important;
+  line-height: 1.5;
 }
