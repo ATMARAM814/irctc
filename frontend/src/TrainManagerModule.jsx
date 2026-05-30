@@ -2537,6 +2537,7 @@ function TrainManagerModule({ user, onLogout }) {
   ═══════════════════════════════════════ */
   return (
     <div className={`pm-layout ${emergencyActive ? "emergency-glow-active" : ""}`}>
+      <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
       
       {/* ── Flashing Emergency Alert Banner ── */}
       {emergencyActive && (
@@ -2558,6 +2559,7 @@ function TrainManagerModule({ user, onLogout }) {
       )}
 
       <header className="pm-topbar">
+        <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-toggle-btn"></label>
         <div className="pm-topbar-brand">
           <div className="pm-topbar-logo">IR</div>
           <div>

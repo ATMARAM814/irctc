@@ -7563,9 +7563,10 @@ export default function TrafficInspectorModule({ user, onLogout }) {
   ═══════════════════════════════════════════ */
   return (
     <div className="ti2-layout">
-      
+      <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
       {/* Top Navigation Header */}
       <header className="ti2-topbar">
+        <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-toggle-btn"></label>
         <div className="ti2-topbar-brand">
           <div className="ti2-topbar-logo">IR</div>
           <div>

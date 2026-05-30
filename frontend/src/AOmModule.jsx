@@ -11140,7 +11140,9 @@ function AOmModule({ user, onLogout }) {
 
   return (
     <div className="app-shell">
+      <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
       <header className="topbar">
+        <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-toggle-btn"></label>
         <div className="brand-group">
           <div className="brand-mark">IR</div>
           <h1>Indian Railway Evaluation System</h1>

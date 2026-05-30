@@ -3462,7 +3462,9 @@ function StationMasterModule({ user, onLogout }) {
   /* ─── Shell ─── */
   return (
     <div className="sm2-layout">
+      <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
       <header className="sm2-topbar">
+        <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-toggle-btn"></label>
         <div className="sm2-topbar-brand">
           <div className="sm2-topbar-logo" style={{ background: "#1E3A5F", color: "#ffffff", fontWeight: "800", fontSize: "0.95rem" }}>IR</div>
           <div>

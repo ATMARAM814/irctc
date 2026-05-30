@@ -2806,8 +2806,10 @@ export default function SuperAdminModule({ user, onLogout }) {
   /* ── RENDER ── */
   return (
     <div className="sdom-app-layout">
+      <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
       {/* Topbar */}
       <header className="sdom-topbar-fixed">
+        <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-toggle-btn"></label>
         <div className="sdom-topbar-brand">
           <div className="sdom-topbar-logo">IR</div>
           <div>
