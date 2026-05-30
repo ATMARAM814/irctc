@@ -2538,6 +2538,7 @@ function TrainManagerModule({ user, onLogout }) {
   return (
     <div className={`pm-layout ${emergencyActive ? "emergency-glow-active" : ""}`}>
       <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
+      <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-close-backdrop"></label>
       
       {/* ── Flashing Emergency Alert Banner ── */}
       {emergencyActive && (

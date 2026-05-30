@@ -10394,6 +10394,17 @@ body, p, span, td, li, select, input, textarea, div {
    COMPREHENSIVE RESPONSIVE AND ADAPTIVE MOBILE LAYOUTS
    ============================================================= */
 
+/* ── STRICT GLOBAL SCROLL CONSTRAINTS ── */
+html, body, #root {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+*, *:before, *:after {
+  box-sizing: border-box !important;
+}
+
 /* ── SBAR CHECKBOX HIDE ── */
 .sdom-sidebar-checkbox {
   display: none !important;
@@ -10401,6 +10412,11 @@ body, p, span, td, li, select, input, textarea, div {
 
 /* ── HAMBURGER TOGGLE BUTTON STYLE ── */
 .sdom-sidebar-toggle-btn {
+  display: none;
+}
+
+/* ── DISMISSIBLE BACKDROP OVERLAY ── */
+.sdom-sidebar-close-backdrop {
   display: none;
 }
 
@@ -10455,7 +10471,8 @@ body, p, span, td, li, select, input, textarea, div {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: 10px 0 30px rgba(15, 23, 42, 0.2) !important;
     padding-top: 75px !important;
-    width: 260px !important;
+    width: 80% !important;
+    max-width: 300px !important;
     background: #0B1F3A !important;
     overflow-y: auto !important;
     display: flex !important;
@@ -10477,20 +10494,16 @@ body, p, span, td, li, select, input, textarea, div {
     transform: translateX(0) !important;
   }
 
-  /* ── DRAWER BLUR BACKDROP OVERLAY ── */
-  #sdom-sidebar-toggle:checked ~ .layout-grid::before,
-  #sdom-sidebar-toggle:checked ~ .sdom-body-layout::before,
-  #sdom-sidebar-toggle:checked ~ .pm-content-shell::before,
-  #sdom-sidebar-toggle:checked ~ .sm2-shell::before,
-  #sdom-sidebar-toggle:checked ~ .ti2-shell::before {
-    content: "" !important;
+  /* ── DRAWER DISMISSIBLE BACKDROP OVERLAY ── */
+  #sdom-sidebar-toggle:checked ~ .sdom-sidebar-close-backdrop {
+    display: block !important;
     position: fixed !important;
     inset: 0 !important;
     background: rgba(15, 23, 42, 0.4) !important;
     backdrop-filter: blur(4px) !important;
     -webkit-backdrop-filter: blur(4px) !important;
     z-index: 9998 !important;
-    pointer-events: auto !important;
+    cursor: pointer !important;
     animation: sdomFadeIn 0.2s ease both !important;
   }
 
@@ -10513,15 +10526,15 @@ body, p, span, td, li, select, input, textarea, div {
 
   /* ── TABLET GRID ADJUSTMENTS ── */
   .sdom-summary-cards {
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
   }
   .sdom-overview-cards {
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
   }
   .sdom-report-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
   }
   .sdom-pipeline-row {
@@ -10650,7 +10663,8 @@ body, p, span, td, li, select, input, textarea, div {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
+  /* ── SMARTPHONE ULTRA RESPONSIVE STACKING ── */
   .sdom-summary-cards {
     grid-template-columns: 1fr !important;
   }

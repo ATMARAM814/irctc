@@ -3463,6 +3463,7 @@ function StationMasterModule({ user, onLogout }) {
   return (
     <div className="sm2-layout">
       <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
+      <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-close-backdrop"></label>
       <header className="sm2-topbar">
         <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-toggle-btn"></label>
         <div className="sm2-topbar-brand">

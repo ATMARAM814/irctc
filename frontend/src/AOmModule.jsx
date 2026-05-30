@@ -11141,6 +11141,7 @@ function AOmModule({ user, onLogout }) {
   return (
     <div className="app-shell">
       <input type="checkbox" id="sdom-sidebar-toggle" className="sdom-sidebar-checkbox" style={{ display: "none" }} />
+      <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-close-backdrop"></label>
       <header className="topbar">
         <label htmlFor="sdom-sidebar-toggle" className="sdom-sidebar-toggle-btn"></label>
         <div className="brand-group">
